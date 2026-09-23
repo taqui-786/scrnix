@@ -1,0 +1,22 @@
+{
+	"$schema": "https://schema.tauri.app/config/2",
+	"productName": "Scrinx",
+	"mainBinaryName": "scrinx",
+	"identifier": "com.scrinx.desktop",
+	"build": {
+		"beforeBundleCommand": "node scripts/prodBeforeBundle.js"
+	},
+	"plugins": {
+		"updater": { "active": false, "pubkey": "" }
+	},
+	"bundle": {
+		"macOS": {
+			"entitlements": "Entitlements.plist"
+		},
+		"windows": {
+			"wix": {
+				"upgradeCode": "a765d9de-0ecc-55d0-b8a0-61e9d3276664"
+			}
+		}
+	}
+}

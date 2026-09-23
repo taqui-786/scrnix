@@ -1,0 +1,31 @@
+{
+	"$schema": "https://turbo.build/schema.json",
+	"globalDependencies": [".env", ".env"],
+	"globalEnv": ["*"],
+	"tasks": {
+		"build": {
+			"inputs": ["**/*.ts", "**/*.tsx", "!src-tauri/**", "!node_modules/**"],
+			"dependsOn": ["^build"],
+			"outputs": ["dist/**"]
+		},
+		"@scrinx/desktop#build": {
+			"dependsOn": ["^build"],
+			"outputs": [".output/**"]
+		},
+		"@scrinx/web#build": {
+			"dependsOn": ["^build"],
+			"outputs": [".next/**", "!.next/cache/**"]
+		},
+		"lint": {
+			"cache": false
+		},
+		"dev": {
+			"cache": false,
+			"persistent": true
+		},
+		"test": {
+			"inputs": ["**/*.ts", "**/*.tsx", "!node_modules/**"],
+			"cache": false
+		}
+	}
+}
