@@ -57,7 +57,6 @@ import {
 	type Ratio,
 } from "~/components/Cropper";
 import ModeSelect from "~/components/ModeSelect";
-import SelectionHint from "~/components/selection-hint";
 import {
 	authStore,
 	generalSettingsStore,
@@ -212,6 +211,24 @@ function Inner() {
 	);
 
 	onMount(() => {
+		document.documentElement.setAttribute("data-transparent-window", "true");
+		document.documentElement.style.setProperty(
+			"background",
+			"transparent",
+			"important",
+		);
+		document.documentElement.style.setProperty(
+			"background-color",
+			"transparent",
+			"important",
+		);
+		document.body.style.setProperty("background", "transparent", "important");
+		document.body.style.setProperty(
+			"background-color",
+			"transparent",
+			"important",
+		);
+
 		if (params.targetMode) {
 			setOptions("targetMode", params.targetMode);
 		}
@@ -851,12 +868,6 @@ function Inner() {
 					const shouldShowOverlay = createMemo(
 						() => isInteracting() || isActiveDisplay(),
 					);
-					const shouldShowSelectionHint = createMemo(() => {
-						if (effectiveInitialAreaBounds() !== undefined) return false;
-						if (!isActiveDisplay()) return false;
-						const bounds = crop();
-						return bounds.width <= 1 && bounds.height <= 1 && !isInteracting();
-					});
 
 					const isValid = createMemo(() => {
 						const b = crop();
@@ -1315,7 +1326,7 @@ function Inner() {
 
 					return (
 						<div
-							class="fixed w-screen h-screen"
+							class="fixed w-screen h-screen bg-transparent"
 							classList={{
 								"opacity-0 pointer-events-none": !shouldShowOverlay(),
 							}}
@@ -1485,8 +1496,6 @@ function Inner() {
 									</Show>
 								</div>
 							</div>
-
-							<SelectionHint show={shouldShowSelectionHint()} />
 
 							<Cropper
 								ref={cropperRef}

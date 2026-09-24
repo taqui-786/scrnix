@@ -1927,7 +1927,7 @@ impl ShowCapWindow {
 
                 let window = self
                     .window_builder(app, "/")
-                    .resizable(false)
+                    .resizable(true)
                     .maximized(false)
                     .maximizable(false)
                     .minimizable(false)
@@ -1939,7 +1939,17 @@ impl ShowCapWindow {
                     .initialization_script(format!(
                         "
                         window.__CAP__ = window.__CAP__ ?? {{}};
-                        window.__CAP__.initialTargetMode = {}
+                        window.__CAP__.initialTargetMode = {};
+                        (function(){{
+                            document.documentElement.setAttribute('data-transparent-window', 'true');
+                            var s = document.createElement('style');
+                            s.textContent = 'html, body, #app {{ background: transparent !important; background-color: transparent !important; }}';
+                            if (document.head) {{
+                                document.head.appendChild(s);
+                            }} else if (document.documentElement) {{
+                                document.documentElement.appendChild(s);
+                            }}
+                        }})();
                     ",
                         serde_json::to_string(init_target_mode)
                             .expect("Failed to serialize initial target mode")
@@ -1951,7 +1961,9 @@ impl ShowCapWindow {
                     .ok()
                     .flatten()
                     .and_then(|s| s.main_window_position)
-                    .filter(|pos| is_position_on_any_screen(pos.x, pos.y));
+                    .filter(|pos| {
+                        is_position_on_any_screen(pos.x, pos.y) && (pos.x > 5.0 || pos.y > 5.0)
+                    });
 
                 let main_position = if let Some(pos) = saved_position {
                     match display_for_saved_position(pos.x, pos.y, pos.display_id.as_ref()) {
@@ -1961,7 +1973,10 @@ impl ShowCapWindow {
                         None => tauri::Position::Logical(tauri::LogicalPosition::new(pos.x, pos.y)),
                     }
                 } else {
-                    let (pos_x, pos_y) = cursor_monitor.center_position(330.0, 395.0);
+                    let (pos_x, pos_y) = cursor_monitor.center_position(
+                        crate::main_window_geometry::SIZE.0,
+                        crate::main_window_geometry::SIZE.1,
+                    );
                     cursor_monitor.position(pos_x, pos_y)
                 };
 
@@ -2018,7 +2033,10 @@ impl ShowCapWindow {
 
                     #[cfg(windows)]
                     {
-                        if let Err(e) = window.set_size(LogicalSize::new(330.0, 395.0)) {
+                        if let Err(e) = window.set_size(LogicalSize::new(
+                            crate::main_window_geometry::SIZE.0,
+                            crate::main_window_geometry::SIZE.1,
+                        )) {
                             warn!("Failed to set Main window size on Windows: {}", e);
                         }
                         if let Err(e) = window.set_position(main_position) {
@@ -3456,6 +3474,10 @@ impl ShowCapWindow {
                 };
                 builder = builder.background_color(native_bg);
             }
+        } else {
+            builder = builder.transparent(true);
+            let init_script = r#"(function(){document.documentElement.setAttribute('data-transparent-window','true');var s=document.createElement('style');s.textContent='html,body,#app{background:transparent !important;background-color:transparent !important;}';if(document.head){document.head.appendChild(s);}else if(document.documentElement){document.documentElement.appendChild(s);}})();"#;
+            builder = builder.initialization_script(init_script);
         }
 
         if let Some(min) = id.min_size() {

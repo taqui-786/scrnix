@@ -207,6 +207,45 @@ function Inner() {
 							}
 						});
 
+						createEffect(() => {
+							const path = location.pathname;
+							const isTransparent =
+								path === "/" ||
+								path.startsWith("/target-select-overlay") ||
+								path.startsWith("/capture-area") ||
+								path.startsWith("/window-capture-occluder") ||
+								path.startsWith("/recordings-overlay") ||
+								path.startsWith("/in-progress-recording") ||
+								path.startsWith("/teleprompter");
+
+							if (isTransparent) {
+								document.documentElement.setAttribute(
+									"data-transparent-window",
+									"true",
+								);
+								document.documentElement.style.setProperty(
+									"background",
+									"transparent",
+									"important",
+								);
+								document.documentElement.style.setProperty(
+									"background-color",
+									"transparent",
+									"important",
+								);
+								document.body.style.setProperty(
+									"background",
+									"transparent",
+									"important",
+								);
+								document.body.style.setProperty(
+									"background-color",
+									"transparent",
+									"important",
+								);
+							}
+						});
+
 						return <Suspense fallback={null}>{props.children}</Suspense>;
 					}}
 				>

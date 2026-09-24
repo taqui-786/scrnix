@@ -1,9 +1,29 @@
 import { getAllWindows } from "@tauri-apps/api/window";
-import { Show, Suspense } from "solid-js";
+import { onMount, Show, Suspense } from "solid-js";
 import { isCameraWindowLabel } from "~/utils/camera-window";
 import { createCurrentRecordingQuery } from "~/utils/queries";
 
 export default function () {
+	onMount(() => {
+		document.documentElement.setAttribute("data-transparent-window", "true");
+		document.documentElement.style.setProperty(
+			"background",
+			"transparent",
+			"important",
+		);
+		document.documentElement.style.setProperty(
+			"background-color",
+			"transparent",
+			"important",
+		);
+		document.body.style.setProperty("background", "transparent", "important");
+		document.body.style.setProperty(
+			"background-color",
+			"transparent",
+			"important",
+		);
+	});
+
 	const currentRecording = createCurrentRecordingQuery();
 
 	getAllWindows().then((w) =>

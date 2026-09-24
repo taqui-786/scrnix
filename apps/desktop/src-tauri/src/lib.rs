@@ -7762,6 +7762,10 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: PathBuf) {
                                     .unwrap_or_else(|| window.scale_factor().unwrap_or(1.0));
                                 let logical_pos =
                                     constrained_position.to_logical::<f64>(scale_factor);
+                                #[cfg(target_os = "linux")]
+                                if logical_pos.x <= 5.0 && logical_pos.y <= 5.0 {
+                                    return;
+                                }
                                 let display_id = display_for_position(logical_pos.x, logical_pos.y)
                                     .map(|display| display.id());
                                 window_position_persistence::queue_main_position(
@@ -7796,6 +7800,10 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: PathBuf) {
 
                         match window_id {
                             CapWindowId::Main => {
+                                #[cfg(target_os = "linux")]
+                                if logical_pos.x <= 5.0 && logical_pos.y <= 5.0 {
+                                    return;
+                                }
                                 let display_id =
                                     moved_display.as_ref().map(|display| display.id());
                                 window_position_persistence::queue_main_position(
@@ -7900,9 +7908,7 @@ fn handle_single_instance(app: &AppHandle, args: Vec<String>) {
 
     let action_urls = args
         .iter()
-        .filter(|arg| {
-            arg.starts_with("scrinx-desktop://") || arg.starts_with("cap-desktop://")
-        })
+        .filter(|arg| arg.starts_with("scrinx-desktop://") || arg.starts_with("cap-desktop://"))
         .filter_map(|arg| tauri::Url::parse(arg).ok())
         .collect::<Vec<_>>();
     if !action_urls.is_empty() {

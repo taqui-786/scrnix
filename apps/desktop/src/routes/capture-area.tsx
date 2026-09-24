@@ -19,7 +19,6 @@ import {
 	createCropOptionsMenuItems,
 	type Ratio,
 } from "~/components/Cropper";
-import SelectionHint from "~/components/selection-hint";
 import { createOptionsQuery } from "~/utils/queries";
 import type { DisplayId } from "~/utils/tauri";
 import { emitTo } from "~/utils/tauriSpectaHack";
@@ -35,6 +34,24 @@ export default function CaptureArea() {
 		emitTo(webview, "setCaptureAreaPending", "main", pending);
 
 	onMount(async () => {
+		document.documentElement.setAttribute("data-transparent-window", "true");
+		document.documentElement.style.setProperty(
+			"background",
+			"transparent",
+			"important",
+		);
+		document.documentElement.style.setProperty(
+			"background-color",
+			"transparent",
+			"important",
+		);
+		document.body.style.setProperty("background", "transparent", "important");
+		document.body.style.setProperty(
+			"background-color",
+			"transparent",
+			"important",
+		);
+
 		setPendingState(true);
 		const unlisten = await webview.onCloseRequested(() =>
 			setPendingState(false),
@@ -71,15 +88,6 @@ export default function CaptureArea() {
 	});
 
 	const { rawOptions, setOptions } = createOptionsQuery();
-
-	const hasStoredSelection = createMemo(() => {
-		const target = rawOptions.captureTarget;
-		if (target.variant !== "display") return false;
-		return (
-			state.lastSelectedBounds?.some((entry) => entry.screenId === target.id) ??
-			false
-		);
-	});
 
 	async function handleConfirm() {
 		const currentBounds = cropperRef?.bounds();
@@ -127,12 +135,6 @@ export default function CaptureArea() {
 
 	const [visible, setVisible] = createSignal(true);
 
-	const showSelectionHint = createMemo(() => {
-		if (!visible()) return false;
-		if (hasStoredSelection()) return false;
-		const bounds = crop();
-		return bounds.width <= 1 && bounds.height <= 1;
-	});
 	function close() {
 		setVisible(false);
 		setTimeout(async () => {
@@ -174,7 +176,7 @@ export default function CaptureArea() {
 	}
 
 	return (
-		<div class="overflow-hidden w-screen h-screen fixed">
+		<div class="overflow-hidden w-screen h-screen fixed bg-transparent">
 			<div class="flex fixed z-50 justify-center items-center w-full">
 				<Transition
 					appear
@@ -271,8 +273,6 @@ export default function CaptureArea() {
 					</Show>
 				</Transition>
 			</div>
-
-			<SelectionHint show={showSelectionHint()} />
 
 			<Transition
 				appear

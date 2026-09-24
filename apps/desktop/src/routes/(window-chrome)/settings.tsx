@@ -237,11 +237,6 @@ export default function Settings(props: RouteSectionProps) {
 			icon: IconCapCaptions,
 		},
 		{
-			href: "license",
-			name: "Plan & license",
-			icon: IconLucideGift,
-		},
-		{
 			href: "experimental",
 			name: "Experimental",
 			icon: IconCapSettings,
@@ -250,11 +245,6 @@ export default function Settings(props: RouteSectionProps) {
 			href: "feedback",
 			name: "Feedback",
 			icon: IconLucideMessageSquarePlus,
-		},
-		{
-			href: "changelog",
-			name: "Changelog",
-			icon: IconLucideBell,
 		},
 	];
 	const accountName = createMemo(() => {

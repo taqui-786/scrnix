@@ -98,20 +98,8 @@ pub(crate) async fn open_target_select_overlays_for_session(
             .unwrap_or_else(|_| Display::primary().id())
     });
 
-    let display_ids = if let Some(display_id) = resolved_specific_display_id.clone() {
-        vec![display_id]
-    } else if let Some(display) = focused_target.as_ref().and_then(|t| t.display()) {
-        vec![display.id()]
-    } else {
-        let displays = Display::list();
-        if displays.is_empty() {
-            vec![Display::primary().id()]
-        } else {
-            displays.into_iter().map(|display| display.id()).collect()
-        }
-    };
-
     let focus_display_id = resolved_specific_display_id
+        .clone()
         .or_else(|| {
             focused_target
                 .as_ref()
@@ -120,6 +108,26 @@ pub(crate) async fn open_target_select_overlays_for_session(
         })
         .or_else(|| Display::get_containing_cursor().map(|d| d.id()))
         .unwrap_or_else(|| Display::primary().id());
+
+    let display_ids = if let Some(display_id) = resolved_specific_display_id {
+        vec![display_id]
+    } else if let Some(display) = focused_target.as_ref().and_then(|t| t.display()) {
+        vec![display.id()]
+    } else {
+        #[cfg(target_os = "linux")]
+        {
+            vec![focus_display_id.clone()]
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            let displays = Display::list();
+            if displays.is_empty() {
+                vec![Display::primary().id()]
+            } else {
+                displays.into_iter().map(|display| display.id()).collect()
+            }
+        }
+    };
 
     for (id, window) in app.webview_windows() {
         if let Ok(CapWindowId::TargetSelectOverlay {

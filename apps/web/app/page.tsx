@@ -1,163 +1,253 @@
 "use client";
 
-import { type ClassValue, clsx } from "clsx";
-import { Download, Star } from "lucide-react";
-import { useEffect, useState } from "react";
-import { twMerge } from "tailwind-merge";
+import {
+	Check,
+	ChevronDown,
+	Copy,
+	Download,
+	Package,
+	Pause,
+	Play,
+	Sparkles,
+	Video,
+} from "lucide-react";
+import { useId, useState } from "react";
 
-const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs));
+type PackageFormat = "deb" | "appimage" | "tar";
 
-type Stats = { downloads: number; ratingCount: number; ratingAverage: number };
+type PackageDetails = {
+	label: string;
+	file: string;
+	size: string;
+	distros: string;
+	install: string;
+};
 
-const features = [
-	[
-		"Studio editor",
-		"Cut, zoom, and change the background on the recording that already lives on disk.",
-	],
-	[
-		"4K / 60 FPS",
-		"Capture at the resolution and frame rate you pick. No upgrade gate.",
-	],
-	[
-		"Wayland and X11",
-		"Records on current Ubuntu desktops, then exports a local MP4 or GIF.",
-	],
-	[
-		"Nothing leaves the machine",
-		"No account, no watermark, no upload. The .deb is the whole product.",
-	],
-];
+const formatDetails: Record<PackageFormat, PackageDetails> = {
+	deb: {
+		label: "Debian package",
+		file: "scrinx_0.1.0_amd64.deb",
+		size: "38.4 MB",
+		distros: "Ubuntu 22.04+, Debian 12+, Pop!_OS, Mint",
+		install: "sudo dpkg -i scrinx_0.1.0_amd64.deb",
+	},
+	appimage: {
+		label: "AppImage",
+		file: "Scrinx-0.1.0-x86_64.AppImage",
+		size: "41.2 MB",
+		distros: "Arch, Fedora, openSUSE, any Linux",
+		install: "chmod +x Scrinx-0.1.0-x86_64.AppImage",
+	},
+	tar: {
+		label: "Standalone tarball",
+		file: "scrinx-linux-x86_64.tar.gz",
+		size: "36.8 MB",
+		distros: "Headless systems, custom setups, CLI scripts",
+		install: "tar -xzf scrinx-linux-x86_64.tar.gz",
+	},
+};
 
 export default function Page() {
-	const [stats, setStats] = useState<Stats>({
-		downloads: 0,
-		ratingCount: 0,
-		ratingAverage: 0,
-	});
-	const [rating, setRating] = useState(0);
-	const [comment, setComment] = useState("");
-	const [note, setNote] = useState("");
-	const [linux, setLinux] = useState(true);
+	const topId = useId();
+	const installId = useId();
+	const [selectedFormat, setSelectedFormat] = useState<PackageFormat>("deb");
+	const [isPreviewing, setIsPreviewing] = useState(true);
+	const [copied, setCopied] = useState(false);
+	const activePackage = formatDetails[selectedFormat];
 
-	useEffect(() => {
-		setLinux(/linux/i.test(navigator.userAgent));
-		fetch("/api/stats")
-			.then((response) => response.json())
-			.then(setStats)
-			.catch(() => setNote("Stats are unavailable."));
-	}, []);
-
-	async function sendFeedback(event: React.FormEvent) {
-		event.preventDefault();
-		const response = await fetch("/api/feedback", {
-			method: "POST",
-			headers: { "content-type": "application/json" },
-			body: JSON.stringify({ rating, comment }),
-		});
-		const body = await response.json();
-		if (!response.ok) {
-			setNote(body.error ?? "Could not save feedback.");
-			return;
+	async function copyCommand() {
+		try {
+			await navigator.clipboard.writeText(activePackage.install);
+			setCopied(true);
+			window.setTimeout(() => setCopied(false), 1800);
+		} catch {
+			setCopied(false);
 		}
-		setStats(body);
-		setComment("");
-		setNote("Saved on this server process.");
 	}
 
 	return (
-		<main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-16 px-6 py-16">
-			<header className="text-sm text-stone-300">
-				<p className="font-semibold tracking-wide text-stone-100">Scrinx</p>
-			</header>
-			<section className="grid gap-8">
-				<p className="text-sm uppercase tracking-[0.22em] text-amber-200/80">
-					Ubuntu desktop
-				</p>
-				<h1 className="max-w-3xl text-5xl font-semibold leading-tight text-stone-50 sm:text-6xl">
-					Screen Recording & Studio Editing. 100% Local. 100% Free.
-				</h1>
-				<p className="max-w-2xl text-lg text-stone-300">
-					A local recorder and editor for Linux. The video stays in a folder you
-					can open.
-				</p>
-				<div className="flex flex-wrap items-center gap-4">
-					<a
-						href="/api/download"
-						className="inline-flex items-center gap-2 rounded-full bg-amber-200 px-5 py-3 font-medium text-stone-950"
-					>
-						<Download size={18} />
-						Download .deb for Ubuntu
+		<div className="landing-page">
+			<header className="landing-header">
+				<div className="header-inner">
+					<a className="brand-mark" href={`#${topId}`} aria-label="Scrinx home">
+						<span className="brand-icon">
+							<Video className="h-4 w-4" strokeWidth={1.8} />
+						</span>
+						<span className="brand-name">Scrinx</span>
+						<span className="brand-tag">Linux</span>
 					</a>
-					<p className="text-sm text-stone-400">
-						{linux
-							? "Linux detected."
-							: "This installer is the Ubuntu package."}{" "}
-						{stats.downloads.toLocaleString()} downloads counted here.
-					</p>
-				</div>
-				<ul className="flex flex-wrap gap-2 text-sm text-stone-200">
-					{["No Watermark", "No Time Limits", "No Sign-in", "100% Offline"].map(
-						(badge) => (
-							<li
-								key={badge}
-								className="rounded-full border border-white/15 px-3 py-1"
-							>
-								{badge}
-							</li>
-						),
-					)}
-				</ul>
-			</section>
-			<section className="grid gap-4 sm:grid-cols-2">
-				{features.map(([title, copy]) => (
-					<article
-						key={title}
-						className="rounded-3xl border border-white/10 bg-white/5 p-6"
+					<div className="header-status">
+						<span className="status-dot" />
+						<span>Native studio / v0.1.0</span>
+					</div>
+					<a
+						className="button button-small button-primary"
+						href="/api/download"
 					>
-						<h2 className="text-xl font-medium">{title}</h2>
-						<p className="mt-2 text-stone-300">{copy}</p>
-					</article>
-				))}
-			</section>
-			<section className="max-w-xl">
-				<h2 className="text-2xl font-medium">How is Scrinx?</h2>
-				<p className="mt-2 text-sm text-stone-400">
-					Average {stats.ratingAverage ? stats.ratingAverage.toFixed(1) : "—"}{" "}
-					from {stats.ratingCount} ratings.
-				</p>
-				<form onSubmit={sendFeedback} className="mt-4 grid gap-3">
-					<div className="flex gap-1">
-						{[1, 2, 3, 4, 5].map((value) => (
+						Download
+						<Download className="h-3.5 w-3.5" />
+					</a>
+				</div>
+			</header>
+
+			<main id={topId} className="landing-main">
+				<section className="hero-panel">
+					<div className="hero-copy">
+						<div className="eyebrow">
+							<span className="eyebrow-line" />
+							Screen recording, re-shaped
+						</div>
+						<h1>
+							Make every frame
+							<span>worth watching.</span>
+						</h1>
+						<p className="hero-description">
+							A local-first screen recorder and studio that keeps the whole
+							story on your machine.
+						</p>
+						<div className="hero-actions">
+							<a className="button button-primary" href="/api/download">
+								<Download className="h-4 w-4" />
+								Download Scrinx
+							</a>
+							<a className="button button-quiet" href={`#${installId}`}>
+								View install
+								<ChevronDown className="h-4 w-4 -rotate-90" />
+							</a>
+						</div>
+						<div className="hero-note">
+							<span>4K 60</span>
+							<span>Wayland + X11</span>
+							<span>No cloud</span>
+						</div>
+					</div>
+
+					<aside className="hero-card" aria-label="Scrinx studio preview">
+						<div className="card-topline">
+							<div>
+								<span className="card-kicker">LIVE CAPTURE</span>
+								<strong>session_01.mp4</strong>
+							</div>
+							<span className="card-live">READY</span>
+						</div>
+						<div
+							className={`studio-stage ${isPreviewing ? "is-playing" : ""}`}
+							role="img"
+							aria-label="Animated Scrinx camera focus preview"
+						>
+							<div className="stage-grid" aria-hidden="true" />
+							<div className="stage-label">REC / WINDOW</div>
+							<div className="stage-terminal">
+								<span className="text-primary">$ scrinx --capture</span>
+								<span>wayland portal connected</span>
+								<span>focus tracking enabled</span>
+							</div>
+							<div className="stage-focus" aria-hidden="true">
+								<span />
+							</div>
+							<div className="stage-cursor">
+								<Sparkles className="h-3 w-3" />
+								camera focus
+							</div>
+							<div className="stage-footer">
+								<span>00:01:24</span>
+								<span>studio timeline ready</span>
+							</div>
+						</div>
+						<div className="card-controls">
 							<button
-								key={value}
 								type="button"
-								aria-label={`${value} star${value === 1 ? "" : "s"}`}
-								onClick={() => setRating(value)}
-								className={cn(
-									"rounded-md p-1",
-									rating >= value ? "text-amber-200" : "text-stone-600",
-								)}
+								className="preview-play"
+								onClick={() => setIsPreviewing(!isPreviewing)}
+								aria-label={isPreviewing ? "Pause preview" : "Play preview"}
+								aria-pressed={isPreviewing}
 							>
-								<Star fill={rating >= value ? "currentColor" : "none"} />
+								{isPreviewing ? (
+									<Pause className="h-3.5 w-3.5 fill-current" />
+								) : (
+									<Play className="h-3.5 w-3.5 fill-current" />
+								)}
+							</button>
+							<div className="preview-timeline" aria-hidden="true">
+								<div className="preview-timeline-fill" />
+							</div>
+							<span className="preview-time">01:24 / 03:00</span>
+						</div>
+					</aside>
+				</section>
+
+				<section id={installId} className="install-dock">
+					<div className="dock-heading">
+						<span className="eyebrow-line" />
+						<div>
+							<span className="card-kicker">INSTALL / v0.1.0</span>
+							<strong>Ready to record</strong>
+						</div>
+					</div>
+					<div
+						className="format-tabs"
+						role="tablist"
+						aria-label="Linux package format"
+					>
+						{(Object.keys(formatDetails) as PackageFormat[]).map((format) => (
+							<button
+								type="button"
+								role="tab"
+								aria-selected={selectedFormat === format}
+								className={selectedFormat === format ? "is-active" : ""}
+								onClick={() => setSelectedFormat(format)}
+								key={format}
+							>
+								{formatDetails[format].label}
 							</button>
 						))}
 					</div>
-					<textarea
-						value={comment}
-						onChange={(event) => setComment(event.target.value)}
-						maxLength={1000}
-						placeholder="Optional note"
-						className="min-h-28 rounded-2xl border border-white/10 bg-black/30 p-3 text-stone-100"
-					/>
-					<button
-						type="submit"
-						className="w-fit rounded-full bg-white px-4 py-2 text-stone-950"
+					<div className="dock-file">
+						<Package className="h-4 w-4" />
+						<div>
+							<strong>{activePackage.file}</strong>
+							<span>
+								{activePackage.size} · {activePackage.distros}
+							</span>
+						</div>
+					</div>
+					<div className="install-command">
+						<code>
+							<span className="text-primary">$</span> {activePackage.install}
+						</code>
+						<button
+							type="button"
+							onClick={copyCommand}
+							aria-label="Copy install command"
+						>
+							{copied ? (
+								<Check className="h-3.5 w-3.5" />
+							) : (
+								<Copy className="h-3.5 w-3.5" />
+							)}
+						</button>
+					</div>
+					<a
+						className="button button-primary dock-download"
+						href="/api/download"
 					>
-						Send feedback
-					</button>
-					{note ? <p className="text-sm text-stone-400">{note}</p> : null}
-				</form>
-			</section>
-		</main>
+						<Download className="h-4 w-4" />
+						Download
+					</a>
+				</section>
+			</main>
+
+			<footer className="landing-footer">
+				<div className="footer-left">
+					<span className="status-dot" />
+					<span>Open source / local by default</span>
+				</div>
+				<div className="footer-right">
+					<span>PipeWire</span>
+					<span>VA-API</span>
+					<span>PulseAudio</span>
+				</div>
+			</footer>
+		</div>
 	);
 }

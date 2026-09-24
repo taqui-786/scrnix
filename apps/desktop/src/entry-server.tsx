@@ -17,9 +17,34 @@ export default createHandler(() => (
 								var isDark = theme === 'dark' ||
 									(theme !== 'light' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
 								if (isDark) document.documentElement.classList.add('dark');
+								if (typeof location !== 'undefined' && (
+									location.pathname === '/' ||
+									location.pathname === '' ||
+									location.pathname.startsWith('/target-select-overlay') ||
+									location.pathname.startsWith('/capture-area') ||
+									location.pathname.startsWith('/window-capture-occluder') ||
+									location.pathname.startsWith('/recordings-overlay') ||
+									location.pathname.startsWith('/in-progress-recording') ||
+									location.pathname.startsWith('/teleprompter')
+								)) {
+									document.documentElement.setAttribute('data-transparent-window', 'true');
+								}
 							})();
 						`}
 					/>
+					<style>
+						{`
+							html[data-transparent-window="true"],
+							html[data-transparent-window="true"] body,
+							html[data-transparent-window="true"] #app,
+							[data-transparent-window="true"],
+							[data-transparent-window="true"] body,
+							[data-transparent-window="true"] #app {
+								background: transparent !important;
+								background-color: transparent !important;
+							}
+						`}
+					</style>
 					{assets}
 				</head>
 				<body class="w-screen h-screen cursor-default select-none">

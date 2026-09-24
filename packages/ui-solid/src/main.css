@@ -388,6 +388,16 @@
 	}
 }
 
+html[data-transparent-window="true"],
+html[data-transparent-window="true"] body,
+html[data-transparent-window="true"] #app,
+[data-transparent-window="true"],
+[data-transparent-window="true"] body,
+[data-transparent-window="true"] #app {
+	background: transparent;
+	background-color: transparent;
+}
+
 .custom-bg {
 	background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
 }

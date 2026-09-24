@@ -258,12 +258,19 @@
 	@apply border-gray-12;
 }
 
-[data-transparent-window] {
+[data-transparent-window],
+[data-transparent-window] body,
+[data-transparent-window] #app,
+[data-transparent-window="true"],
+[data-transparent-window="true"] body,
+[data-transparent-window="true"] #app,
+html[data-transparent-window="true"],
+html[data-transparent-window="true"] body,
+html[data-transparent-window="true"] #app,
+.transparent-panel,
+.transparent-panel body {
 	background: transparent;
-}
-
-[data-transparent-window] body {
-	background: transparent;
+	background-color: transparent;
 }
 
 /* Custom scrollbar */
@@ -286,8 +293,18 @@
 
 /* Ensure transparent windows stay transparent in dark mode */
 .dark [data-transparent-window],
-.dark [data-transparent-window] body {
+.dark [data-transparent-window] body,
+.dark [data-transparent-window] #app,
+.dark [data-transparent-window="true"],
+.dark [data-transparent-window="true"] body,
+.dark [data-transparent-window="true"] #app,
+.dark html[data-transparent-window="true"],
+.dark html[data-transparent-window="true"] body,
+.dark html[data-transparent-window="true"] #app,
+.dark .transparent-panel,
+.dark .transparent-panel body {
 	background: transparent;
+	background-color: transparent;
 }
 
 .custom-scroll::-webkit-scrollbar {

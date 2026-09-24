@@ -1,13 +1,27 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Montserrat, Space_Mono } from "next/font/google";
 import "./globals.css";
 
-const sans = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const sans = Montserrat({
+	subsets: ["latin"],
+	variable: "--font-sans",
+	display: "swap",
+});
+
+const mono = Space_Mono({
+	weight: ["400", "700"],
+	subsets: ["latin"],
+	variable: "--font-mono",
+	display: "swap",
+});
 
 export const metadata: Metadata = {
-	title: "Scrinx | 100% Free & Open Source Screen Recorder & Studio for Linux",
+	title: "Scrinx | Open Source Screen Recorder & Studio for Linux",
 	description:
-		"Modern, lightweight, local-first screen recorder and video editor with smooth zoom, cursor smoothing, 4K/60fps capture, and zero cloud uploads.",
+		"The modern, local-first screen recorder and video studio engineered exclusively for Linux desktops. PipeWire, VA-API hardware encoding, studio zoom, cursor smoothing, and 100% offline.",
+	icons: {
+		icon: "/favicon.ico",
+	},
 };
 
 export default function RootLayout({
@@ -16,8 +30,10 @@ export default function RootLayout({
 	children: React.ReactNode;
 }) {
 	return (
-		<html lang="en" className={sans.variable}>
-			<body>{children}</body>
+		<html lang="en" className={`${sans.variable} ${mono.variable}`}>
+			<body className="min-h-screen bg-background font-sans text-foreground antialiased selection:bg-primary selection:text-primary-foreground">
+				{children}
+			</body>
 		</html>
 	);
 }

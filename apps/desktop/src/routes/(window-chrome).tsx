@@ -50,14 +50,44 @@ export default function (props: RouteSectionProps) {
 		).catch((error) => {
 			console.error("Failed to apply macOS window material:", error);
 		});
+
+		const isMain = location.pathname === "/";
+		if (isMain) {
+			document.documentElement.setAttribute("data-transparent-window", "true");
+			document.documentElement.style.setProperty(
+				"background",
+				"transparent",
+				"important",
+			);
+			document.documentElement.style.setProperty(
+				"background-color",
+				"transparent",
+				"important",
+			);
+			document.body.style.setProperty("background", "transparent", "important");
+			document.body.style.setProperty(
+				"background-color",
+				"transparent",
+				"important",
+			);
+		} else {
+			document.documentElement.removeAttribute("data-transparent-window");
+			document.documentElement.style.removeProperty("background");
+			document.documentElement.style.removeProperty("background-color");
+			document.body.style.removeProperty("background");
+			document.body.style.removeProperty("background-color");
+		}
 	});
 
 	return (
 		<WindowChromeContext>
 			<div
 				class={cx(
-					"cap-window-shell flex overflow-hidden flex-col w-screen h-screen max-h-screen divide-y divide-gray-5 bg-gray-1",
-					isMacOS && "rounded-[16px]",
+					"cap-window-shell flex overflow-hidden flex-col w-screen h-screen max-h-screen",
+					location.pathname === "/"
+						? "bg-transparent border-0"
+						: "divide-y divide-gray-5 bg-gray-1",
+					isMacOS && location.pathname !== "/" && "rounded-[16px]",
 				)}
 			>
 				<Header />
@@ -95,6 +125,7 @@ function Header() {
 	const isSettings = () => location.pathname.startsWith("/settings");
 
 	if (isMacOS && isSettings()) return null;
+	if (location.pathname === "/") return null;
 
 	return (
 		<header
@@ -129,13 +160,16 @@ function Inner(props: ParentProps) {
 	const location = useLocation();
 
 	onMount(() => {
-		if (location.pathname !== "/") void getCurrentWindow().show();
+		void getCurrentWindow().show();
 	});
 
 	return (
 		<div
 			data-tauri-drag-region="false"
-			class="cap-window-body flex overflow-hidden flex-col flex-1"
+			class={cx(
+				"cap-window-body flex overflow-hidden flex-col flex-1",
+				location.pathname === "/" && "bg-transparent",
+			)}
 		>
 			{props.children}
 		</div>

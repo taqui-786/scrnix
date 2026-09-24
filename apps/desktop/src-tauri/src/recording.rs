@@ -2304,10 +2304,10 @@ async fn start_recording_prepared(
 
     let (video_upload_info, instant_mode_max_resolution) = match inputs.mode {
         RecordingMode::Instant => {
-            let instant_mode_max_resolution = general_settings.map_or(
-                cap_recording::PRO_INSTANT_MODE_MAX_RESOLUTION,
-                |settings| settings.instant_mode_max_resolution,
-            );
+            let instant_mode_max_resolution = general_settings
+                .map_or(cap_recording::PRO_INSTANT_MODE_MAX_RESOLUTION, |settings| {
+                    settings.instant_mode_max_resolution
+                });
             (
                 Some(local_video_upload_info(&project_file_path)),
                 instant_mode_max_resolution,
@@ -6043,111 +6043,114 @@ async fn handle_recording_finish(
                 }
                 (inner, None)
             } else {
-            AppSounds::StopRecording.play();
-            use tauri_plugin_clipboard_manager::ClipboardExt;
-            let _ = app.clipboard().write_text(video_upload_info.link.clone());
-            let _ = open_external_link(
-                app.clone(),
-                recording_stopped_share_url(&video_upload_info.link),
-            );
+                AppSounds::StopRecording.play();
+                use tauri_plugin_clipboard_manager::ClipboardExt;
+                let _ = app.clipboard().write_text(video_upload_info.link.clone());
+                let _ = open_external_link(
+                    app.clone(),
+                    recording_stopped_share_url(&video_upload_info.link),
+                );
 
-            let app = app.clone();
-            let is_camera_only =
-                matches!(recording.display_source, ScreenCaptureTarget::CameraOnly);
+                let app = app.clone();
+                let is_camera_only =
+                    matches!(recording.display_source, ScreenCaptureTarget::CameraOnly);
 
-            let display_screenshot = screenshots_dir.join("display.jpg");
-            let screenshot_task = if is_camera_only {
-                let output_mp4 = recording_dir.join("content/output.mp4");
-                tokio::spawn({
-                    let display_screenshot = display_screenshot.clone();
-                    async move { create_screenshot(output_mp4, display_screenshot, None).await }
-                })
-            } else {
-                let segments_dir = recording_dir.join("content/display");
-                tokio::spawn({
-                    let display_screenshot = display_screenshot.clone();
-                    async move {
-                        let screenshot_source: Result<PathBuf, String> =
-                            create_screenshot_source_from_segments(&segments_dir).await;
-                        match screenshot_source {
-                            Ok(temp_path) => {
-                                let result =
-                                    create_screenshot(temp_path.clone(), display_screenshot, None)
-                                        .await;
-                                let _ = tokio::fs::remove_file(&temp_path).await;
-                                result
+                let display_screenshot = screenshots_dir.join("display.jpg");
+                let screenshot_task = if is_camera_only {
+                    let output_mp4 = recording_dir.join("content/output.mp4");
+                    tokio::spawn({
+                        let display_screenshot = display_screenshot.clone();
+                        async move { create_screenshot(output_mp4, display_screenshot, None).await }
+                    })
+                } else {
+                    let segments_dir = recording_dir.join("content/display");
+                    tokio::spawn({
+                        let display_screenshot = display_screenshot.clone();
+                        async move {
+                            let screenshot_source: Result<PathBuf, String> =
+                                create_screenshot_source_from_segments(&segments_dir).await;
+                            match screenshot_source {
+                                Ok(temp_path) => {
+                                    let result = create_screenshot(
+                                        temp_path.clone(),
+                                        display_screenshot,
+                                        None,
+                                    )
+                                    .await;
+                                    let _ = tokio::fs::remove_file(&temp_path).await;
+                                    result
+                                }
+                                Err(e) => Err(format!("Failed to create screenshot source: {e}")),
                             }
-                            Err(e) => Err(format!("Failed to create screenshot source: {e}")),
                         }
+                    })
+                };
+
+                #[cfg(not(target_os = "linux"))]
+                let session = segment_upload.session.clone();
+                #[cfg(target_os = "linux")]
+                let session = segment_upload.lock().await.session.clone();
+                session
+                    .persist_local_complete(
+                        recording.meta.clone(),
+                        SharingMeta {
+                            id: video_upload_info.id.clone(),
+                            link: video_upload_info.link.clone(),
+                            content_hash: None,
+                        },
+                    )
+                    .map_err(|error| error.to_string())?;
+                session
+                    .mark_ready(false)
+                    .map_err(|error| error.to_string())?;
+                let job_session = session.clone();
+                crate::upload::lifecycle::supervise(app.clone(), session, {
+                    let video = video_upload_info.clone();
+                    let recording_dir = recording_dir.clone();
+                    async move {
+                        let uploaded = await_instant_upload(segment_upload).await;
+                        let screenshot = screenshot_task.await;
+                        uploaded.map_err(AuthedApiError::from)??;
+                        screenshot
+                            .map_err(|error| error.to_string())?
+                            .map_err(AuthedApiError::from)?;
+                        job_session.check()?;
+                        let bytes = compress_image(display_screenshot).await?;
+                        crate::upload::singlepart_uploader(
+                            app.clone(),
+                            crate::api::PresignedS3PutRequest {
+                                video_id: video.id.clone(),
+                                subpath: "screenshot/screen-capture.jpg".into(),
+                                method: PresignedS3PutRequestMethod::Put,
+                                meta: None,
+                            },
+                            bytes.len() as u64,
+                            stream::once(async move {
+                                Ok::<_, std::io::Error>(bytes::Bytes::from(bytes))
+                            }),
+                        )
+                        .await?;
+                        job_session.complete_locally(&app).await?;
+                        crate::automation::run_upload_completed_automations(
+                            app,
+                            recording_dir,
+                            Some(video.link),
+                            Some(video.id),
+                        );
+                        Ok(())
                     }
                 })
-            };
+                .await
+                .map_err(|error| error.to_string())?;
 
-            #[cfg(not(target_os = "linux"))]
-            let session = segment_upload.session.clone();
-            #[cfg(target_os = "linux")]
-            let session = segment_upload.lock().await.session.clone();
-            session
-                .persist_local_complete(
-                    recording.meta.clone(),
-                    SharingMeta {
-                        id: video_upload_info.id.clone(),
-                        link: video_upload_info.link.clone(),
+                (
+                    RecordingMetaInner::Instant(recording.meta),
+                    Some(SharingMeta {
+                        link: video_upload_info.link,
+                        id: video_upload_info.id,
                         content_hash: None,
-                    },
+                    }),
                 )
-                .map_err(|error| error.to_string())?;
-            session
-                .mark_ready(false)
-                .map_err(|error| error.to_string())?;
-            let job_session = session.clone();
-            crate::upload::lifecycle::supervise(app.clone(), session, {
-                let video = video_upload_info.clone();
-                let recording_dir = recording_dir.clone();
-                async move {
-                    let uploaded = await_instant_upload(segment_upload).await;
-                    let screenshot = screenshot_task.await;
-                    uploaded.map_err(AuthedApiError::from)??;
-                    screenshot
-                        .map_err(|error| error.to_string())?
-                        .map_err(AuthedApiError::from)?;
-                    job_session.check()?;
-                    let bytes = compress_image(display_screenshot).await?;
-                    crate::upload::singlepart_uploader(
-                        app.clone(),
-                        crate::api::PresignedS3PutRequest {
-                            video_id: video.id.clone(),
-                            subpath: "screenshot/screen-capture.jpg".into(),
-                            method: PresignedS3PutRequestMethod::Put,
-                            meta: None,
-                        },
-                        bytes.len() as u64,
-                        stream::once(
-                            async move { Ok::<_, std::io::Error>(bytes::Bytes::from(bytes)) },
-                        ),
-                    )
-                    .await?;
-                    job_session.complete_locally(&app).await?;
-                    crate::automation::run_upload_completed_automations(
-                        app,
-                        recording_dir,
-                        Some(video.link),
-                        Some(video.id),
-                    );
-                    Ok(())
-                }
-            })
-            .await
-            .map_err(|error| error.to_string())?;
-
-            (
-                RecordingMetaInner::Instant(recording.meta),
-                Some(SharingMeta {
-                    link: video_upload_info.link,
-                    id: video_upload_info.id,
-                    content_hash: None,
-                }),
-            )
             }
         }
     };
@@ -8306,47 +8309,49 @@ pub(crate) mod linux_instant {
             if super::is_local_recording(&share_info) {
                 result = local_success_effects(&app, &attempt, &directory);
             } else {
-            let session = segment_upload.lock().await.session.clone();
-            result = session.mark_ready(false).map_err(|error| error.to_string());
-            if result.is_ok() {
-                let network_attempt = attempt.clone();
-                let network_app = app.clone();
-                let network_video = share_info.clone();
-                let network_session = session.clone();
-                result = crate::upload::lifecycle::supervise(app.clone(), session, async move {
-                    let authorized = network_attempt.authorize();
-                    let uploaded = network_attempt.join_upload(segment_upload).await;
-                    let joined = network_attempt.upload_cleanup().await;
-                    authorized.map_err(AuthedApiError::from)?;
-                    uploaded.map_err(AuthedApiError::from)?;
-                    if !joined {
-                        return Err("Instant upload cleanup is unconfirmed".into());
-                    }
-                    let bytes =
-                        compress_image(network_session.directory.join("screenshots/display.jpg"))
+                let session = segment_upload.lock().await.session.clone();
+                result = session.mark_ready(false).map_err(|error| error.to_string());
+                if result.is_ok() {
+                    let network_attempt = attempt.clone();
+                    let network_app = app.clone();
+                    let network_video = share_info.clone();
+                    let network_session = session.clone();
+                    result =
+                        crate::upload::lifecycle::supervise(app.clone(), session, async move {
+                            let authorized = network_attempt.authorize();
+                            let uploaded = network_attempt.join_upload(segment_upload).await;
+                            let joined = network_attempt.upload_cleanup().await;
+                            authorized.map_err(AuthedApiError::from)?;
+                            uploaded.map_err(AuthedApiError::from)?;
+                            if !joined {
+                                return Err("Instant upload cleanup is unconfirmed".into());
+                            }
+                            let bytes = compress_image(
+                                network_session.directory.join("screenshots/display.jpg"),
+                            )
                             .await?;
-                    crate::upload::strict_instant::upload_thumbnail(
-                        &network_app,
-                        &network_video.id,
-                        bytes,
-                        &network_attempt.upload(),
-                    )
-                    .await?;
-                    network_session.complete_locally(&network_app).await?;
-                    crate::automation::run_upload_completed_automations(
-                        network_app,
-                        network_session.directory.clone(),
-                        Some(network_video.link),
-                        Some(network_video.id),
-                    );
-                    Ok(())
-                })
-                .await
-                .map_err(|error| error.to_string());
-            }
-            if result.is_ok() {
-                result = successful_effects(&app, &attempt, &directory, &share_info);
-            }
+                            crate::upload::strict_instant::upload_thumbnail(
+                                &network_app,
+                                &network_video.id,
+                                bytes,
+                                &network_attempt.upload(),
+                            )
+                            .await?;
+                            network_session.complete_locally(&network_app).await?;
+                            crate::automation::run_upload_completed_automations(
+                                network_app,
+                                network_session.directory.clone(),
+                                Some(network_video.link),
+                                Some(network_video.id),
+                            );
+                            Ok(())
+                        })
+                        .await
+                        .map_err(|error| error.to_string());
+                }
+                if result.is_ok() {
+                    result = successful_effects(&app, &attempt, &directory, &share_info);
+                }
             }
         }
         result = attempt.checked(result);
@@ -8354,12 +8359,12 @@ pub(crate) mod linux_instant {
             if super::is_local_recording(&share_info) {
                 result = Ok(());
             } else {
-            result = delete_remote_instant_video(&app, &video_id).await;
-            result = attempt.checked(result);
-            if result.is_ok() {
-                result = crate::upload::lifecycle::mark_cancelled(&directory)
-                    .map_err(|error| error.to_string());
-            }
+                result = delete_remote_instant_video(&app, &video_id).await;
+                result = attempt.checked(result);
+                if result.is_ok() {
+                    result = crate::upload::lifecycle::mark_cancelled(&directory)
+                        .map_err(|error| error.to_string());
+                }
             }
             if result.is_ok() {
                 result = remove_owned_directory(directory.clone(), attempt.clone(), false).await;

@@ -8,7 +8,12 @@ import {
 } from "@tanstack/solid-query";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { batch, createEffect, createMemo, onCleanup } from "solid-js";
-import { createStore, reconcile } from "solid-js/store";
+import {
+	createStore,
+	reconcile,
+	type SetStoreFunction,
+	type Store,
+} from "solid-js/store";
 import { useRecordingOptions } from "~/routes/(window-chrome)/OptionsContext";
 import {
 	authStore,
@@ -186,7 +191,7 @@ function isStoredCameraId(value: unknown): value is DeviceOrModelID | null {
 
 export function createOptionsQuery() {
 	const PERSIST_KEY = "recording-options-query-2";
-	const [_state, _setState] = createStore<{
+	type OptionsState = {
 		captureTarget: CameraCaptureTarget;
 		micName: string | null;
 		mode: RecordingMode;
@@ -198,7 +203,9 @@ export function createOptionsQuery() {
 		organizationId?: string | null;
 		/** @deprecated */
 		cameraLabel: string | null;
-	}>({
+	};
+
+	const [_state, _setState] = createStore<OptionsState>({
 		captureTarget: { variant: "display", id: "0" },
 		micName: null,
 		cameraLabel: null,
@@ -291,7 +298,10 @@ export function createOptionsQuery() {
 	});
 	onCleanup(() => storeListenerCleanup.then((c) => c()));
 
-	const [state, setState] = makePersisted([_state, _setState], {
+	const [state, setState] = makePersisted<
+		OptionsState,
+		[Store<OptionsState>, SetStoreFunction<OptionsState>]
+	>([_state, _setState], {
 		name: PERSIST_KEY,
 	});
 	if (state.cameraID !== undefined && !isStoredCameraId(state.cameraID)) {
