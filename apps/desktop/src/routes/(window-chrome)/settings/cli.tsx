@@ -46,7 +46,7 @@ export default function CliSettings() {
 
 		try {
 			mutate(await installCli());
-			toast.success("Cap CLI installed");
+			toast.success("Scrinx CLI installed");
 		} catch (error) {
 			toast.error(errorMessage(error, "Failed to install CLI"));
 			await refetch();
@@ -60,7 +60,7 @@ export default function CliSettings() {
 
 		try {
 			mutate(await uninstallCli());
-			toast.success("Cap CLI removed");
+			toast.success("Scrinx CLI removed");
 		} catch (error) {
 			toast.error(errorMessage(error, "Failed to remove CLI"));
 			await refetch();
@@ -79,7 +79,7 @@ export default function CliSettings() {
 			<SettingsPageContent>
 				<Section
 					title="Command Line"
-					description="Install the Cap command for terminals, agents, scripts, and local automation."
+					description="Install the Scrinx command for terminals, agents, scripts, and local automation."
 				>
 					<SectionCard padded>
 						<Show
@@ -119,8 +119,8 @@ export default function CliSettings() {
 											</p>
 											<p class="text-xs leading-snug text-gray-10">
 												The desktop app installs a local{" "}
-												<code class="font-mono text-gray-12">cap</code> command
-												that points back to the bundled CLI.
+												<code class="font-mono text-gray-12">scrinx</code>{" "}
+												command that points back to the bundled CLI.
 											</p>
 										</div>
 										<div class="flex shrink-0 gap-2">
@@ -175,13 +175,14 @@ export default function CliSettings() {
 																{currentStatus().pathEntry}
 															</code>{" "}
 															to your PATH to use{" "}
-															<code class="font-mono text-gray-12">cap</code>{" "}
+															<code class="font-mono text-gray-12">scrinx</code>{" "}
 															from a new terminal.
 														</>
 													}
 												>
-													Added <code class="font-mono text-gray-12">cap</code>{" "}
-													to your PATH. Restart your terminal to use it, or run
+													Added{" "}
+													<code class="font-mono text-gray-12">scrinx</code> to
+													your PATH. Restart your terminal to use it, or run
 													this now:
 												</Show>
 											</p>

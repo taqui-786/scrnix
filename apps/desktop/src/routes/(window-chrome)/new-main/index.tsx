@@ -1667,8 +1667,8 @@ function createUpdateCheck() {
 		let shouldUpdate: boolean | undefined;
 		try {
 			shouldUpdate = await dialog.confirm(
-				`Version ${update.version} of Cap is available, would you like to install it?`,
-				{ title: "Update Cap", okLabel: "Update", cancelLabel: "Ignore" },
+				`Version ${update.version} of Scrinx is available, would you like to install it?`,
+				{ title: "Update Scrinx", okLabel: "Update", cancelLabel: "Ignore" },
 			);
 		} catch (e) {
 			console.error("Failed to show update dialog:", e);
@@ -1691,8 +1691,8 @@ function createUpdateReadyToast() {
 				<div class="flex flex-col gap-2.5 px-4 py-3 rounded-xl border shadow-lg bg-gray-1 border-gray-4 text-gray-12 w-[min(24rem,calc(100vw-2rem))]">
 					<p class="text-sm">
 						{update.installed
-							? `Cap ${update.version} has been installed — restart to apply`
-							: `Cap ${update.version} is ready to install`}
+							? `Scrinx ${update.version} has been installed — restart to apply`
+							: `Scrinx ${update.version} is ready to install`}
 					</p>
 					<div class="flex gap-2 items-center">
 						<button
@@ -1708,7 +1708,7 @@ function createUpdateReadyToast() {
 										toast.error(
 											typeof error === "string"
 												? error
-												: "Unable to restart Cap safely.",
+												: "Unable to restart Scrinx safely.",
 										);
 									})
 									.finally(() => setInstallingUpdate(false));
@@ -2902,37 +2902,6 @@ function Page() {
 			onMouseEnter={handleMouseEnter}
 			class="flex relative flex-col w-full h-full min-h-0 text-(--text-primary) overflow-hidden bg-transparent"
 		>
-			<Show when={cleanCapture.data?.phase === "awaitingShortcut"}>
-				<div
-					class="absolute inset-0 z-50 flex flex-col justify-center gap-4 p-5 rounded-2xl border border-gray-6 bg-gray-2/95 dark:bg-[#12261f]/95 backdrop-blur-md"
-					role="dialog"
-					aria-label="Clean Studio recording"
-				>
-					<strong class="text-sm font-semibold text-gray-12">
-						Record without controls
-					</strong>
-					<p class="text-xs text-gray-11">
-						Any selected camera will keep recording as a separate editable
-						track. Controls will hide.
-					</p>
-					<p class="text-xs text-gray-11">
-						Press{" "}
-						<strong class="text-primary font-mono">
-							{cleanCapture.data?.shortcut}
-						</strong>{" "}
-						to start, then use it to stop.
-					</p>
-					<button
-						type="button"
-						class="rounded-lg border border-gray-6 px-3 py-1.5 text-xs text-gray-11 hover:text-gray-12 hover:bg-gray-4/50 self-start"
-						disabled={stopRequested()}
-						onClick={() => stopRecording.mutate()}
-					>
-						Cancel
-					</button>
-				</div>
-			</Show>
-
 			<Show when={editorRecordingFlow()}>
 				{(flow) => (
 					<div class="flex items-center justify-between px-3 py-1.5 mx-2 mb-1 rounded-xl border border-primary/40 bg-primary/10 text-xs">

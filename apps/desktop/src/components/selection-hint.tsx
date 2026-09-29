@@ -1,5 +1,4 @@
-import { type as ostype } from "@tauri-apps/plugin-os";
-import { Match, Show, Switch } from "solid-js";
+import { Show } from "solid-js";
 
 export type SelectionHintProps = {
 	show: boolean;
@@ -8,8 +7,6 @@ export type SelectionHintProps = {
 };
 
 export default function SelectionHint(props: SelectionHintProps) {
-	const os = ostype();
-
 	return (
 		<Show when={props.show}>
 			<div
@@ -19,21 +16,14 @@ export default function SelectionHint(props: SelectionHintProps) {
 			>
 				<div class="flex flex-col items-center gap-5 text-center text-white drop-shadow-md">
 					<div
-						class="cap-selection-hint-monitor mb-6 relative"
+						class="scrinx-selection-hint-monitor mb-6 relative"
 						aria-hidden="true"
 					>
 						<IconCapMonitor class="w-full h-full" />
-						<div class="cap-selection-hint-screen-area">
-							<div class="cap-selection-hint-selection" aria-hidden="true" />
-							<div class="cap-selection-hint-cursor" aria-hidden="true">
-								<Switch>
-									<Match when={os === "macos"}>
-										<IconCapCursorMacos class="w-full h-full" />
-									</Match>
-									<Match when={os === "windows"}>
-										<IconCapCursorWindows class="w-full h-full" />
-									</Match>
-								</Switch>
+						<div class="scrinx-selection-hint-screen-area">
+							<div class="scrinx-selection-hint-selection" aria-hidden="true" />
+							<div class="scrinx-selection-hint-cursor" aria-hidden="true">
+								<IconCapCursor class="w-full h-full text-white" />
 							</div>
 						</div>
 					</div>

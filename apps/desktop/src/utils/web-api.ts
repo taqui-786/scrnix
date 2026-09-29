@@ -78,7 +78,7 @@ export async function protectedHeaders() {
 	const { authorization } = await maybeProtectedHeaders();
 	if (!authorization)
 		throw new Error(
-			"Please sign in to continue. Alternatively, email hello@cap.so or join our Discord at cap.link/discord",
+			"Please sign in to continue. Alternatively, email hello@scrinx.com or join our Discord at scrinx.link/discord",
 		);
 	return { authorization };
 }

@@ -10,7 +10,6 @@ import {
 	type PhysicalPosition,
 	type PhysicalSize,
 } from "@tauri-apps/api/dpi";
-import { emit } from "@tauri-apps/api/event";
 import {
 	CheckMenuItem,
 	Menu,
@@ -57,11 +56,7 @@ import {
 	type Ratio,
 } from "~/components/Cropper";
 import ModeSelect from "~/components/ModeSelect";
-import {
-	authStore,
-	generalSettingsStore,
-	recordingStartSafetyStore,
-} from "~/store";
+import { generalSettingsStore, recordingStartSafetyStore } from "~/store";
 import {
 	AREA_SELECTION_STORAGE_KEY,
 	AREA_SELECTION_STORAGE_SYNC,
@@ -110,10 +105,6 @@ const MIN_SCREENSHOT_SIZE = { width: 1, height: 1 };
 const LOCKED_AREA_COMMIT_DELAY_MS = 180;
 const LIQUID_GLASS_SURFACE_CLASS =
 	"rounded-2xl border border-gray-12/10 bg-gray-1/82 shadow-xl shadow-black/20 backdrop-blur-xl dark:border-white/10 dark:bg-gray-2/82";
-
-const capitalize = (str: string) => {
-	return str.charAt(0).toUpperCase() + str.slice(1);
-};
 
 const findCamera = (cameras: CameraInfo[], id?: DeviceOrModelID | null) => {
 	if (!id) return undefined;
@@ -287,6 +278,15 @@ function Inner() {
 		enabled: params.displayId !== undefined && options.targetMode === "display",
 	}));
 
+	const areaDisplayInfo = useQuery(() => ({
+		queryKey: ["areaDisplayInfo", params.displayId],
+		queryFn: async () => {
+			if (!params.displayId) return null;
+			return await commands.displayInformation(params.displayId);
+		},
+		enabled: params.displayId !== undefined && options.targetMode === "area",
+	}));
+
 	const [crop, setCrop] = createSignal<CropBounds>(CROP_ZERO);
 	type AreaTarget = Extract<ScreenCaptureTarget, { variant: "area" }>;
 	const [pendingAreaTarget, setPendingAreaTarget] =
@@ -374,9 +374,7 @@ function Inner() {
 	// (from possibly-stale query state) whether it may reveal itself again.
 	const dismissPickerForRecordingStart = () => {
 		if (options.mode === "screenshot") return;
-		const targetModeDismissal =
-			options.mode === "instant" ? "recordingInstant" : "recordingStudio";
-		setOptions({ targetMode: null, targetModeDismissal });
+		setOptions({ targetMode: null, targetModeDismissal: "recordingStudio" });
 	};
 
 	// This prevents browser keyboard shortcuts from firing.
@@ -412,59 +410,62 @@ function Inner() {
 				</div>
 			</Match>
 			<Match when={options.targetMode === "display" && params.displayId}>
-				{(displayId) => (
-					<div
-						data-over={targetUnderCursor.display_id === displayId()}
-						class="relative w-screen h-screen flex flex-col items-center justify-center data-[over='true']:bg-blue-600/40 transition-colors"
-					>
-						<div class="absolute inset-0 bg-black/60 -z-10" />
+				{(displayId) => {
+					const currentDisplayId = displayId();
+					return (
+						<div
+							data-over={targetUnderCursor.display_id === currentDisplayId}
+							class="relative w-screen h-screen flex flex-col items-center justify-center data-[over='true']:bg-blue-600/40 transition-colors"
+						>
+							<div class="absolute inset-0 bg-black/60 -z-10" />
 
-						<Show when={displayInformation.data} keyed>
-							{(display) => (
-								<div class="flex flex-col items-center text-white">
-									<IconCapMonitor class="size-20 mb-3" />
-									<span class="mb-2 text-3xl font-semibold">
-										{display.name || "Monitor"}
-									</span>
-									<Show when={display.physical_size}>
-										{(size) => (
-											<span class="mb-2 text-xs">
-												{`${size().width}x${size().height} · ${
-													display.refresh_rate
-												}FPS`}
-											</span>
-										)}
-									</Show>
-								</div>
-							)}
-						</Show>
+							<Show when={displayInformation.data} keyed>
+								{(display) => (
+									<div class="flex flex-col items-center text-white">
+										<IconCapMonitor class="size-20 mb-3" />
+										<span class="mb-2 text-3xl font-semibold">
+											{display.name || "Monitor"}
+										</span>
+										<Show when={display.physical_size}>
+											{(size) => (
+												<span class="mb-2 text-xs">
+													{`${size().width}x${size().height} · ${
+														display.refresh_rate
+													}FPS`}
+												</span>
+											)}
+										</Show>
+									</div>
+								)}
+							</Show>
 
-						<Show when={toggleModeSelect()}>
-							{/* Transparent overlay to capture outside clicks */}
-							<div
-								class="absolute inset-0 z-10"
-								onClick={() => setToggleModeSelect(false)}
+							<Show when={toggleModeSelect()}>
+								{/* Transparent overlay to capture outside clicks */}
+								<div
+									class="absolute inset-0 z-10"
+									onClick={() => setToggleModeSelect(false)}
+								/>
+								<ModeSelect
+									standalone
+									onClose={() => setToggleModeSelect(false)}
+								/>
+							</Show>
+
+							<RecordingControls
+								setToggleModeSelect={setToggleModeSelect}
+								target={{ variant: "display", id: currentDisplayId }}
+								onRecordingStart={dismissPickerForRecordingStart}
+								onClose={() => {
+									setOptions({
+										targetMode: null,
+										targetModeDismissal: "cancelled",
+									});
+									commands.closeTargetSelectOverlays();
+								}}
 							/>
-							<ModeSelect
-								standalone
-								onClose={() => setToggleModeSelect(false)}
-							/>
-						</Show>
-
-						<RecordingControls
-							setToggleModeSelect={setToggleModeSelect}
-							target={{ variant: "display", id: displayId() }}
-							onRecordingStart={dismissPickerForRecordingStart}
-							onClose={() => {
-								setOptions({
-									targetMode: null,
-									targetModeDismissal: "cancelled",
-								});
-								commands.closeTargetSelectOverlays();
-							}}
-						/>
-					</div>
-				)}
+						</div>
+					);
+				}}
 			</Match>
 			<Match
 				when={
@@ -769,6 +770,7 @@ function Inner() {
 			</Match>
 			<Match when={options.targetMode === "area" && params.displayId}>
 				{(displayId) => {
+					const currentDisplayId = displayId();
 					let controlsEl: HTMLDivElement | undefined;
 					let cropperRef: CropperRef | undefined;
 
@@ -786,13 +788,6 @@ function Inner() {
 						const win = await getCameraWindow();
 						if (win) setCameraWindow(win);
 					});
-
-					const areaDisplayInfo = useQuery(() => ({
-						queryKey: ["areaDisplayInfo", displayId()],
-						queryFn: async () => {
-							return await commands.displayInformation(displayId());
-						},
-					}));
 
 					const [isInteracting, setIsInteracting] = createSignal(false);
 					const [screenshotAspect, setScreenshotAspect] =
@@ -1147,7 +1142,7 @@ function Inner() {
 					function resetSelection() {
 						setAspect(null);
 						setPendingAreaTarget(null);
-						if (areaSelectionPreferences.screenId === displayId()) {
+						if (areaSelectionPreferences.screenId === currentDisplayId) {
 							setAreaSelectionPreferences({
 								locked: false,
 								screenId: null,
@@ -1252,7 +1247,7 @@ function Inner() {
 						if (isInteracting()) return;
 						if (!isValid()) return;
 						if (!isActiveDisplay()) return;
-						const screenId = displayId();
+						const screenId = currentDisplayId;
 						if (!screenId) return;
 						const bounds = crop();
 						setPendingAreaTarget({
@@ -1453,7 +1448,7 @@ function Inner() {
 										<RecordingControls
 											target={{
 												variant: "area",
-												screen: displayId(),
+												screen: currentDisplayId,
 												bounds: {
 													position: {
 														x: crop().x,
@@ -1872,8 +1867,8 @@ function RecordingControls(props: {
 	onRecordingStart?: () => void;
 	onClose?: () => void;
 }) {
-	const auth = authStore.createQuery();
 	const { setOptions, rawOptions } = useRecordingOptions();
+	const isCameraOnly = props.target.variant === "cameraOnly";
 
 	const generalSetings = generalSettingsStore.createQuery();
 	const recordingStartSafety = recordingStartSafetyStore.createQuery();
@@ -1912,7 +1907,6 @@ function RecordingControls(props: {
 					)
 			: Promise.resolve();
 
-		const isCameraOnly = props.target.variant === "cameraOnly";
 		const restoreCamera = async () => {
 			if (rawOptions.cameraID) {
 				await setCamera.rawMutate({ ...rawOptions.cameraID }, isCameraOnly);
@@ -1944,7 +1938,6 @@ function RecordingControls(props: {
 	});
 	const microphoneConfirmationContext = createMemo(() =>
 		JSON.stringify({
-			target: props.target,
 			mode: rawOptions.mode,
 			microphone: rawOptions.micName,
 			selectedMicrophone: selectedMicName(),
@@ -1988,10 +1981,6 @@ function RecordingControls(props: {
 
 	const startRecording = async (confirmedWithoutMicrophone = false) => {
 		if (confirmingWithoutMicrophone() && !confirmedWithoutMicrophone) return;
-		if (rawOptions.mode === "instant" && !auth.data) {
-			emit("start-sign-in");
-			return;
-		}
 		if (startDisabled()) return;
 
 		if (
@@ -2160,14 +2149,6 @@ function RecordingControls(props: {
 					checked: rawOptions.mode === "studio",
 				}),
 				await CheckMenuItem.new({
-					text: "Instant Mode",
-					action: () => {
-						setOptions("mode", "instant");
-						commands.setRecordingMode("instant");
-					},
-					checked: rawOptions.mode === "instant",
-				}),
-				await CheckMenuItem.new({
 					text: "Screenshot Mode",
 					action: () => {
 						setOptions("mode", "screenshot");
@@ -2227,197 +2208,165 @@ function RecordingControls(props: {
 	}
 
 	return (
-		<>
-			<div class="flex flex-col gap-2.5 items-stretch my-2.5 w-104 max-w-[90vw]">
-				<div class={`${LIQUID_GLASS_SURFACE_CLASS} p-3`}>
-					<div class="flex gap-2.5 items-center">
-						<div
-							onClick={() => {
-								if (props.onClose) {
-									props.onClose();
-								} else {
-									setOptions({
-										targetMode: null,
-										targetModeDismissal: "cancelled",
-									});
-									commands.closeTargetSelectOverlays();
-								}
-							}}
-							class="flex justify-center items-center rounded-full transition-opacity bg-gray-12 size-9 hover:opacity-80"
+		<div class="flex flex-col gap-2.5 items-stretch my-2.5 w-104 max-w-[90vw]">
+			<div class={`${LIQUID_GLASS_SURFACE_CLASS} p-3`}>
+				<div class="flex gap-2.5 items-center">
+					<div
+						onClick={() => {
+							if (props.onClose) {
+								props.onClose();
+							} else {
+								setOptions({
+									targetMode: null,
+									targetModeDismissal: "cancelled",
+								});
+								commands.closeTargetSelectOverlays();
+							}
+						}}
+						class="flex justify-center items-center rounded-full transition-opacity bg-gray-12 size-9 hover:opacity-80"
+					>
+						<IconCapX class="invert will-change-transform size-3 dark:invert-0" />
+					</div>
+					<Popover
+						open={noMicrophoneWarningOpen()}
+						onOpenChange={(open) => {
+							if (open) setNoMicrophoneWarningOpen(true);
+							else dismissMicrophoneWarning();
+						}}
+						placement="bottom"
+						gutter={8}
+					>
+						<Popover.Anchor
+							data-disabled={startDisabled()}
+							class="flex flex-1 min-w-0 max-w-[18rem] overflow-hidden flex-row h-11 rounded-full text-primary-foreground bg-primary shadow-lg shadow-primary/25 hover:brightness-105 active:scale-[0.98] transition-all group"
+							onClick={() => void startRecording()}
 						>
-							<IconCapX class="invert will-change-transform size-3 dark:invert-0" />
-						</div>
-						<Popover
-							open={noMicrophoneWarningOpen()}
-							onOpenChange={(open) => {
-								if (open) setNoMicrophoneWarningOpen(true);
-								else dismissMicrophoneWarning();
-							}}
-							placement="bottom"
-							gutter={8}
-						>
-							<Popover.Anchor
-								data-inactive={rawOptions.mode === "instant" && !auth.data}
-								data-disabled={startDisabled()}
-								class="flex flex-1 min-w-0 max-w-[18rem] overflow-hidden flex-row h-11 rounded-full text-white bg-linear-to-r from-blue-10 via-blue-10 to-blue-11 dark:from-blue-9 dark:via-blue-9 dark:to-blue-10 group"
-								onClick={() => void startRecording()}
+							<div
+								class="flex flex-1 items-center py-1 pl-4 transition-colors hover:bg-black/10 min-w-0 cursor-pointer"
+								classList={{
+									"opacity-60 cursor-not-allowed hover:bg-transparent":
+										startDisabled(),
+								}}
 							>
-								<div
-									class="flex flex-1 items-center py-1 pl-4 transition-colors hover:bg-white/10 min-w-0"
-									classList={{
-										"opacity-60 cursor-not-allowed hover:bg-transparent":
-											startDisabled(),
-									}}
-								>
-									<Switch>
-										<Match when={rawOptions.mode === "studio"}>
-											<IconCapFilmCut class="size-4 shrink-0" />
-										</Match>
-										<Match when={rawOptions.mode === "instant"}>
-											<IconCapInstant class="size-4 shrink-0" />
-										</Match>
-										<Match when={(rawOptions.mode as string) === "screenshot"}>
-											<IconCapCamera class="size-4 shrink-0" />
-										</Match>
-									</Switch>
-									<div class="flex flex-col mr-2 ml-3 min-w-0">
-										<span class="text-[0.95rem] font-medium text-white text-nowrap">
-											{(() => {
-												if (rawOptions.mode === "instant" && !auth.data)
-													return "Sign In To Use";
-												if (rawOptions.mode === "screenshot")
-													return "Take Screenshot";
-												return "Start Recording";
-											})()}
-										</span>
-										<span class="text-[11px] flex items-center text-nowrap gap-1 transition-opacity duration-200 text-white/90 font-light -mt-0.5">
-											{`${capitalize(rawOptions.mode)} Mode`}
-										</span>
+								<Switch>
+									<Match when={rawOptions.mode === "studio"}>
+										<IconCapFilmCut class="size-4 shrink-0 text-primary-foreground" />
+									</Match>
+									<Match when={(rawOptions.mode as string) === "screenshot"}>
+										<IconCapCamera class="size-4 shrink-0 text-primary-foreground" />
+									</Match>
+								</Switch>
+								<div class="flex flex-col mr-2 ml-3 min-w-0">
+									<span class="text-[0.95rem] font-semibold text-primary-foreground text-nowrap">
+										{rawOptions.mode === "screenshot"
+											? "Take Screenshot"
+											: "Start Recording"}
+									</span>
+									<span class="text-[11px] flex items-center text-nowrap gap-1 transition-opacity duration-200 text-primary-foreground/80 font-medium -mt-0.5">
+										{rawOptions.mode === "screenshot"
+											? "Screenshot Mode"
+											: "Studio Mode"}
+									</span>
+								</div>
+							</div>
+							<button
+								type="button"
+								aria-label="Choose recording mode"
+								class="pl-2.5 pr-3 py-1.5 flex items-center border-l border-primary-foreground/20 bg-primary-foreground/10 transition-colors group-hover:bg-primary-foreground/20 text-primary-foreground"
+								onClick={(e) => showMenu(menuModes, e)}
+							>
+								<IconCapCaretDown class="pointer-events-none" />
+							</button>
+						</Popover.Anchor>
+						<Popover.Portal>
+							<Popover.Content class="z-200 w-[min(21rem,calc(100vw-1.5rem))] rounded-xl border border-amber-6 bg-gray-1 p-3.5 text-gray-12 shadow-xl outline-hidden data-expanded:animate-in data-expanded:fade-in data-expanded:zoom-in-95">
+								<div class="flex gap-2.5 items-start">
+									<IconLucideAlertTriangle class="mt-0.5 size-4 shrink-0 text-amber-10" />
+									<div class="flex flex-col gap-1">
+										<p class="text-sm font-semibold">No microphone detected</p>
+										<p class="text-xs leading-relaxed text-gray-10">
+											This recording will not include your voice. Select a
+											microphone, or continue without one.
+										</p>
 									</div>
 								</div>
-								<button
-									type="button"
-									aria-label="Choose recording mode"
-									class="pl-2.5 pr-3 py-1.5 flex items-center border-l border-white/20 bg-white/5 transition-colors group-hover:bg-white/10"
-									onClick={(e) => showMenu(menuModes, e)}
-								>
-									<IconCapCaretDown class="pointer-events-none" />
-								</button>
-							</Popover.Anchor>
-							<Popover.Portal>
-								<Popover.Content class="z-200 w-[min(21rem,calc(100vw-1.5rem))] rounded-xl border border-amber-6 bg-gray-1 p-3.5 text-gray-12 shadow-xl outline-hidden data-expanded:animate-in data-expanded:fade-in data-expanded:zoom-in-95">
-									<div class="flex gap-2.5 items-start">
-										<IconLucideAlertTriangle class="mt-0.5 size-4 shrink-0 text-amber-10" />
-										<div class="flex flex-col gap-1">
-											<p class="text-sm font-semibold">
-												No microphone detected
-											</p>
-											<p class="text-xs leading-relaxed text-gray-10">
-												This recording will not include your voice. Select a
-												microphone, or continue without one.
-											</p>
-										</div>
-									</div>
-									<label class="mt-3 flex cursor-pointer items-center gap-2 text-xs text-gray-11">
-										<input
-											type="checkbox"
-											class="size-3.5 accent-blue-9"
-											checked={dontShowMicrophoneWarning()}
-											onChange={(event) =>
-												setDontShowMicrophoneWarning(
-													event.currentTarget.checked,
-												)
-											}
-										/>
-										Don't show again
-									</label>
-									<div class="flex gap-2 justify-end mt-3">
-										<Popover.CloseButton class="px-3 h-8 text-xs font-medium rounded-lg border border-gray-4 bg-gray-2 text-gray-12 hover:bg-gray-3">
-											Go back
-										</Popover.CloseButton>
-										<button
-											type="button"
-											class="px-3 h-8 text-xs font-medium text-white rounded-lg bg-blue-9 hover:bg-blue-10"
-											onClick={() => void confirmWithoutMicrophone()}
-											disabled={
-												startDisabled() || confirmingWithoutMicrophone()
-											}
-										>
-											Record without microphone
-										</button>
-									</div>
-								</Popover.Content>
-							</Popover.Portal>
-						</Popover>
-						<button
-							type="button"
-							aria-label="Recording countdown"
-							class="flex justify-center items-center rounded-full border transition-opacity bg-gray-6 text-gray-12 size-9 hover:opacity-80"
-							onClick={(e) => showMenu(preRecordingMenu, e)}
-						>
-							<IconCapGear class="pointer-events-none will-change-transform size-5" />
-						</button>
-					</div>
-				</div>
-				<Show when={(rawOptions.mode as string) !== "screenshot"}>
-					<div class={`${LIQUID_GLASS_SURFACE_CLASS} p-3`}>
-						<div class="grid grid-cols-2 gap-2 w-full">
-							<CameraSelectBase
-								disabled={devices.isPending}
-								options={cameras()}
-								value={selectedCamera() ?? null}
-								onChange={(camera) => {
-									const isCameraOnly = props.target.variant === "cameraOnly";
-									if (!camera) setCamera.mutate({ model: null });
-									else if (camera.model_id)
-										setCamera.mutate({
-											model: { ModelID: camera.model_id },
-											skipCameraWindow: isCameraOnly,
-										});
-									else
-										setCamera.mutate({
-											model: { DeviceID: camera.device_id },
-											skipCameraWindow: isCameraOnly,
-										});
-								}}
-								permissions={permissions()}
-								hidePreviewButton={props.target.variant === "cameraOnly"}
-								PillComponent={InfoPill}
-								class="flex flex-row gap-2 items-center px-2 w-full h-[42px] rounded-lg border border-gray-5 transition-colors cursor-default disabled:opacity-70 bg-gray-3 disabled:text-gray-11 KSelect"
-								iconClass="text-gray-10 size-4"
-							/>
-							<MicrophoneSelectBase
-								disabled={devices.isPending}
-								options={mics()}
-								value={selectedMicName()}
-								onChange={(value) => setMicInput.mutate(value)}
-								permissions={permissions()}
-								PillComponent={InfoPill}
-								class="flex overflow-hidden relative z-10 flex-row gap-2 items-center px-2 w-full h-[42px] rounded-lg border border-gray-5 transition-colors cursor-default disabled:opacity-70 bg-gray-3 disabled:text-gray-11 KSelect"
-								levelIndicatorClass="bg-blue-7"
-								iconClass="text-gray-10 size-4"
-							/>
-						</div>
-					</div>
-				</Show>
-			</div>
-			<div class="flex justify-center items-center w-full">
-				<div
-					onClick={() => props.setToggleModeSelect?.(true)}
-					class="flex gap-1 justify-center items-center self-center mb-5 transition-opacity duration-200 w-fit hover:opacity-60"
-					classList={{
-						"bg-black/50 p-2 rounded-lg border border-white/10 hover:bg-black/50 hover:opacity-80":
-							props.showBackground,
-						"hover:opacity-60": !props.showBackground,
-					}}
-				>
-					<IconCapInfo class="opacity-70 will-change-transform size-3" />
-					<p class="text-sm text-white drop-shadow-md">
-						<span class="opacity-70">What is </span>
-						<span class="font-medium">{capitalize(rawOptions.mode)} Mode</span>?
-					</p>
+								<label class="mt-3 flex cursor-pointer items-center gap-2 text-xs text-gray-11">
+									<input
+										type="checkbox"
+										class="size-3.5 accent-primary"
+										checked={dontShowMicrophoneWarning()}
+										onChange={(event) =>
+											setDontShowMicrophoneWarning(event.currentTarget.checked)
+										}
+									/>
+									Don't show again
+								</label>
+								<div class="flex gap-2 justify-end mt-3">
+									<Popover.CloseButton class="px-3 h-8 text-xs font-medium rounded-lg border border-gray-4 bg-gray-2 text-gray-12 hover:bg-gray-3">
+										Go back
+									</Popover.CloseButton>
+									<button
+										type="button"
+										class="px-3 h-8 text-xs font-medium text-primary-foreground rounded-lg bg-primary hover:brightness-105"
+										onClick={() => void confirmWithoutMicrophone()}
+										disabled={startDisabled() || confirmingWithoutMicrophone()}
+									>
+										Record without microphone
+									</button>
+								</div>
+							</Popover.Content>
+						</Popover.Portal>
+					</Popover>
+					<button
+						type="button"
+						aria-label="Recording countdown"
+						class="flex justify-center items-center rounded-full border border-gray-5 transition-all bg-gray-6 text-gray-12 size-9 hover:border-primary/50 hover:text-primary hover:bg-gray-7"
+						onClick={(e) => showMenu(preRecordingMenu, e)}
+					>
+						<IconCapGear class="pointer-events-none will-change-transform size-5" />
+					</button>
 				</div>
 			</div>
-		</>
+			<Show when={(rawOptions.mode as string) !== "screenshot"}>
+				<div class={`${LIQUID_GLASS_SURFACE_CLASS} p-3`}>
+					<div class="grid grid-cols-2 gap-2 w-full">
+						<CameraSelectBase
+							disabled={devices.isPending}
+							options={cameras()}
+							value={selectedCamera() ?? null}
+							onChange={(camera) => {
+								if (!camera) setCamera.mutate({ model: null });
+								else if (camera.model_id)
+									setCamera.mutate({
+										model: { ModelID: camera.model_id },
+										skipCameraWindow: isCameraOnly,
+									});
+								else
+									setCamera.mutate({
+										model: { DeviceID: camera.device_id },
+										skipCameraWindow: isCameraOnly,
+									});
+							}}
+							permissions={permissions()}
+							hidePreviewButton={isCameraOnly}
+							PillComponent={InfoPill}
+							class="flex flex-row gap-2 items-center px-2 w-full h-[42px] rounded-lg border border-gray-5 transition-colors cursor-default disabled:opacity-70 bg-gray-3 disabled:text-gray-11 KSelect"
+							iconClass="text-gray-10 size-4"
+						/>
+						<MicrophoneSelectBase
+							disabled={devices.isPending}
+							options={mics()}
+							value={selectedMicName()}
+							onChange={(value) => setMicInput.mutate(value)}
+							permissions={permissions()}
+							PillComponent={InfoPill}
+							class="flex overflow-hidden relative z-10 flex-row gap-2 items-center px-2 w-full h-[42px] rounded-lg border border-gray-5 transition-colors cursor-default disabled:opacity-70 bg-gray-3 disabled:text-gray-11 KSelect"
+							levelIndicatorClass="bg-primary"
+							iconClass="text-gray-10 size-4"
+						/>
+					</div>
+				</div>
+			</Show>
+		</div>
 	);
 }

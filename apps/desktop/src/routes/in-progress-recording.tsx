@@ -278,7 +278,6 @@ function InProgressRecordingInner() {
 				setPauseResumes([]);
 				setStopRequested(false);
 				setMicMuted(false);
-				aborted = false;
 				// This window is reused across recordings, so `start`/`time` still
 				// hold the previous session's values here. Effects (the free-plan
 				// length limit) run synchronously on the state flip below, so the
@@ -376,7 +375,6 @@ function InProgressRecordingInner() {
 			setPauseResumes([]);
 			setStopRequested(false);
 			setMicMuted(false);
-			aborted = false;
 			if (recording.status === "recording") {
 				setStart(Date.now());
 				setTime(Date.now());
@@ -396,7 +394,6 @@ function InProgressRecordingInner() {
 			setDegradedReason(null);
 			setPauseResumes([]);
 			setMicMuted(false);
-			aborted = false;
 			setStart(Date.now());
 			setTime(Date.now());
 			setState({ variant: "recording" });
@@ -996,7 +993,7 @@ function InProgressRecordingInner() {
 																<IconCapMicrophone class="size-5 text-gray-12" />
 																<div class="absolute bottom-1 left-1 right-1 h-0.5 overflow-hidden rounded-full bg-gray-10">
 																	<div
-																		class="absolute inset-0 bg-blue-9 transition-transform duration-100"
+																		class="absolute inset-0 bg-primary transition-transform duration-100"
 																		style={{
 																			transform: `translateX(-${
 																				(1 - audioLevel()) * 100
@@ -1007,10 +1004,7 @@ function InProgressRecordingInner() {
 															</>
 														)
 													) : (
-														<IconLucideMicOff
-															class="size-5 text-gray-7"
-															data-tauri-drag-region
-														/>
+														<IconLucideMicOff class="size-5 text-gray-7" />
 													)}
 												</div>
 											</RecordingControlTooltip>
@@ -1036,7 +1030,7 @@ function InProgressRecordingInner() {
 													<IconCapMicrophone class="size-5 text-gray-12" />
 													<div class="absolute bottom-1 left-1 right-1 h-0.5 overflow-hidden rounded-full bg-gray-10">
 														<div
-															class="absolute inset-0 bg-blue-9 transition-transform duration-100"
+															class="absolute inset-0 bg-primary transition-transform duration-100"
 															style={{
 																transform: `translateX(-${
 																	(1 - audioLevel()) * 100
@@ -1154,8 +1148,12 @@ function InProgressRecordingInner() {
 						</div>
 						<div
 							aria-label="Move recording controls"
-							class="non-styled-move flex w-6 shrink-0 cursor-move items-center justify-center border-l border-gray-5 p-1 hover:cursor-move transition-colors duration-100 hover:bg-gray-12/4 dark:hover:bg-white/6"
-							data-tauri-drag-region
+							class="non-styled-move flex w-6 shrink-0 cursor-move items-center justify-center border-l border-gray-5 p-1 hover:cursor-move transition-colors duration-100 hover:bg-gray-12/4 dark:hover:bg-white/6 select-none"
+							onMouseDown={(e) => {
+								if (e.button !== 0) return;
+								e.preventDefault();
+								void getCurrentWindow().startDragging();
+							}}
 						>
 							<IconCapMoreVertical class="pointer-events-none size-4 text-gray-10" />
 						</div>

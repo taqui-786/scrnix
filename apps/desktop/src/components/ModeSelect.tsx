@@ -20,15 +20,15 @@ const ModeOption = (props: ModeOptionProps) => {
 			class={cx(
 				"relative flex flex-col items-center rounded-xl border-2 transition-all duration-200 overflow-hidden group",
 				props.isSelected
-					? "border-blue-9 bg-blue-3 dark:bg-blue-3/30 shadow-lg shadow-blue-9/10"
+					? "border-primary bg-primary/10 shadow-lg shadow-primary/10"
 					: "border-gray-4 dark:border-gray-5 bg-gray-2 dark:bg-gray-3 hover:border-gray-6 dark:hover:border-gray-6 hover:bg-gray-3 dark:hover:bg-gray-4",
 			)}
 			role="button"
 			aria-pressed={props.isSelected}
 		>
 			<Show when={props.isSelected}>
-				<div class="absolute top-2.5 right-2.5 flex items-center justify-center size-5 rounded-full bg-blue-9">
-					<IconLucideCheck class="size-3 text-white" />
+				<div class="absolute top-2.5 right-2.5 flex items-center justify-center size-5 rounded-full bg-primary text-primary-foreground">
+					<IconLucideCheck class="size-3" />
 				</div>
 			</Show>
 
@@ -40,7 +40,7 @@ const ModeOption = (props: ModeOptionProps) => {
 				<h3
 					class={cx(
 						"text-base font-semibold mb-1.5",
-						props.isSelected ? "text-blue-11" : "text-gray-12",
+						props.isSelected ? "text-primary" : "text-gray-12",
 					)}
 				>
 					{props.title}
@@ -62,12 +62,6 @@ const ModeSelect = (props: { onClose?: () => void; standalone?: boolean }) => {
 	};
 
 	const modeOptions = [
-		{
-			mode: "instant" as const,
-			title: "Instant",
-			description: "Share instantly with a link. Uploads as you record.",
-			icon: IconCapInstant,
-		},
 		{
 			mode: "studio" as const,
 			title: "Studio",
@@ -102,7 +96,7 @@ const ModeSelect = (props: { onClose?: () => void; standalone?: boolean }) => {
 				</div>
 			</Show>
 
-			<div class="grid grid-cols-3 gap-4">
+			<div class="grid grid-cols-2 gap-4">
 				{modeOptions.map((option) => (
 					<ModeOption
 						mode={option.mode}

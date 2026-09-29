@@ -135,7 +135,7 @@ function Inner() {
 				<h1 class="text-2xl font-bold mb-2">Scrinx Desktop Running</h1>
 				<p class="max-w-md text-sm text-gray-11">
 					This page is the internal dev server for the native desktop app.
-					Please use the native Cap app window on your Ubuntu desktop.
+					Please use the native Scrinx app window on your Ubuntu desktop.
 				</p>
 			</div>
 		);

@@ -1,6 +1,5 @@
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
-import { type as ostype } from "@tauri-apps/plugin-os";
 import { cx } from "cva";
 import {
 	createEffect,
@@ -13,14 +12,12 @@ import {
 } from "solid-js";
 
 import { Toggle } from "~/components/Toggle";
-import CaptionControlsMacOS from "~/components/titlebar/controls/CaptionControlsMacOS";
-import CaptionControlsWindows11 from "~/components/titlebar/controls/CaptionControlsWindows11";
+import CaptionControlsLinux from "~/components/titlebar/controls/CaptionControlsLinux";
 import {
 	type TeleprompterStore,
 	teleprompterDefaults,
 	teleprompterStore,
 } from "~/store";
-import { applyMacOSWindowMaterial } from "~/utils/macos-window-material";
 import { commands, events } from "~/utils/tauri";
 import IconLucideChevronLeft from "~icons/lucide/chevron-left";
 import IconLucideChevronRight from "~icons/lucide/chevron-right";
@@ -91,10 +88,6 @@ function SettingToggle(props: {
 
 export default function Teleprompter() {
 	const currentWindow = getCurrentWebviewWindow();
-	const platform = ostype();
-	const isMacOS = platform === "macos";
-	const isWindows = platform === "windows";
-	const isLinux = platform === "linux";
 	const [state, setState] =
 		createSignal<TeleprompterStore>(teleprompterDefaults);
 	const [isLoaded, setIsLoaded] = createSignal(false);
@@ -213,16 +206,15 @@ export default function Teleprompter() {
 		document.documentElement.setAttribute("data-transparent-window", "true");
 		document.body.style.background = "transparent";
 
-		void Promise.allSettled([applyMacOSWindowMaterial("teleprompter")])
-			.then(async () => {
+		void (async () => {
+			try {
 				await commands.setTeleprompterWindowLevel(true);
 				await currentWindow.show();
-				if (isWindows) await commands.refreshWindowContentProtection();
 				await currentWindow.setFocus();
-			})
-			.catch((error) => {
+			} catch (error) {
 				console.error("Failed to show teleprompter window:", error);
-			});
+			}
+		})();
 
 		void teleprompterStore
 			.get()
@@ -277,14 +269,6 @@ export default function Teleprompter() {
 		saveTimer = setTimeout(() => {
 			void teleprompterStore.set(nextState);
 		}, 250);
-	});
-
-	createEffect(() => {
-		if (!isLoaded() || !isMacOS) return;
-		const opacity = clamp(state().windowOpacityPercent, 45, 100) / 100;
-		void commands.setTeleprompterWindowOpacity(opacity).catch((error) => {
-			console.error("Failed to update teleprompter window opacity:", error);
-		});
 	});
 
 	onCleanup(() => {
@@ -392,48 +376,32 @@ export default function Teleprompter() {
 			onKeyDown={(event) => {
 				if (event.key === "Escape") setSettingsOpen(false);
 			}}
-			class={cx(
-				"cap-window-shell relative flex h-screen w-screen flex-col overflow-hidden text-gray-12",
-				!isMacOS &&
-					"rounded-2xl border border-gray-5 bg-gray-1/90 shadow-2xl backdrop-blur-2xl",
-			)}
+			class="scrinx-window-shell relative flex h-screen w-screen flex-col overflow-hidden text-gray-12 rounded-2xl border border-gray-5 bg-gray-1/90 shadow-2xl backdrop-blur-2xl"
 			style={{
-				opacity: isMacOS
-					? "1"
-					: `${clamp(state().windowOpacityPercent, 45, 100) / 100}`,
+				opacity: `${clamp(state().windowOpacityPercent, 45, 100) / 100}`,
 			}}
 		>
 			<header
 				data-tauri-drag-region
-				class="cap-window-header flex h-9 shrink-0 items-center"
+				class="cap-window-header flex h-9 shrink-0 items-center px-3"
 			>
-				<Show when={isLinux}>
-					<CaptionControlsMacOS
-						class="ml-3"
-						showMinimize={false}
-						showZoom={false}
-					/>
-				</Show>
 				<div
 					data-tauri-drag-region
-					class={cx(
-						"pointer-events-none ml-auto flex items-center gap-1.5 text-[10px] text-gray-9",
-						isWindows ? "mr-1" : "mr-3",
-					)}
+					class="pointer-events-none flex items-center gap-1.5 text-[10px] text-gray-9"
 				>
 					<IconLucideEyeOff class="size-3" />
 					<span>
 						{pauseStateError() ??
 							(playback().recordingPaused
 								? "Scrolling paused with recording"
-								: isLinux
-									? "This window may appear in recordings on Linux"
-									: "This window is hidden from Cap recordings")}
+								: "This window may appear in recordings on Linux")}
 					</span>
 				</div>
-				<Show when={isWindows}>
-					<CaptionControlsWindows11 />
-				</Show>
+				<CaptionControlsLinux
+					class="ml-auto"
+					showMinimize={true}
+					showMaximize={false}
+				/>
 			</header>
 
 			<main class="cap-window-body relative min-h-0 flex-1 overflow-hidden">

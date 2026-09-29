@@ -5,7 +5,7 @@ import { listen } from "@tauri-apps/api/event";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { type as ostype } from "@tauri-apps/plugin-os";
 import { createEffect, onCleanup, Show } from "solid-js";
-import CaptionControlsWindows11 from "~/components/titlebar/controls/CaptionControlsWindows11";
+import CaptionControlsLinux from "~/components/titlebar/controls/CaptionControlsLinux";
 import { createTauriEventListener } from "~/utils/createEventListener";
 import { isRecordingStorageError } from "~/utils/recording";
 import { commands } from "~/utils/tauri";
@@ -170,13 +170,9 @@ export function EditorErrorScreen(props: {
 
 	return (
 		<div class="flex flex-col flex-1 min-h-0">
-			<div
-				data-tauri-drag-region
-				class="flex relative flex-row items-center w-full h-14 px-4"
-			>
-				{isMac() && <div class="h-full w-16" />}
-				<div data-tauri-drag-region class="flex-1 h-full" />
-				{ostype() === "windows" && <CaptionControlsWindows11 />}
+			<div class="flex relative flex-row items-center w-full h-14 px-4 select-none">
+				<div data-tauri-drag-region class="flex-1 h-full cursor-default" />
+				<CaptionControlsLinux />
 			</div>
 
 			<div class="flex-1 flex items-center justify-center p-8">
@@ -217,7 +213,7 @@ export function EditorErrorScreen(props: {
 								<p class="text-xs text-gray-11">
 									{storageShortage()
 										? "Free up space on the recording drive, then click Recover Recording. Your recording files have been kept."
-										: "Cap can attempt to recover your recording automatically. This will reconstruct the recording from available segment data."}
+										: "Scrinx can attempt to recover your recording automatically. This will reconstruct the recording from available segment data."}
 								</p>
 							</div>
 

@@ -20,7 +20,7 @@ export function getTeleprompterWindowOptions(
 
 	return {
 		url: "/teleprompter",
-		title: "Cap Teleprompter",
+		title: "Scrinx Teleprompter",
 		width: 560,
 		height: 320,
 		minWidth: 420,

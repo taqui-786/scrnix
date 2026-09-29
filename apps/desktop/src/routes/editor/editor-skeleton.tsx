@@ -1,9 +1,7 @@
 import { createElementBounds } from "@solid-primitives/bounds";
 import { makePersisted } from "@solid-primitives/storage";
-import { type as ostype } from "@tauri-apps/plugin-os";
 import { createSignal, For, Show } from "solid-js";
-import CaptionControlsMacOS from "~/components/titlebar/controls/CaptionControlsMacOS";
-import CaptionControlsWindows11 from "~/components/titlebar/controls/CaptionControlsWindows11";
+import CaptionControlsLinux from "~/components/titlebar/controls/CaptionControlsLinux";
 import { DEFAULT_TIMELINE_HEIGHT, editorVerticalLayout } from "./editor-layout";
 import { usePreparingEditorModel } from "./preparing-editor-context";
 import {
@@ -18,25 +16,22 @@ const DISABLED_CONTROL =
 
 function PreparingHeader(props: { model: PreparingEditorModel }) {
 	return (
-		<div
-			data-tauri-drag-region
-			class="flex relative shrink-0 flex-row items-center w-full h-13 pr-3 max-[900px]:grid max-[900px]:grid-cols-1 max-[900px]:grid-rows-[36px_36px] max-[900px]:h-[72px] max-[900px]:pr-2"
-		>
-			<div
-				data-tauri-drag-region
-				class="flex flex-row flex-1 min-w-0 items-center h-full"
-			>
-				{ostype() === "macos" && (
-					<div data-tauri-drag-region class="h-full w-[92px] shrink-0" />
-				)}
-				{ostype() === "linux" && (
-					<CaptionControlsMacOS class="mr-1 ml-3 shrink-0" />
-				)}
-				{ostype() === "windows" && <div class="w-3 shrink-0" />}
+		<div class="flex relative shrink-0 flex-row items-center w-full h-13 pr-3 select-none max-[900px]:grid max-[900px]:grid-cols-1 max-[900px]:grid-rows-[36px_36px] max-[900px]:h-[72px] max-[900px]:pr-2 border-b border-emerald-500/10 bg-ed-window/90 backdrop-blur-xl">
+			<div class="flex flex-row flex-1 min-w-0 items-center h-full pl-3">
+				<div class="flex items-center gap-2 mr-3 shrink-0 select-none">
+					<div class="size-6 rounded-md bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold text-[11px] shadow-[0_0_10px_rgba(16,185,129,0.25)]">
+						S
+					</div>
+					<span class="text-xs font-semibold tracking-wide text-white/90">
+						Scrinx
+					</span>
+				</div>
 				<span class="truncate text-[13px] font-medium">
 					{props.model.seed().title || "Recording"}
 				</span>
-				<span class="ml-1.5 text-[13px] text-ed-text-3">.cap</span>
+				<span class="ml-1.5 text-[11px] font-mono px-1.5 py-0.5 rounded-md bg-emerald-950/40 text-emerald-400 border border-emerald-500/20">
+					.scrinx
+				</span>
 				<div class="flex gap-1 ml-3">
 					<button
 						type="button"
@@ -55,7 +50,10 @@ function PreparingHeader(props: { model: PreparingEditorModel }) {
 						↷
 					</button>
 				</div>
-				<div data-tauri-drag-region class="flex-1 h-full" />
+				<div
+					data-tauri-drag-region
+					class="flex-1 h-full min-w-4 cursor-default"
+				/>
 			</div>
 			<div class="flex gap-1 items-center justify-end max-[900px]:pr-1">
 				<button type="button" disabled class={DISABLED_CONTROL}>
@@ -67,15 +65,14 @@ function PreparingHeader(props: { model: PreparingEditorModel }) {
 				<button
 					type="button"
 					disabled
-					class="ml-1.5 h-[30px] px-3.5 rounded-lg bg-ed-accent/40 text-white/70 text-[13px] font-medium"
+					class="ml-1.5 h-[30px] px-3.5 rounded-lg bg-emerald-500/40 text-white/70 text-[13px] font-medium"
 					title="Available when your recording is ready to edit"
 				>
 					Export
 				</button>
+				<div class="mx-2 w-px h-4 shrink-0 bg-white/10" />
+				<CaptionControlsLinux class="mr-1 shrink-0" />
 			</div>
-			{ostype() === "windows" && (
-				<CaptionControlsWindows11 class="shrink-0 max-[900px]:absolute max-[900px]:top-0 max-[900px]:right-0" />
-			)}
 		</div>
 	);
 }

@@ -1,6 +1,5 @@
 import { type RouteSectionProps, useLocation } from "@solidjs/router";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { type as ostype } from "@tauri-apps/plugin-os";
 import { cx } from "cva";
 import {
 	createEffect,
@@ -11,9 +10,7 @@ import {
 } from "solid-js";
 
 import { AbsoluteInsetLoader } from "~/components/Loader";
-import CaptionControlsMacOS from "~/components/titlebar/controls/CaptionControlsMacOS";
-import CaptionControlsWindows11 from "~/components/titlebar/controls/CaptionControlsWindows11";
-import { applyMacOSWindowMaterial } from "~/utils/macos-window-material";
+import CaptionControlsLinux from "~/components/titlebar/controls/CaptionControlsLinux";
 import {
 	useWindowChromeContext,
 	WindowChromeContext,
@@ -23,12 +20,7 @@ export default function (props: RouteSectionProps) {
 	const location = useLocation();
 
 	const handleKeyDown = (e: KeyboardEvent) => {
-		const isMac = ostype() === "macos";
-		const closeShortcut = isMac
-			? e.metaKey && e.key === "w"
-			: e.ctrlKey && e.key === "w";
-
-		if (closeShortcut) {
+		if (e.ctrlKey && e.key === "w") {
 			e.preventDefault();
 			getCurrentWindow().close();
 		}
@@ -42,15 +34,7 @@ export default function (props: RouteSectionProps) {
 		window.removeEventListener("keydown", handleKeyDown);
 	});
 
-	const isMacOS = ostype() === "macos";
-
 	createEffect(() => {
-		void applyMacOSWindowMaterial(
-			location.pathname.startsWith("/settings") ? "settings" : "panel",
-		).catch((error) => {
-			console.error("Failed to apply macOS window material:", error);
-		});
-
 		const isMain = location.pathname === "/";
 		if (isMain) {
 			document.documentElement.setAttribute("data-transparent-window", "true");
@@ -87,25 +71,15 @@ export default function (props: RouteSectionProps) {
 					location.pathname === "/"
 						? "bg-transparent border-0"
 						: "divide-y divide-gray-5 bg-gray-1",
-					isMacOS && location.pathname !== "/" && "rounded-[16px]",
 				)}
 			>
 				<Header />
 
-				{/* breaks sometimes */}
-				{/* <Transition
-        mode="outin"
-        enterActiveClass="transition-opacity duration-100"
-        exitActiveClass="transition-opacity duration-100"
-        enterClass="opacity-0"
-        exitToClass="opacity-0"
-        > */}
 				<Suspense fallback={<AbsoluteInsetLoader />}>
 					<Inner>
 						<Suspense fallback={null}>{props.children}</Suspense>
 					</Inner>
 				</Suspense>
-				{/* </Transition> */}
 			</div>
 		</WindowChromeContext>
 	);
@@ -119,39 +93,18 @@ function Header() {
 			"useWindowChrome must be used within a WindowChromeContext",
 		);
 
-	const isWindows = ostype() === "windows";
-	const isMacOS = ostype() === "macos";
-	const isLinux = ostype() === "linux";
-	const isSettings = () => location.pathname.startsWith("/settings");
-
-	if (isMacOS && isSettings()) return null;
 	if (location.pathname === "/") return null;
 
 	return (
-		<header
-			class={cx(
-				"cap-window-header flex items-center min-w-0 w-full h-9 select-none shrink-0 bg-gray-2",
-				isWindows ? "flex-row" : "flex-row-reverse",
-			)}
-			data-tauri-drag-region
-		>
-			{ctx.state()?.items}
-			{isWindows && (
-				<CaptionControlsWindows11
-					class="ml-auto!"
-					maximizable={ctx.state()?.onMaximize ? true : undefined}
-					maximized={ctx.state()?.maximized}
-					onMaximize={ctx.state()?.onMaximize}
-				/>
-			)}
-			{((isMacOS && !isSettings()) || isLinux) && (
-				<CaptionControlsMacOS
-					class="mr-auto! ml-3"
-					showMinimize={false}
-					showZoom={ctx.state()?.onMaximize !== undefined}
-					onZoom={ctx.state()?.onMaximize}
-				/>
-			)}
+		<header class="cap-window-header flex items-center justify-between min-w-0 w-full h-9 select-none shrink-0 bg-gray-2 px-3 border-b border-black-transparent-5">
+			<div class="flex items-center min-w-0">{ctx.state()?.items}</div>
+			<div data-tauri-drag-region class="flex-1 h-full cursor-default" />
+			<CaptionControlsLinux
+				class="ml-auto"
+				showMinimize={true}
+				showMaximize={ctx.state()?.onMaximize !== undefined}
+				onMaximize={ctx.state()?.onMaximize}
+			/>
 		</header>
 	);
 }

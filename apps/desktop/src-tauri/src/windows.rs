@@ -3268,7 +3268,7 @@ impl ShowCapWindow {
                     fake_window::spawn_fake_window_listener(app.clone(), window.clone());
                 }
 
-                #[cfg(windows)]
+                #[cfg(any(windows, target_os = "linux"))]
                 {
                     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
                     let show_result = window.show();

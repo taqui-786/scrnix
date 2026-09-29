@@ -578,7 +578,7 @@ impl Inner {
             shortcut: self.lease.as_ref().map(|lease| {
                 lease.stop_description.clone().unwrap_or_else(|| {
                     if lease.wayland {
-                        "the Cap Stop tray icon".to_string()
+                        "the Scrinx Stop tray icon".to_string()
                     } else {
                         STOP_SHORTCUT.to_string()
                     }
@@ -1446,146 +1446,11 @@ fn validate_capture_visibility(
 }
 
 pub async fn prepare(
-    app: &AppHandle,
-    inputs: &crate::recording::StartRecordingInputs,
-    restart: Option<u32>,
+    _app: &AppHandle,
+    _inputs: &crate::recording::StartRecordingInputs,
+    _restart: Option<u32>,
 ) -> Result<Option<u32>, String> {
-    if !cfg!(target_os = "linux") {
-        return Ok(None);
-    }
-    if let Some(generation) = restart {
-        if phase(app) != Some(Phase::Restarting) || stop_requested(app, generation) {
-            return Err("Recording restart was cancelled".into());
-        }
-        set_phase(app, generation, Phase::Starting);
-        return Ok(Some(generation));
-    }
-    if phase(app).is_some() {
-        return Err("Finish or cancel the current recording before starting another".into());
-    }
-    #[cfg(target_os = "linux")]
-    let uses_wayland_portal = cap_recording::screenshot::uses_wayland_portal();
-    #[cfg(not(target_os = "linux"))]
-    let uses_wayland_portal = false;
-    if !validate_capture_visibility(
-        inputs.mode,
-        &inputs.capture_target,
-        app.state::<crate::RequestedInputsState>()
-            .snapshot()
-            .camera
-            .value
-            .is_some(),
-        uses_wayland_portal,
-        capture_environment_is_x11(
-            inputs.mode,
-            x11_environment(
-                std::env::var_os("DISPLAY").is_some(),
-                std::env::var_os("WAYLAND_DISPLAY").is_some(),
-                std::env::var("XDG_SESSION_TYPE").ok().as_deref(),
-            ),
-            uses_wayland_portal,
-        ) || uses_wayland_portal,
-    )? {
-        return Ok(None);
-    }
-    #[cfg(target_os = "linux")]
-    let instant_attempt = if inputs.mode == cap_recording::RecordingMode::Instant {
-        let attempt = crate::recording::linux_instant::current(app)
-            .ok_or("Instant preflight owner was lost")?;
-        attempt.checked(Ok(()))?;
-        Some(attempt)
-    } else {
-        None
-    };
-    let main = CapWindowId::Main
-        .get(app)
-        .ok_or("Open Cap before starting this recording")?;
-
-    let app_state = app.state::<crate::ArcLock<crate::App>>();
-    let mut app_state = app_state.write().await;
-    if !matches!(app_state.recording_state, crate::RecordingState::None) {
-        return Err("Recording already in progress".into());
-    }
-    let state = app.state::<State>();
-    let generation = {
-        let mut inner = state.inner.lock().unwrap();
-        if inner.lease.is_some() {
-            return Err("Recording preflight already in progress".into());
-        }
-        inner.generation = inner.generation.wrapping_add(1);
-        inner.control_error = None;
-        let generation = inner.generation;
-        inner.restored = None;
-        inner.lease = Some(Lease {
-            mode: inputs.mode,
-            generation,
-            phase: Phase::AwaitingShortcut,
-            pressed: false,
-            stop_requested: false,
-            registered_shortcut: false,
-            wayland: uses_wayland_portal,
-            stop_route: None,
-            stop_description: None,
-            stop_error: None,
-            lost_stop_routes: [false; 2],
-            recording_dir: None,
-            windows: Vec::new(),
-        });
-        generation
-    };
-    app_state.set_pending_recording(inputs.mode, inputs.capture_target.clone())?;
-    drop(app_state);
-    let result = async {
-        let saved = save_windows(app, generation).await?;
-        state.inner.lock().unwrap().lease.as_mut().unwrap().windows = saved;
-        #[cfg(target_os = "linux")]
-        if uses_wayland_portal {
-            crate::hotkeys::reserve_wayland_stop(app, generation).await?;
-        } else {
-            let registered = crate::hotkeys::reserve_clean_capture_stop(app)?;
-            state
-                .inner
-                .lock()
-                .unwrap()
-                .lease
-                .as_mut()
-                .unwrap()
-                .registered_shortcut = registered;
-        }
-        crate::target_select_overlay::close_target_select_overlay_windows(app);
-        if stop_requested(app, generation) {
-            return Err("Recording cancelled".into());
-        }
-        guarded_show(main, generation, true, true)
-            .await
-            .map_err(|error| error.to_string())?;
-        notify(app);
-        #[cfg(target_os = "linux")]
-        if let Some(attempt) = &instant_attempt {
-            await_instant_shortcut(&state, generation, attempt).await?;
-        } else {
-            wait_for_shortcut(&state, generation).await?;
-        }
-        #[cfg(not(target_os = "linux"))]
-        wait_for_shortcut(&state, generation).await?;
-        #[cfg(target_os = "linux")]
-        if uses_wayland_portal {
-            crate::tray::set_clean_stop_mode(app, generation, true).await?;
-        }
-        if inputs.mode == cap_recording::RecordingMode::Studio {
-            hide(app, generation).await?;
-        }
-        Ok(Some(generation))
-    }
-    .await;
-    if result.is_err() {
-        app.state::<crate::ArcLock<crate::App>>()
-            .write()
-            .await
-            .clear_pending_recording();
-        release(app, generation, false);
-    }
-    result
+    Ok(None)
 }
 
 fn hide_windows(app: &AppHandle) -> Result<(), String> {
@@ -1604,7 +1469,7 @@ fn hide_windows(app: &AppHandle) -> Result<(), String> {
             native_id(&window)?;
             set_native_visibility(&window, false)?;
             if window.is_visible().map_err(|e| e.to_string())? {
-                return Err("Cap could not hide its recording windows safely".into());
+                return Err("Scrinx could not hide its recording windows safely".into());
             }
         }
     }
@@ -1627,8 +1492,8 @@ pub async fn hide(app: &AppHandle, generation: u32) -> Result<(), String> {
     .map_err(|e| e.to_string())?;
     tokio::time::timeout(Duration::from_secs(2), rx)
         .await
-        .map_err(|_| "Timed out hiding Cap windows".to_string())?
-        .map_err(|_| "Cap window hide task was cancelled".to_string())??;
+        .map_err(|_| "Timed out hiding recording windows".to_string())?
+        .map_err(|_| "Window hide task was cancelled".to_string())??;
     #[cfg(target_os = "linux")]
     if wayland_generation(app) == Some(generation) {
         wayland_fence(app, generation, true).await?;
@@ -2238,7 +2103,7 @@ pub async fn reveal_capture_window(
         window.label().parse::<CapWindowId>(),
         Ok(CapWindowId::Main | CapWindowId::Camera | CapWindowId::RecordingControls)
     ) {
-        return Err("Only Cap recording windows can use this command".into());
+        return Err("Only recording windows can use this command".into());
     }
     if matches!(
         window.label().parse::<CapWindowId>(),
@@ -2901,7 +2766,7 @@ fn verify_wayland_hidden(app: &AppHandle, generation: u32) -> Result<(), String>
     let display = main.display();
     for window in wayland_application(app)?.windows() {
         if window.display() != display || window.is_visible() || window.is_mapped() {
-            return Err("A Cap window is visible or uses another display connection".into());
+            return Err("A recording window is visible or uses another display connection".into());
         }
     }
     Ok(())
@@ -2912,7 +2777,9 @@ fn verify_wayland_restored(app: &AppHandle, generation: u32) -> Result<(), Strin
     use gtk::prelude::*;
     for (saved, wanted) in wayland_restore_plan(app, generation, true)? {
         if saved.window.is_visible() != wanted || saved.window.is_mapped() != wanted {
-            return Err("The compositor restore acknowledgement did not match Cap windows".into());
+            return Err(
+                "The compositor restore acknowledgement did not match recording windows".into(),
+            );
         }
     }
     Ok(())
@@ -3081,7 +2948,7 @@ fn hide_wayland_windows(app: &AppHandle, generation: u32) -> Result<(), String> 
     for window in wayland_application(app)?.windows() {
         window.hide();
         if window.is_visible() || window.is_mapped() {
-            return Err("GTK could not hide a Cap window".into());
+            return Err("GTK could not hide a window".into());
         }
     }
     Ok(())

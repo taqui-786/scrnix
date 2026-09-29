@@ -12,7 +12,7 @@ export type GeneralSettingsStore = TauriGeneralSettingsStore & {
 };
 
 export const DEFAULT_TRANSCRIPTION_HINTS = [
-	"Cap",
+	"Scrinx",
 	"TypeScript",
 	"My Brand Name",
 	"mywebsite.com",

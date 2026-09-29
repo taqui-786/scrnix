@@ -107,6 +107,16 @@ impl MainWindowRecordingStartBehaviour {
 // NOTE: Do not add "Cap Target Select" here — on Windows, WDA_EXCLUDEFROMCAPTURE applied to that
 // hidden window causes it to reappear as a ghost overlay after recording ends.
 const DEFAULT_EXCLUDED_WINDOW_TITLES: &[&str] = &[
+    "Scrinx",
+    "Scrinx Settings",
+    "Scrinx Recording Controls",
+    "Scrinx Camera",
+    "Scrinx Window Capture Occluder",
+    "Scrinx Capture Area",
+    "Scrinx Mode Selection",
+    "Scrinx Recordings",
+    "Scrinx Recordings Overlay",
+    "Scrinx Teleprompter",
     "Cap",
     "Cap Settings",
     "Cap Recording Controls",
@@ -295,7 +305,7 @@ fn default_crash_recovery_recording() -> bool {
 
 fn default_transcription_hints() -> Vec<String> {
     vec![
-        "Cap".to_string(),
+        "Scrinx".to_string(),
         "TypeScript".to_string(),
         "My Brand Name".to_string(),
         "mywebsite.com".to_string(),
@@ -304,7 +314,7 @@ fn default_transcription_hints() -> Vec<String> {
 
 fn default_server_url() -> String {
     std::option_env!("VITE_SERVER_URL")
-        .unwrap_or("https://cap.so")
+        .unwrap_or("https://scrinx.com")
         .to_string()
 }
 
@@ -968,7 +978,7 @@ mod tests {
     #[test]
     fn appends_missing_default_excluded_windows() {
         let mut excluded_windows = vec![
-            title_exclusion("Cap"),
+            title_exclusion("Scrinx"),
             WindowExclusion {
                 bundle_identifier: None,
                 owner_name: Some("Preview".to_string()),

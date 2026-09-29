@@ -11,13 +11,6 @@ interface ModeInfoPanelProps {
 
 const modeOptions = [
 	{
-		mode: "instant" as RecordingMode,
-		title: "Instant",
-		description:
-			"Share instantly with a link. Your recording uploads as you record, so you can share it immediately when you're done.",
-		icon: IconCapInstant,
-	},
-	{
 		mode: "studio" as RecordingMode,
 		title: "Studio",
 		description:
@@ -50,7 +43,7 @@ export default function ModeInfoPanel(props: ModeInfoPanelProps) {
 					onClick={() => props.onBack()}
 					class="flex gap-1 items-center rounded-md px-1.5 text-xs
 					text-gray-11 transition-opacity hover:opacity-70 hover:text-gray-12
-					focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-9 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-1"
+					focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-gray-1"
 				>
 					<IconLucideArrowLeft class="size-3 text-gray-11" />
 					<span class="font-medium text-gray-12">Back</span>
@@ -81,13 +74,13 @@ export default function ModeInfoPanel(props: ModeInfoPanelProps) {
 												class={cx(
 													"relative flex items-center gap-3 p-3 w-full text-left rounded-xl border-2 transition-all duration-200",
 													isSelected()
-														? "border-blue-9 bg-blue-3 dark:bg-blue-3/30"
+														? "border-primary bg-primary/10 shadow-sm"
 														: "border-gray-4 dark:border-gray-5 bg-gray-2 dark:bg-gray-3 hover:border-gray-6 dark:hover:border-gray-6 hover:bg-gray-3 dark:hover:bg-gray-4",
 												)}
 											>
 												{isSelected() && (
-													<div class="absolute top-2 right-2 flex items-center justify-center size-4 rounded-full bg-blue-9">
-														<IconLucideCheck class="size-2.5 text-white" />
+													<div class="absolute top-2 right-2 flex items-center justify-center size-4 rounded-full bg-primary text-primary-foreground">
+														<IconLucideCheck class="size-2.5" />
 													</div>
 												)}
 
@@ -95,7 +88,7 @@ export default function ModeInfoPanel(props: ModeInfoPanelProps) {
 													<option.icon
 														class={cx(
 															"size-5 invert dark:invert-0",
-															isSelected() && "text-blue-11",
+															isSelected() && "text-primary",
 														)}
 													/>
 												</div>
@@ -104,7 +97,7 @@ export default function ModeInfoPanel(props: ModeInfoPanelProps) {
 													<h3
 														class={cx(
 															"text-sm font-semibold",
-															isSelected() ? "text-blue-11" : "text-gray-12",
+															isSelected() ? "text-primary" : "text-gray-12",
 														)}
 													>
 														{option.title}

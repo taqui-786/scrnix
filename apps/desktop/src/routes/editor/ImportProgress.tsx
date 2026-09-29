@@ -1,6 +1,5 @@
 import { Button } from "@cap/ui-solid";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { type as ostype } from "@tauri-apps/plugin-os";
 import { createSignal, Match, onCleanup, onMount, Switch } from "solid-js";
 import Titlebar from "~/components/titlebar/Titlebar";
 import {
@@ -10,14 +9,14 @@ import {
 import IconLucideAlertCircle from "~icons/lucide/alert-circle";
 
 const funMessages = [
-	"Adjusting the Cap just right...",
-	"Putting on our thinking Cap...",
-	"Cap-sizing the pixels...",
-	"Wearing our processing Cap...",
-	"Cap-tivating import in progress...",
-	"Flipping our Cap backwards...",
-	"Cap-puccino break? Almost done...",
-	"Cap-able of great things...",
+	"Preparing your recording...",
+	"Processing video stream...",
+	"Optimizing audio channels...",
+	"Indexing clips and segments...",
+	"Generating waveform preview...",
+	"Polishing the editor timeline...",
+	"Configuring workspace...",
+	"Almost ready...",
 ];
 
 export type ImportProgressProps = {
@@ -69,7 +68,7 @@ export function ImportProgress(props: ImportProgressProps) {
 
 	return (
 		<div class="flex flex-col flex-1 min-h-0">
-			{ostype() === "windows" && <Titlebar />}
+			<Titlebar />
 			<div class="flex flex-col flex-1 min-h-0 items-center justify-center gap-6">
 				<Switch>
 					<Match when={failed()}>

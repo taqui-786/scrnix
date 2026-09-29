@@ -1,6 +1,5 @@
 import { ask } from "@tauri-apps/plugin-dialog";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
-import { type as ostype } from "@tauri-apps/plugin-os";
 import { cx } from "cva";
 import {
 	type ComponentProps,
@@ -13,8 +12,7 @@ import {
 } from "solid-js";
 import toast from "solid-toast";
 import Tooltip from "~/components/Tooltip";
-import CaptionControlsMacOS from "~/components/titlebar/controls/CaptionControlsMacOS";
-import CaptionControlsWindows11 from "~/components/titlebar/controls/CaptionControlsWindows11";
+import CaptionControlsLinux from "~/components/titlebar/controls/CaptionControlsLinux";
 import { trackEvent } from "~/utils/analytics";
 import { commands } from "~/utils/tauri";
 import { useEditorContext } from "./context";
@@ -91,24 +89,16 @@ export function Header(props: {
 	const [titleReadOnly, setTitleReadOnly] = createSignal(false);
 
 	return (
-		<div
-			data-tauri-drag-region
-			class="flex relative shrink-0 flex-row items-center w-full h-13 pr-3 max-[900px]:grid max-[900px]:grid-cols-1 max-[900px]:grid-rows-[36px_36px] max-[900px]:h-[72px] max-[900px]:pr-2"
-		>
-			<div
-				data-tauri-drag-region
-				class={cx(
-					"flex flex-row flex-1 min-w-0 items-center h-full",
-					ostype() === "windows" && "max-[900px]:pr-[146px]",
-				)}
-			>
-				{ostype() === "macos" && (
-					<div data-tauri-drag-region class="h-full w-[92px] shrink-0" />
-				)}
-				{ostype() === "linux" && (
-					<CaptionControlsMacOS class="mr-1 ml-3 shrink-0" />
-				)}
-				{ostype() === "windows" && <div class="w-3 shrink-0" />}
+		<div class="flex relative shrink-0 flex-row items-center w-full h-13 pr-3 select-none max-[900px]:grid max-[900px]:grid-cols-1 max-[900px]:grid-rows-[36px_36px] max-[900px]:h-[72px] max-[900px]:pr-2 border-b border-emerald-500/10 bg-ed-window/90 backdrop-blur-xl">
+			<div class="flex flex-row flex-1 min-w-0 items-center h-full pl-3">
+				<div class="flex items-center gap-2 mr-3 shrink-0 select-none">
+					<div class="size-6 rounded-md bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold text-[11px] shadow-[0_0_10px_rgba(16,185,129,0.25)]">
+						S
+					</div>
+					<span class="text-xs font-semibold tracking-wide text-white/90">
+						Scrinx
+					</span>
+				</div>
 
 				<div inert={props.disabled} class="flex gap-1.5 items-center min-w-0">
 					<NameEditor
@@ -117,7 +107,9 @@ export function Header(props: {
 						readOnly={titleReadOnly() || props.disabled === true}
 						setReadOnly={setTitleReadOnly}
 					/>
-					<span class="shrink-0 text-[13px] text-ed-text-3">.cap</span>
+					<span class="shrink-0 text-[11px] font-mono px-1.5 py-0.5 rounded-md bg-emerald-950/40 text-emerald-400 border border-emerald-500/20">
+						.scrinx
+					</span>
 				</div>
 
 				<div
@@ -150,107 +142,107 @@ export function Header(props: {
 					/>
 				</div>
 
-				<div data-tauri-drag-region class="flex-1 h-full min-w-2" />
+				<div
+					data-tauri-drag-region
+					class="flex-1 h-full min-w-4 cursor-default"
+				/>
 			</div>
 
-			<div
-				data-tauri-drag-region
-				inert={props.disabled}
-				class="flex shrink-0 flex-row items-center gap-1 max-[900px]:justify-end"
-			>
-				<EditorButton
-					onClick={() => {
-						clearTimelineSelection();
-						if (!projectHistory.canUndo()) return;
-						projectHistory.undo();
-					}}
-					disabled={
-						!projectHistory.canUndo() && !editorState.timeline.selection
-					}
-					tooltipText="Undo"
-					leftIcon={<IconCapUndo />}
-				/>
-				<EditorButton
-					onClick={() => {
-						clearTimelineSelection();
-						if (!projectHistory.canRedo()) return;
-						projectHistory.redo();
-					}}
-					disabled={
-						!projectHistory.canRedo() && !editorState.timeline.selection
-					}
-					tooltipText="Redo"
-					leftIcon={<IconCapRedo />}
-				/>
-				<div class="mx-1.5 w-px h-4 shrink-0 bg-ed-line-strong" />
-				<OrganizationDropdown />
-				<PresetsDropdown />
-				<EditorButton
-					title="Clips"
-					aria-label="Clips"
-					class={cx(isClipsOpen() && "bg-ed-ctl-hover text-ed-text-1")}
-					leftIcon={<IconCapClapperboard />}
-					onClick={() => {
-						clearTimelineSelection();
-						if (isClipsOpen()) {
-							setDialog((d) => ({ ...d, open: false }));
-						} else {
-							setDialog({ type: "clips", open: true });
-						}
-					}}
-				>
-					<span class="max-[1200px]:hidden">Clips</span>
-				</EditorButton>
-				<Show when={hasTranscript()}>
+			<div class="flex shrink-0 flex-row items-center gap-1 max-[900px]:justify-end">
+				<div inert={props.disabled} class="flex items-center gap-1">
 					<EditorButton
-						title={isTranscriptOpen() ? "Back to editor" : "Captions"}
-						aria-label={isTranscriptOpen() ? "Back to editor" : "Captions"}
-						class={cx(isTranscriptOpen() && "bg-ed-ctl-hover text-ed-text-1")}
-						leftIcon={
-							<Show when={isTranscriptOpen()} fallback={<IconCapCaptions />}>
-								<IconLucideArrowLeft />
-							</Show>
-						}
 						onClick={() => {
 							clearTimelineSelection();
-							if (isTranscriptOpen()) {
+							if (!projectHistory.canUndo()) return;
+							projectHistory.undo();
+						}}
+						disabled={
+							!projectHistory.canUndo() && !editorState.timeline.selection
+						}
+						tooltipText="Undo"
+						leftIcon={<IconCapUndo />}
+					/>
+					<EditorButton
+						onClick={() => {
+							clearTimelineSelection();
+							if (!projectHistory.canRedo()) return;
+							projectHistory.redo();
+						}}
+						disabled={
+							!projectHistory.canRedo() && !editorState.timeline.selection
+						}
+						tooltipText="Redo"
+						leftIcon={<IconCapRedo />}
+					/>
+					<div class="mx-1.5 w-px h-4 shrink-0 bg-ed-line-strong" />
+					<OrganizationDropdown />
+					<PresetsDropdown />
+					<EditorButton
+						title="Clips"
+						aria-label="Clips"
+						class={cx(isClipsOpen() && "bg-ed-ctl-hover text-ed-text-1")}
+						leftIcon={<IconCapClapperboard />}
+						onClick={() => {
+							clearTimelineSelection();
+							if (isClipsOpen()) {
 								setDialog((d) => ({ ...d, open: false }));
 							} else {
-								setDialog({ type: "transcript", open: true });
+								setDialog({ type: "clips", open: true });
 							}
 						}}
 					>
-						<span class="max-[1200px]:hidden">
-							{isTranscriptOpen() ? "Back" : "Captions"}
-						</span>
+						<span class="max-[1200px]:hidden">Clips</span>
 					</EditorButton>
-				</Show>
-				<ShareButton />
-				<button
-					type="button"
-					class={cx(
-						"flex shrink-0 gap-[7px] justify-center items-center pl-3 pr-3.5 ml-1.5 h-[30px] text-[13px] font-medium text-white rounded-lg outline-hidden",
-						"bg-linear-to-b from-ed-accent-2 to-ed-accent",
-						"shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_1px_2px_rgba(0,60,160,0.25)]",
-						"transition-[filter] duration-150 ease-out",
-						"hover:brightness-[1.06] active:brightness-[0.96]",
-					)}
-					onClick={() => {
-						clearTimelineSelection();
+					<Show when={hasTranscript()}>
+						<EditorButton
+							title={isTranscriptOpen() ? "Back to editor" : "Captions"}
+							aria-label={isTranscriptOpen() ? "Back to editor" : "Captions"}
+							class={cx(isTranscriptOpen() && "bg-ed-ctl-hover text-ed-text-1")}
+							leftIcon={
+								<Show when={isTranscriptOpen()} fallback={<IconCapCaptions />}>
+									<IconLucideArrowLeft />
+								</Show>
+							}
+							onClick={() => {
+								clearTimelineSelection();
+								if (isTranscriptOpen()) {
+									setDialog((d) => ({ ...d, open: false }));
+								} else {
+									setDialog({ type: "transcript", open: true });
+								}
+							}}
+						>
+							<span class="max-[1200px]:hidden">
+								{isTranscriptOpen() ? "Back" : "Captions"}
+							</span>
+						</EditorButton>
+					</Show>
+					<ShareButton />
+					<button
+						type="button"
+						class={cx(
+							"flex shrink-0 gap-[7px] justify-center items-center pl-3 pr-3.5 ml-1.5 h-[30px] text-[13px] font-medium text-white rounded-lg outline-hidden",
+							"bg-linear-to-b from-ed-accent-2 to-ed-accent",
+							"shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_1px_2px_rgba(0,60,160,0.25)]",
+							"transition-[filter] duration-150 ease-out",
+							"hover:brightness-[1.06] active:brightness-[0.96]",
+						)}
+						onClick={() => {
+							clearTimelineSelection();
 
-						trackEvent("export_button_clicked");
-						if (exportState.type === "done") setExportState({ type: "idle" });
+							trackEvent("export_button_clicked");
+							if (exportState.type === "done") setExportState({ type: "idle" });
 
-						setDialog({ type: "export", open: true });
-					}}
-				>
-					<UploadIcon class="size-4" />
-					Export
-				</button>
+							setDialog({ type: "export", open: true });
+						}}
+					>
+						<UploadIcon class="size-4" />
+						Export
+					</button>
+				</div>
+				<div class="mx-2 w-px h-4 shrink-0 bg-white/10" />
+				<CaptionControlsLinux class="mr-1 shrink-0" />
 			</div>
-			{ostype() === "windows" && (
-				<CaptionControlsWindows11 class="shrink-0 max-[900px]:absolute max-[900px]:right-0 max-[900px]:top-0 max-[900px]:h-9" />
-			)}
 		</div>
 	);
 }

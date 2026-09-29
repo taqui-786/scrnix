@@ -163,9 +163,9 @@ export default function S3ConfigPage() {
 					description={
 						<>
 							It should take under 10 minutes to set up and connect your storage
-							bucket to Cap. View the{" "}
+							bucket to Scrinx. View the{" "}
 							<a
-								href="https://cap.so/docs/s3-config"
+								href="https://scrinx.com/docs/s3-config"
 								target="_blank"
 								class="underline text-gray-12"
 								rel="noopener"

@@ -84,7 +84,7 @@ export default function AppsTab() {
 		{
 			name: "Google Drive",
 			description:
-				"Connect Google Drive for new shareable link uploads. Cap stores new videos in a private Cap folder in your Drive and continues serving them through Cap after normal access checks.",
+				"Connect Google Drive for new shareable link uploads. Scrinx stores new videos in a private Scrinx folder in your Drive and continues serving them through Scrinx after normal access checks.",
 			icon: GoogleDriveIcon,
 			url: "/settings/integrations/google-drive-config",
 			pro: true,

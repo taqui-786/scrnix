@@ -1,7 +1,5 @@
-import { type as ostype } from "@tauri-apps/plugin-os";
 import { cx } from "cva";
-import CaptionControlsWindows11 from "~/components/titlebar/controls/CaptionControlsWindows11";
-import IconCapLogo from "~icons/cap/logo";
+import CaptionControlsLinux from "~/components/titlebar/controls/CaptionControlsLinux";
 
 function SkeletonPulse(props: { class?: string }) {
 	return (
@@ -28,8 +26,13 @@ function HeaderSkeleton() {
 			data-tauri-drag-region
 			class="flex relative flex-row items-center w-full h-14 px-4 border-b border-gray-3 bg-gray-1 dark:bg-gray-2 shrink-0 z-20 gap-4 justify-between"
 		>
-			<div class="flex items-center gap-4">
-				{ostype() === "macos" && <div class="w-14" />}
+			<div class="flex items-center gap-2 select-none">
+				<div class="size-6 rounded-md bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold text-[11px] shadow-[0_0_10px_rgba(16,185,129,0.25)]">
+					S
+				</div>
+				<span class="text-xs font-semibold tracking-wide text-white/90">
+					Scrinx
+				</span>
 			</div>
 
 			<div class="flex items-center gap-2 absolute left-1/2 -translate-x-1/2">
@@ -49,17 +52,12 @@ function HeaderSkeleton() {
 				<SkeletonButton />
 			</div>
 
-			<div
-				class={cx(
-					"flex flex-row items-center gap-2 h-full",
-					ostype() !== "windows" && "pr-2",
-				)}
-			>
+			<div class="flex flex-row items-center gap-2 h-full">
 				<div class="w-px h-6 bg-gray-4 mx-1" />
 				<SkeletonButton />
 				<SkeletonButton />
 				<SkeletonButton />
-				{ostype() === "windows" && <CaptionControlsWindows11 />}
+				<CaptionControlsLinux />
 			</div>
 		</div>
 	);

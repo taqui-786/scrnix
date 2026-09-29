@@ -1,12 +1,9 @@
 import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
-import { type as ostype } from "@tauri-apps/plugin-os";
 import { onMount } from "solid-js";
 import ModeSelect from "~/components/ModeSelect";
-import CaptionControlsWindows11 from "~/components/titlebar/controls/CaptionControlsWindows11";
+import CaptionControlsLinux from "~/components/titlebar/controls/CaptionControlsLinux";
 
 const ModeSelectWindow = () => {
-	const isWindows = ostype() === "windows";
-
 	onMount(async () => {
 		const window = getCurrentWindow();
 
@@ -26,11 +23,9 @@ const ModeSelectWindow = () => {
 			data-tauri-drag-region
 			class="flex flex-col relative justify-center items-center min-h-screen bg-gray-1"
 		>
-			{isWindows && (
-				<div class="absolute top-0 right-0 z-50 h-9">
-					<CaptionControlsWindows11 />
-				</div>
-			)}
+			<div class="absolute top-2 right-2 z-50">
+				<CaptionControlsLinux showMaximize={false} />
+			</div>
 
 			<div class="flex flex-col items-center w-full px-6 py-5">
 				<div class="mb-5 text-center">

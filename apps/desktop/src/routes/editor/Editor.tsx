@@ -940,7 +940,6 @@ function Inner(props: {
 					inert={!editorReady()}
 					class="flex overflow-y-hidden flex-col flex-1 gap-2 w-full min-h-0 leading-5 transition-opacity duration-300 ease-out motion-reduce:transition-none"
 					style={{ opacity: editorReady() ? 1 : 0.55 }}
-					data-tauri-drag-region
 				>
 					<div
 						ref={setLayoutRef}
@@ -954,7 +953,7 @@ function Inner(props: {
 							}}
 						>
 							<div
-								class="flex overflow-hidden flex-col rounded-xl bg-ed-card shadow-ed-card"
+								class="flex overflow-hidden flex-col rounded-2xl border border-white/5 bg-ed-card shadow-2xl shadow-black/40 backdrop-blur-md"
 								style={{
 									flex: isTranscriptMode()
 										? `0 0 ${splitRatio() * 100}%`
@@ -965,7 +964,7 @@ function Inner(props: {
 								<PlayerContent compactness={layoutLimits().compactness} />
 							</div>
 							<Show when={!isTranscriptMode()}>
-								<div class="ml-2 flex min-h-0 w-104 min-w-104 flex-none overflow-hidden">
+								<div class="ml-2 flex min-h-0 w-104 min-w-104 flex-none overflow-hidden rounded-2xl border border-white/5 bg-ed-card shadow-2xl shadow-black/40 backdrop-blur-md">
 									<div
 										class="overflow-hidden min-h-0"
 										classList={{
@@ -995,14 +994,15 @@ function Inner(props: {
 									aria-orientation="vertical"
 								>
 									<div
-										class="w-1 h-10 rounded-full transition-colors bg-ed-line-strong group-hover:bg-ed-text-3"
+										class="w-1.5 h-12 rounded-full transition-all bg-ed-line-strong group-hover:bg-emerald-400 group-hover:shadow-[0_0_12px_rgba(52,211,153,0.7)] group-hover:scale-105"
 										classList={{
-											"bg-ed-text-3": isResizingSplit(),
+											"bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.8)] scale-110":
+												isResizingSplit(),
 										}}
 									/>
 								</div>
 								<div
-									class="flex overflow-hidden flex-col min-h-0 rounded-xl duration-150 bg-ed-card shadow-ed-card animate-in fade-in"
+									class="flex overflow-hidden flex-col min-h-0 rounded-2xl border border-white/5 duration-150 bg-ed-card shadow-2xl shadow-black/40 animate-in fade-in"
 									style={{
 										flex: isResizingSplit()
 											? `0 0 calc(${(1 - splitRatio()) * 100}% - 12px)`
@@ -1028,13 +1028,14 @@ function Inner(props: {
 								onMouseDown={handleTimelineResizeStart}
 							>
 								<div
-									class="absolute left-1/2 top-[5px] w-9 h-1 rounded-full transition-colors -translate-x-1/2 bg-ed-line-strong group-hover:bg-ed-text-3"
+									class="absolute left-1/2 top-[5px] w-12 h-1.5 rounded-full transition-all -translate-x-1/2 bg-ed-line-strong group-hover:bg-emerald-400 group-hover:shadow-[0_0_12px_rgba(52,211,153,0.7)] group-hover:scale-105"
 									classList={{
-										"bg-ed-text-3": isResizingTimeline(),
+										"bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.8)] scale-110":
+											isResizingTimeline(),
 									}}
 								/>
 							</div>
-							<div class="overflow-hidden relative px-3 pt-2.5 pb-3 h-full rounded-xl bg-ed-card shadow-ed-card">
+							<div class="overflow-hidden relative px-3 pt-2.5 pb-3 h-full rounded-2xl border border-white/5 bg-ed-card shadow-2xl shadow-black/40 backdrop-blur-md">
 								<div class="h-full">
 									<Timeline
 										onViewportOverflowChange={setTimelineViewportOverflow}

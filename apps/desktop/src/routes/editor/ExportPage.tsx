@@ -27,7 +27,7 @@ import { Dynamic } from "solid-js/web";
 import toast from "solid-toast";
 import { Toggle } from "~/components/Toggle";
 import Tooltip from "~/components/Tooltip";
-import CaptionControlsWindows11 from "~/components/titlebar/controls/CaptionControlsWindows11";
+import CaptionControlsLinux from "~/components/titlebar/controls/CaptionControlsLinux";
 import { trackEvent } from "~/utils/analytics";
 import {
 	beginExportSessionGuard,
@@ -864,28 +864,27 @@ export function ExportPage() {
 
 	return (
 		<div class="flex flex-col h-full bg-ed-window text-ed-text-1 overflow-hidden">
-			<div
-				data-tauri-drag-region
-				class={cx(
-					"flex relative flex-row items-center w-full h-[52px] pr-3 border-b border-ed-line shrink-0",
-					ostype() === "macos" ? "pl-[92px]" : "pl-3",
-				)}
-			>
-				<div data-tauri-drag-region class="flex flex-1 items-center h-full">
+			<div class="flex relative flex-row items-center w-full h-[52px] pl-3 pr-3 border-b border-ed-line shrink-0">
+				<div class="flex items-center h-full">
 					<button
 						type="button"
 						onClick={handleBack}
-						class="flex gap-1.5 items-center h-7 pl-2 pr-2.5 rounded-lg text-[12px] font-medium text-ed-text-2 transition-colors hover:bg-ed-ctl hover:text-ed-text-1 outline-hidden focus-visible:ring-1 focus-visible:ring-ed-accent"
+						class="flex gap-1.5 items-center h-7 pl-2 pr-2.5 rounded-lg text-[12px] font-medium text-ed-text-2 transition-colors hover:bg-ed-ctl hover:text-ed-text-1 outline-hidden focus-visible:ring-1 focus-visible:ring-ed-accent cursor-pointer"
 					>
 						<IconCapMoveLeft class="size-3.5" />
 						Back to editor
 					</button>
 				</div>
-				<h1 class="text-[13px] font-medium text-ed-text-1 pointer-events-none">
-					Export
-				</h1>
-				<div data-tauri-drag-region class="flex flex-1 justify-end h-full">
-					{ostype() === "windows" && <CaptionControlsWindows11 />}
+				<div
+					data-tauri-drag-region
+					class="flex flex-1 items-center justify-center h-full cursor-default"
+				>
+					<h1 class="text-[13px] font-medium text-ed-text-1 pointer-events-none">
+						Export
+					</h1>
+				</div>
+				<div class="flex items-center justify-end h-full">
+					<CaptionControlsLinux />
 				</div>
 			</div>
 
@@ -1427,7 +1426,7 @@ export function ExportPage() {
 													subtitle={
 														reuploading()
 															? "Your latest edit is ready at the same link"
-															: "Your Cap has been uploaded successfully"
+															: "Your video has been uploaded successfully"
 													}
 												/>
 											</Match>

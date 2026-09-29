@@ -6,8 +6,7 @@ import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { type as ostype } from "@tauri-apps/plugin-os";
 import { cx } from "cva";
 import { createEffect, onCleanup, Suspense } from "solid-js";
-import CaptionControlsMacOS from "~/components/titlebar/controls/CaptionControlsMacOS";
-import CaptionControlsWindows11 from "~/components/titlebar/controls/CaptionControlsWindows11";
+import CaptionControlsLinux from "~/components/titlebar/controls/CaptionControlsLinux";
 import IconCapCrop from "~icons/cap/crop";
 import IconCapTrash from "~icons/cap/trash";
 import IconLucideCopy from "~icons/lucide/copy";
@@ -98,9 +97,13 @@ export function Header() {
 			data-tauri-drag-region
 			class="flex relative flex-row items-center w-full h-14 px-4 border-b border-gray-3 bg-gray-1 dark:bg-gray-2 shrink-0 z-20 gap-4 justify-between"
 		>
-			<div class="flex items-center gap-4">
-				{ostype() === "macos" && <div class="w-14" />}
-				{ostype() === "linux" && <CaptionControlsMacOS />}
+			<div class="flex items-center gap-2 select-none">
+				<div class="size-6 rounded-md bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold text-[11px] shadow-[0_0_10px_rgba(16,185,129,0.25)]">
+					S
+				</div>
+				<span class="text-xs font-semibold tracking-wide text-white/90">
+					Scrinx
+				</span>
 			</div>
 
 			<div class="flex items-center gap-2 absolute left-1/2 -translate-x-1/2">
@@ -191,7 +194,8 @@ export function Header() {
 					</DropdownMenu.Portal>
 				</DropdownMenu>
 
-				{ostype() === "windows" && <CaptionControlsWindows11 />}
+				<div class="w-px h-6 bg-gray-4 mx-1" />
+				<CaptionControlsLinux />
 			</div>
 		</div>
 	);
