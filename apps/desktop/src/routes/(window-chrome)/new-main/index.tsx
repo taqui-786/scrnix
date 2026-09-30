@@ -3050,7 +3050,7 @@ function Page() {
 
 					<Show when={!signIn.isPending}>
 						<Show when={devicesDrawerOpen() && !activeMenu()}>
-							<div class="mt-1 p-3 rounded-2xl border border-gray-6 bg-gray-2/95 dark:bg-[#12261f]/95 backdrop-blur-md shadow-xl flex flex-col gap-2.5 animate-in fade-in slide-in-from-top-1 duration-150">
+							<div class="mt-1 p-3 rounded-2xl border border-border bg-popover/95 backdrop-blur-md shadow-ed-pop flex flex-col gap-2.5 animate-in fade-in slide-in-from-top-1 duration-150">
 								<div class="flex items-center justify-between text-xs font-semibold text-gray-12 px-1">
 									<span class="tracking-wide uppercase text-[10px] text-primary">
 										Camera & Audio Inputs

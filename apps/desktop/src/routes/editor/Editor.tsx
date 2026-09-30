@@ -953,7 +953,7 @@ function Inner(props: {
 							}}
 						>
 							<div
-								class="flex overflow-hidden flex-col rounded-2xl border border-white/5 bg-ed-card shadow-2xl shadow-black/40 backdrop-blur-md"
+								class="flex overflow-hidden flex-col rounded-2xl border border-border bg-card shadow-ed-card backdrop-blur-md"
 								style={{
 									flex: isTranscriptMode()
 										? `0 0 ${splitRatio() * 100}%`
@@ -964,7 +964,7 @@ function Inner(props: {
 								<PlayerContent compactness={layoutLimits().compactness} />
 							</div>
 							<Show when={!isTranscriptMode()}>
-								<div class="ml-2 flex min-h-0 w-104 min-w-104 flex-none overflow-hidden rounded-2xl border border-white/5 bg-ed-card shadow-2xl shadow-black/40 backdrop-blur-md">
+								<div class="ml-2 flex min-h-0 w-104 min-w-104 flex-none overflow-hidden rounded-2xl border border-border bg-card shadow-ed-card backdrop-blur-md">
 									<div
 										class="overflow-hidden min-h-0"
 										classList={{
@@ -1002,7 +1002,7 @@ function Inner(props: {
 									/>
 								</div>
 								<div
-									class="flex overflow-hidden flex-col min-h-0 rounded-2xl border border-white/5 duration-150 bg-ed-card shadow-2xl shadow-black/40 animate-in fade-in"
+									class="flex overflow-hidden flex-col min-h-0 rounded-2xl border border-border duration-150 bg-card shadow-ed-card animate-in fade-in"
 									style={{
 										flex: isResizingSplit()
 											? `0 0 calc(${(1 - splitRatio()) * 100}% - 12px)`
@@ -1035,7 +1035,7 @@ function Inner(props: {
 									}}
 								/>
 							</div>
-							<div class="overflow-hidden relative px-3 pt-2.5 pb-3 h-full rounded-2xl border border-white/5 bg-ed-card shadow-2xl shadow-black/40 backdrop-blur-md">
+							<div class="overflow-hidden relative px-3 pt-2.5 pb-3 h-full rounded-2xl border border-border bg-card shadow-ed-card backdrop-blur-md">
 								<div class="h-full">
 									<Timeline
 										onViewportOverflowChange={setTimelineViewportOverflow}

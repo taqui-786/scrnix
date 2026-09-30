@@ -187,8 +187,8 @@ function Inner(props: {
 					<Section title="Native app">
 						<SectionRows>
 							<ToggleSettingItem
-								label="Cap GPUI"
-								description="Close this app and reopen the experimental fully-native version of Cap. It is unfinished, so expect missing features. Your recordings and settings are shared, and you can switch back from its Experimental settings."
+								label="Scrinx Native"
+								description="Close this app and reopen the experimental fully-native version of Scrinx. It is unfinished, so expect missing features. Your recordings and settings are shared, and you can switch back from its Experimental settings."
 								value={!!settings.enableGpuiApp || takeoverActive()}
 								onChange={(value) => {
 									if (value) startTakeover();

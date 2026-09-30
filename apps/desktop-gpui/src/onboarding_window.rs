@@ -147,7 +147,7 @@ const MODES: [ModeDetail; 3] = [
 const FAQ: [(&str, &str); 5] = [
     (
         "Is Cap free to use?",
-        "Cap is free for personal use. For teams and commercial use, check out our pricing plans.",
+        "Scrinx is free for personal use. For teams and commercial use, check out our pricing plans.",
     ),
     (
         "What's the difference between Instant and Studio?",
@@ -155,7 +155,7 @@ const FAQ: [(&str, &str); 5] = [
     ),
     (
         "Where are my recordings stored?",
-        "All recordings are stored locally on your computer. In Instant mode, they're also uploaded to Cap's cloud for easy sharing. You can manage storage in Settings.",
+        "All recordings are stored locally on your computer. In Instant mode, they're also uploaded to Scrinx's cloud for easy sharing. You can manage storage in Settings.",
     ),
     (
         "Can I change my shortcuts later?",
@@ -163,7 +163,7 @@ const FAQ: [(&str, &str); 5] = [
     ),
     (
         "How does sharing work?",
-        "In Instant mode, you get a shareable link automatically when you stop recording. In Studio mode, export your edited video and share via Cap's cloud or save locally.",
+        "In Instant mode, you get a shareable link automatically when you stop recording. In Studio mode, export your edited video and share via Scrinx's cloud or save locally.",
     ),
 ];
 
@@ -1012,7 +1012,7 @@ impl OnboardingWindow {
                     .child(logo),
             )
             .child(
-                copy("Welcome to Cap", 48., gpui::white())
+                copy("Welcome to Scrinx", 48., gpui::white())
                     .font_weight(FontWeight::BOLD)
                     .line_height(px(48.))
                     .mt(px(40.))
@@ -1144,7 +1144,7 @@ impl OnboardingWindow {
             .gap(px(24.))
             .child(self.heading(
                 "Permissions Required",
-                "Cap needs a few permissions to record your screen and capture audio.",
+                "Scrinx needs a few permissions to record your screen and capture audio.",
                 Some("icons/shield.svg"),
             ))
             .child(div().flex().flex_col().w(px(CARD_W)).gap(px(8.)).children(
@@ -1507,7 +1507,7 @@ impl OnboardingWindow {
         let disabled = self.step == Step::Permissions && !self.state.necessary_granted();
         let last = self.permissions_only || self.step == Step::Faq;
         let label = if self.permissions_only {
-            "Continue to Cap"
+            "Continue to Scrinx"
         } else if last {
             "Start Using Cap"
         } else {

@@ -1278,7 +1278,7 @@ impl CapWindowId {
     fn preferred_content_size(&self) -> Option<(f64, f64)> {
         match self {
             Self::Settings => Some((782.0, 775.0)),
-            Self::Editor { .. } => Some((1275.0, 800.0)),
+            Self::Editor { .. } => Some((1440.0, 900.0)),
             Self::ScreenshotEditor { .. } => Some((1240.0, 800.0)),
             _ => None,
         }
@@ -1369,7 +1369,7 @@ impl CapWindowId {
     pub fn min_size(&self) -> Option<(f64, f64)> {
         Some(match self {
             Self::Main => crate::main_window_geometry::SIZE,
-            Self::Editor { .. } => (1275.0, 800.0),
+            Self::Editor { .. } => (1440.0, 900.0),
             Self::ScreenshotEditor { .. } => (800.0, 600.0),
             Self::Settings => (780.0, 560.0),
             Self::Camera => (200.0, 200.0),

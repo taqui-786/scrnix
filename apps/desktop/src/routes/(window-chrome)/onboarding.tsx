@@ -146,7 +146,7 @@ const setupPermissions: readonly SetupPermission[] = [
 		name: "Camera",
 		key: "camera",
 		description:
-			"This permission is required to record your camera in your Caps.",
+			"This permission is required to record your camera in your Scrinx videos.",
 		requiresManualGrant: false,
 		optional: true,
 	},

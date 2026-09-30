@@ -181,7 +181,7 @@ export default function FeedbackTab() {
 		setSendingReport(true);
 		try {
 			await commands.uploadDiagnosticReport(report.reportPath);
-			toast.success("Diagnostic report sent to Cap");
+			toast.success("Diagnostic report sent to Scrinx");
 		} catch (error) {
 			toast.error("Failed to send diagnostic report");
 			console.error("Failed to send diagnostic report:", error);
@@ -367,7 +367,7 @@ export default function FeedbackTab() {
 											variant="dark"
 											disabled={sendingReport()}
 										>
-											{sendingReport() ? "Sending..." : "Send to Cap"}
+											{sendingReport() ? "Sending..." : "Send to Scrinx"}
 										</Button>
 										<Button
 											onClick={handleRevealReport}

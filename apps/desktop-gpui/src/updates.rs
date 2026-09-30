@@ -277,7 +277,7 @@ pub(crate) fn schedule_startup_check(cx: &mut App) {
                 if manual {
                     crate::platform::activate_app();
                     crate::platform::alert_dialog(
-                        "Cap is busy",
+                        "Scrinx is busy",
                         "Finish your recording, export, upload, import, or transcription task before checking for updates.",
                     );
                     cx.update(|cx| finish_manual_check(cx, true));
@@ -315,7 +315,7 @@ pub(crate) fn schedule_startup_check(cx: &mut App) {
                         crate::platform::activate_app();
                         crate::platform::alert_dialog(
                             "No Update Available",
-                            "You're already using the latest version of Cap.",
+                            "You're already using the latest version of Scrinx.",
                         );
                         cx.update(|cx| finish_manual_check(cx, true));
                     }
@@ -343,7 +343,7 @@ pub(crate) fn schedule_startup_check(cx: &mut App) {
                 if manual {
                     crate::platform::activate_app();
                     crate::platform::alert_dialog(
-                        "Cap is busy",
+                        "Scrinx is busy",
                         "Finish your recording, export, upload, import, or transcription task before checking for updates.",
                     );
                     cx.update(|cx| finish_manual_check(cx, true));
@@ -355,8 +355,8 @@ pub(crate) fn schedule_startup_check(cx: &mut App) {
 
             crate::platform::activate_app();
             if crate::platform::confirm_dialog(
-                "Update Cap",
-                &format!("Version {version} of Cap is available. Would you like to install it?"),
+                "Update Scrinx",
+                &format!("Version {version} of Scrinx is available. Would you like to install it?"),
                 "Update",
                 "Ignore",
                 false,

@@ -1,6 +1,7 @@
 import { Popover } from "@kobalte/core/popover";
 import { cx } from "cva";
 import { type Component, Show } from "solid-js";
+import scrinxLogo from "~/assets/logo/scrinx_logo.png";
 import Tooltip from "~/components/Tooltip";
 import IconLucideAppWindowMac from "~icons/lucide/app-window-mac";
 import IconLucideBug from "~icons/lucide/bug";
@@ -63,14 +64,15 @@ export const ControlDock: Component<ControlDockProps> = (props) => {
 				</div>
 			</div>
 
-			<div class="flex items-center justify-between gap-1.5 px-3 py-2 mx-auto w-fit max-w-full rounded-2xl border border-gray-6/60 bg-gray-2/95 dark:bg-[#12261f]/95 backdrop-blur-md shadow-lg">
+			<div class="flex items-center justify-between gap-1.5 px-3 py-2 mx-auto w-fit max-w-full rounded-2xl border border-border bg-card/95 backdrop-blur-md shadow-lg">
 				<div class="flex items-center gap-1.5 shrink-0">
-					<div
-						class="flex items-center justify-center size-8 rounded-xl border border-primary/40 bg-primary/10 text-primary font-mono font-bold text-xs shadow-xs shrink-0"
+					<img
+						src={scrinxLogo}
+						alt="Scrinx"
 						title="Scrinx Linux Studio"
-					>
-						S
-					</div>
+						class="size-8 rounded-xl shrink-0"
+						draggable={false}
+					/>
 
 					<div class="flex items-center p-0.5 rounded-xl border border-gray-5/70 bg-gray-3/80 shrink-0">
 						<Tooltip content={<span>Studio Recording Mode</span>}>
@@ -272,7 +274,7 @@ export const ControlDock: Component<ControlDockProps> = (props) => {
 							<IconLucideMoreHorizontal class="size-3.5" />
 						</Popover.Trigger>
 						<Popover.Portal>
-							<Popover.Content class="z-50 min-w-44 p-1.5 rounded-xl border border-gray-6 bg-gray-2 dark:bg-[#12261f] shadow-xl text-xs flex flex-col gap-0.5">
+							<Popover.Content class="z-50 min-w-44 p-1.5 rounded-xl border border-border bg-popover shadow-ed-pop text-xs flex flex-col gap-0.5">
 								<button
 									type="button"
 									onClick={props.onOpenSettings}

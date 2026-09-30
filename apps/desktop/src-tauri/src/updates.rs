@@ -19,7 +19,7 @@ const FIRST_CHECK_DELAY: Duration = Duration::from_secs(60);
 const CHECK_INTERVAL: Duration = Duration::from_secs(2 * 60 * 60);
 const BUSY_RETRY_DELAY: Duration = Duration::from_secs(5 * 60);
 const UPDATE_BUSY_ERROR: &str =
-    "Finish your recording, export, or upload before updating or restarting Cap.";
+    "Finish your recording, export, or upload before updating or restarting Scrinx.";
 
 #[derive(Serialize, Deserialize, Type, Clone, Copy, PartialEq, Eq, Debug, Default)]
 #[serde(rename_all = "camelCase")]
@@ -385,7 +385,7 @@ pub fn spawn_background_loop(app: AppHandle) {
                         }
                     };
 
-                    // Safe while Cap runs: the .app bundle is swapped in place
+                    // Safe while Scrinx runs: the .app bundle is swapped in place
                     // and takes effect on relaunch.
                     if let Err(err) = update.install(bytes) {
                         warn!("Failed to install nightly update {version}: {err}");

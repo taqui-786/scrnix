@@ -2034,7 +2034,7 @@ async fn pick_existing_recording_path(_cx: &mut gpui::AsyncWindowContext) -> Opt
     #[cfg(target_os = "linux")]
     {
         crate::platform::open_file_panel_async(
-            &[("Cap Recording", &["cap"])],
+            &[("Scrinx Recording", &["cap"])],
             Some(crate::recording::recordings_dir()),
             _cx,
         )
@@ -2044,7 +2044,7 @@ async fn pick_existing_recording_path(_cx: &mut gpui::AsyncWindowContext) -> Opt
     {
         rfd::FileDialog::new()
             .set_directory(crate::recording::recordings_dir())
-            .add_filter("Cap Recording", &["cap"])
+            .add_filter("Scrinx Recording", &["cap"])
             .pick_file()
     }
 }

@@ -166,7 +166,7 @@ fn microphone_available_for_confirmation(
         return Ok(false);
     };
     permission().map_err(|error| {
-        format!("{error} To record without a microphone, turn the microphone Off in Cap.")
+        format!("{error} To record without a microphone, turn the microphone Off in Scrinx.")
     })?;
     if !contains(name) {
         return Err(format!(
@@ -565,8 +565,10 @@ async fn run_wayland_stop(
         let bound = portal
             .bind_shortcuts(
                 &session,
-                &[NewShortcut::new(&id, "Start or stop Cap clean recording")
-                    .preferred_trigger(Some("CTRL+SHIFT+F9"))],
+                &[
+                    NewShortcut::new(&id, "Start or stop Scrinx clean recording")
+                        .preferred_trigger(Some("CTRL+SHIFT+F9")),
+                ],
                 None,
             )
             .await

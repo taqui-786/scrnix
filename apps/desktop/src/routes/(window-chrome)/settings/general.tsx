@@ -1270,7 +1270,7 @@ function ExcludedWindowsCard(props: {
 			title="Excluded windows"
 			description={
 				props.isWindows
-					? "Hide windows from recordings. On Windows, only Cap-related windows can be excluded."
+					? "Hide windows from recordings. On Windows, only Scrinx-related windows can be excluded."
 					: "Hide windows from recordings."
 			}
 			right={

@@ -2,7 +2,7 @@
 	<img width="150" height="150" src="brand/scrinx_logo.png" alt="Scrinx logo">
 </p>
 
-<h1 align="center">Cap</h1>
+<h1 align="center">Scrinx</h1>
 
 <p align="center">
 	Beautiful, shareable screen recordings. Open source, fast, and built for teams that want to own their data.
