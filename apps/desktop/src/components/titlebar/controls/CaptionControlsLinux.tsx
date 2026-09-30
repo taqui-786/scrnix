@@ -50,7 +50,11 @@ export default function CaptionControlsLinux(
 	const handleMinimize = async (e: MouseEvent) => {
 		e.stopPropagation();
 		e.preventDefault();
-		await currentWindow.minimize();
+		try {
+			await currentWindow.minimize();
+		} catch (error) {
+			console.error("Failed to minimize window:", error);
+		}
 	};
 
 	const handleMaximize = async (e: MouseEvent) => {
@@ -58,10 +62,27 @@ export default function CaptionControlsLinux(
 		e.preventDefault();
 		if (local.onMaximize) {
 			local.onMaximize();
-		} else {
+			return;
+		}
+		try {
 			await currentWindow.toggleMaximize();
-			const isMax = await currentWindow.isMaximized();
-			setMaximized(isMax);
+		} catch (error) {
+			console.error("toggleMaximize failed, trying explicit call:", error);
+			try {
+				if (await currentWindow.isMaximized()) {
+					await currentWindow.unmaximize();
+				} else {
+					await currentWindow.maximize();
+				}
+			} catch (fallbackError) {
+				console.error("Failed to change maximized state:", fallbackError);
+				return;
+			}
+		}
+		try {
+			setMaximized(await currentWindow.isMaximized());
+		} catch (error) {
+			console.error("Failed to read maximized state:", error);
 		}
 	};
 

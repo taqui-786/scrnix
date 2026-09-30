@@ -1,6 +1,7 @@
 import { createElementBounds } from "@solid-primitives/bounds";
 import { makePersisted } from "@solid-primitives/storage";
 import { createSignal, For, Show } from "solid-js";
+import scrinxLogo from "~/assets/logo/scrinx_logo.png";
 import CaptionControlsLinux from "~/components/titlebar/controls/CaptionControlsLinux";
 import { DEFAULT_TIMELINE_HEIGHT, editorVerticalLayout } from "./editor-layout";
 import { usePreparingEditorModel } from "./preparing-editor-context";
@@ -16,21 +17,18 @@ const DISABLED_CONTROL =
 
 function PreparingHeader(props: { model: PreparingEditorModel }) {
 	return (
-		<div class="flex relative shrink-0 flex-row items-center w-full h-13 pr-3 select-none max-[900px]:grid max-[900px]:grid-cols-1 max-[900px]:grid-rows-[36px_36px] max-[900px]:h-[72px] max-[900px]:pr-2 border-b border-emerald-500/10 bg-ed-window/90 backdrop-blur-xl">
+		<div class="flex relative shrink-0 flex-row items-center w-full h-13 pr-3 select-none max-[900px]:grid max-[900px]:grid-cols-1 max-[900px]:grid-rows-[36px_36px] max-[900px]:h-[72px] max-[900px]:pr-2 border-b border-border bg-ed-window/90 backdrop-blur-xl">
 			<div class="flex flex-row flex-1 min-w-0 items-center h-full pl-3">
-				<div class="flex items-center gap-2 mr-3 shrink-0 select-none">
-					<div class="size-6 rounded-md bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold text-[11px] shadow-[0_0_10px_rgba(16,185,129,0.25)]">
-						S
-					</div>
-					<span class="text-xs font-semibold tracking-wide text-white/90">
-						Scrinx
-					</span>
+				<div class="flex items-center mr-3 shrink-0 select-none">
+					<img
+						src={scrinxLogo}
+						alt="Scrinx"
+						class="size-6 rounded-md"
+						draggable={false}
+					/>
 				</div>
 				<span class="truncate text-[13px] font-medium">
 					{props.model.seed().title || "Recording"}
-				</span>
-				<span class="ml-1.5 text-[11px] font-mono px-1.5 py-0.5 rounded-md bg-emerald-950/40 text-emerald-400 border border-emerald-500/20">
-					.scrinx
 				</span>
 				<div class="flex gap-1 ml-3">
 					<button
@@ -65,12 +63,12 @@ function PreparingHeader(props: { model: PreparingEditorModel }) {
 				<button
 					type="button"
 					disabled
-					class="ml-1.5 h-[30px] px-3.5 rounded-lg bg-emerald-500/40 text-white/70 text-[13px] font-medium"
+					class="ml-1.5 h-[30px] px-3.5 rounded-lg bg-ed-ctl text-ed-text-3 text-[13px] font-medium"
 					title="Available when your recording is ready to edit"
 				>
 					Export
 				</button>
-				<div class="mx-2 w-px h-4 shrink-0 bg-gray-12/15 dark:bg-white/10" />
+				<div class="mx-2 w-px h-4 shrink-0 bg-ed-line-strong" />
 				<CaptionControlsLinux class="mr-1 shrink-0" />
 			</div>
 		</div>

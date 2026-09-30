@@ -11,6 +11,7 @@ import {
 	Show,
 } from "solid-js";
 import toast from "solid-toast";
+import scrinxLogo from "~/assets/logo/scrinx_logo.png";
 import Tooltip from "~/components/Tooltip";
 import CaptionControlsLinux from "~/components/titlebar/controls/CaptionControlsLinux";
 import { trackEvent } from "~/utils/analytics";
@@ -89,27 +90,24 @@ export function Header(props: {
 	const [titleReadOnly, setTitleReadOnly] = createSignal(false);
 
 	return (
-		<div class="flex relative shrink-0 flex-row items-center w-full h-13 pr-3 select-none max-[900px]:grid max-[900px]:grid-cols-1 max-[900px]:grid-rows-[36px_36px] max-[900px]:h-[72px] max-[900px]:pr-2 border-b border-emerald-500/10 bg-ed-window/90 backdrop-blur-xl">
+		<div class="flex relative shrink-0 flex-row items-center w-full h-13 pr-3 select-none max-[900px]:grid max-[900px]:grid-cols-1 max-[900px]:grid-rows-[36px_36px] max-[900px]:h-[72px] max-[900px]:pr-2 border-b border-border bg-ed-window/90 backdrop-blur-xl">
 			<div class="flex flex-row flex-1 min-w-0 items-center h-full pl-3">
-				<div class="flex items-center gap-2 mr-3 shrink-0 select-none">
-					<div class="size-6 rounded-md bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold text-[11px] shadow-[0_0_10px_rgba(16,185,129,0.25)]">
-						S
-					</div>
-					<span class="text-xs font-semibold tracking-wide text-white/90">
-						Scrinx
-					</span>
+				<div class="flex items-center mr-3 shrink-0 select-none">
+					<img
+						src={scrinxLogo}
+						alt="Scrinx"
+						class="size-6 rounded-md"
+						draggable={false}
+					/>
 				</div>
 
-				<div inert={props.disabled} class="flex gap-1.5 items-center min-w-0">
+				<div inert={props.disabled} class="flex items-center min-w-0">
 					<NameEditor
 						name={meta().prettyName}
 						registerTitleSave={props.registerTitleSave}
 						readOnly={titleReadOnly() || props.disabled === true}
 						setReadOnly={setTitleReadOnly}
 					/>
-					<span class="shrink-0 text-[11px] font-mono px-1.5 py-0.5 rounded-md bg-emerald-950/40 text-emerald-400 border border-emerald-500/20">
-						.scrinx
-					</span>
 				</div>
 
 				<div
@@ -221,7 +219,7 @@ export function Header(props: {
 					<button
 						type="button"
 						class={cx(
-							"flex shrink-0 gap-[7px] justify-center items-center pl-3 pr-3.5 ml-1.5 h-[30px] text-[13px] font-medium text-white rounded-lg outline-hidden",
+							"flex shrink-0 gap-[7px] justify-center items-center pl-3 pr-3.5 ml-1.5 h-[30px] text-[13px] font-medium text-primary-foreground rounded-lg outline-hidden",
 							"bg-linear-to-b from-ed-accent-2 to-ed-accent",
 							"shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_1px_2px_rgba(0,60,160,0.25)]",
 							"transition-[filter] duration-150 ease-out",

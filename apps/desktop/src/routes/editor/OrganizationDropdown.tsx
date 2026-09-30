@@ -12,7 +12,6 @@ import {
 	Suspense,
 } from "solid-js";
 import toast from "solid-toast";
-import { SignInButton } from "~/components/SignInButton";
 import {
 	createSelectedOrganization,
 	type DesktopOrganization,
@@ -395,7 +394,7 @@ export function OrganizationDropdown() {
 	};
 
 	return (
-		<>
+		<Show when={organizationSelection.availability() !== "signed-out"}>
 			<KDropdownMenu gutter={8} placement="bottom">
 				<EditorButton<typeof KDropdownMenu.Trigger>
 					as={KDropdownMenu.Trigger}
@@ -427,15 +426,6 @@ export function OrganizationDropdown() {
 													{fallbackDescription()}
 												</span>
 											</div>
-											<Show
-												when={
-													organizationSelection.availability() === "signed-out"
-												}
-											>
-												<SignInButton class="w-full justify-center">
-													Sign In
-												</SignInButton>
-											</Show>
 											<Show
 												when={
 													organizationSelection.availability() === "unavailable"
@@ -516,7 +506,7 @@ export function OrganizationDropdown() {
 				}}
 				onSaved={saved}
 			/>
-		</>
+		</Show>
 	);
 }
 

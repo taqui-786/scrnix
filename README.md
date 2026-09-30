@@ -1,5 +1,5 @@
 <p align="center">
-	<img width="150" height="150" src="https://github.com/CapSoftware/Cap/blob/main/apps/desktop/src-tauri/icons/Square310x310Logo.png" alt="Cap logo">
+	<img width="150" height="150" src="brand/scrinx_logo.png" alt="Scrinx logo">
 </p>
 
 <h1 align="center">Cap</h1>

@@ -994,9 +994,9 @@ function Inner(props: {
 									aria-orientation="vertical"
 								>
 									<div
-										class="w-1.5 h-12 rounded-full transition-all bg-ed-line-strong group-hover:bg-emerald-400 group-hover:shadow-[0_0_12px_rgba(52,211,153,0.7)] group-hover:scale-105"
+										class="w-1.5 h-12 rounded-full transition-all bg-ed-line-strong group-hover:bg-ed-accent group-hover:shadow-[0_0_12px_color-mix(in_oklch,var(--primary)_70%,transparent)] group-hover:scale-105"
 										classList={{
-											"bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.8)] scale-110":
+											"bg-ed-accent shadow-[0_0_12px_color-mix(in_oklch,var(--primary)_80%,transparent)] scale-110":
 												isResizingSplit(),
 										}}
 									/>
@@ -1028,9 +1028,9 @@ function Inner(props: {
 								onMouseDown={handleTimelineResizeStart}
 							>
 								<div
-									class="absolute left-1/2 top-[5px] w-12 h-1.5 rounded-full transition-all -translate-x-1/2 bg-ed-line-strong group-hover:bg-emerald-400 group-hover:shadow-[0_0_12px_rgba(52,211,153,0.7)] group-hover:scale-105"
+									class="absolute left-1/2 top-[5px] w-12 h-1.5 rounded-full transition-all -translate-x-1/2 bg-ed-line-strong group-hover:bg-ed-accent group-hover:shadow-[0_0_12px_color-mix(in_oklch,var(--primary)_70%,transparent)] group-hover:scale-105"
 									classList={{
-										"bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.8)] scale-110":
+										"bg-ed-accent shadow-[0_0_12px_color-mix(in_oklch,var(--primary)_80%,transparent)] scale-110":
 											isResizingTimeline(),
 									}}
 								/>

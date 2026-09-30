@@ -37,24 +37,27 @@
 	--track-3d: #6366f1;
 
 	/* Editor surfaces: a layered, low-contrast system (window < card < control)
-	 * with one accent. Mirrored 1:1 by EditorPalette in
+	 * with one accent, derived from the theme tokens in
+	 * packages/ui-solid/src/main.css (`:root` / `.dark`). Mode-agnostic
+	 * expressions, so both modes stay aligned from the single token set.
+	 * Mirrored 1:1 by EditorPalette in
 	 * apps/desktop-gpui/src/theme.rs; change both. */
-	--ed-window: #f1f1f3;
-	--ed-card: #ffffff;
-	--ed-card-2: #f6f6f7;
-	--ed-stage: #e9e9ec;
-	--ed-line: rgba(0, 0, 0, 0.075);
-	--ed-line-strong: rgba(0, 0, 0, 0.12);
-	--ed-text-1: #1c1c1e;
-	--ed-text-2: #6e6e75;
-	--ed-text-3: #a0a0a8;
-	--ed-ctl: rgba(0, 0, 0, 0.045);
-	--ed-ctl-hover: rgba(0, 0, 0, 0.075);
-	--ed-ctl-active: rgba(0, 0, 0, 0.11);
-	--ed-accent: #10b981;
-	--ed-accent-2: #34d399;
-	--ed-playhead: #ff3b30;
-	--ed-thumb: #ffffff;
+	--ed-window: var(--background);
+	--ed-card: var(--card);
+	--ed-card-2: var(--secondary);
+	--ed-stage: var(--muted);
+	--ed-line: var(--border);
+	--ed-line-strong: color-mix(in oklch, var(--border), var(--foreground) 25%);
+	--ed-text-1: var(--foreground);
+	--ed-text-2: var(--muted-foreground);
+	--ed-text-3: color-mix(in oklch, var(--muted-foreground), transparent 35%);
+	--ed-ctl: color-mix(in oklch, var(--foreground) 5%, transparent);
+	--ed-ctl-hover: color-mix(in oklch, var(--foreground) 9%, transparent);
+	--ed-ctl-active: color-mix(in oklch, var(--foreground) 13%, transparent);
+	--ed-accent: var(--primary);
+	--ed-accent-2: color-mix(in oklch, var(--primary), white 22%);
+	--ed-playhead: var(--destructive);
+	--ed-thumb: var(--card);
 	--ed-seg-tint: 13%;
 	--ed-seg-line: 34%;
 	--ed-seg-label-base: #000000;
@@ -65,156 +68,172 @@
 }
 
 :root {
-	/* Light theme variables */
-	--gray-50: #ffffff; /* Pure white background */
-	--gray-100: #f8f9fb; /* Soft background */
-	--gray-200: #e4e6ed; /* Light borders/dividers */
-	--gray-300: #c7ccda; /* Subtle highlights */
-	--gray-400: #868e9f; /* Secondary text - slightly softened */
-	--gray-450: #4a4a4a; /* Adjusted to maintain balance */
-	--gray-500: #161b26; /* Primary text - deep, rich contrast */
+	/* Surface ramp, derived from the theme tokens (light + dark aligned). */
+	--gray-50: var(--background);
+	--gray-100: var(--card);
+	--gray-200: var(--secondary);
+	--gray-300: color-mix(in oklch, var(--border), var(--foreground) 25%);
+	--gray-400: var(--muted-foreground);
+	--gray-450: color-mix(
+		in oklch,
+		var(--foreground) 75%,
+		var(--muted-foreground)
+	);
+	--gray-500: var(--foreground);
 
-	--gray-50-transparent-50: rgba(255, 255, 255, 0.5);
-	--gray-100-transparent-50: rgba(248, 249, 251, 0.5);
-	--gray-200-transparent-50: rgba(228, 230, 237, 0.5);
-	--gray-300-transparent-50: rgba(207, 210, 214, 0.5);
-	--gray-400-transparent-50: rgba(134, 138, 143, 0.5);
-	--gray-450-transparent-50: rgba(234, 236, 239, 0.5);
-	--gray-500-transparent-50: rgba(22, 27, 38, 0.5);
+	--gray-50-transparent-50: color-mix(in oklch, var(--gray-50) 50%, transparent);
+	--gray-100-transparent-50: color-mix(
+		in oklch,
+		var(--gray-100) 50%,
+		transparent
+	);
+	--gray-200-transparent-50: color-mix(
+		in oklch,
+		var(--gray-200) 50%,
+		transparent
+	);
+	--gray-300-transparent-50: color-mix(
+		in oklch,
+		var(--gray-300) 50%,
+		transparent
+	);
+	--gray-400-transparent-50: color-mix(
+		in oklch,
+		var(--gray-400) 50%,
+		transparent
+	);
+	--gray-450-transparent-50: color-mix(
+		in oklch,
+		var(--gray-450) 50%,
+		transparent
+	);
+	--gray-500-transparent-50: color-mix(
+		in oklch,
+		var(--gray-500) 50%,
+		transparent
+	);
 
-	--transparent-window: rgba(255, 255, 255, 0.7);
+	/* Radix gray ramp, re-anchored on the theme tokens. */
+	--gray-1: var(--background);
+	--gray-2: color-mix(in oklch, var(--foreground) 5%, var(--background));
+	--gray-3: color-mix(in oklch, var(--foreground) 9%, var(--background));
+	--gray-4: color-mix(in oklch, var(--foreground) 14%, var(--background));
+	--gray-5: color-mix(in oklch, var(--foreground) 20%, var(--background));
+	--gray-6: color-mix(in oklch, var(--foreground) 28%, var(--background));
+	--gray-7: color-mix(in oklch, var(--foreground) 38%, var(--background));
+	--gray-8: color-mix(in oklch, var(--foreground) 50%, var(--background));
+	--gray-9: color-mix(in oklch, var(--foreground) 64%, var(--background));
+	--gray-10: color-mix(in oklch, var(--foreground) 78%, var(--background));
+	--gray-11: var(--muted-foreground);
+	--gray-12: var(--foreground);
 
-	--text-primary: rgba(18, 22, 31, 0.95); /* Section titles, headings */
-	--text-secondary: rgba(18, 22, 31, 0.85); /* Important labels */
-	--text-tertiary: rgba(18, 22, 31, 0.65); /* Descriptions */
+	/* Radix jade ramp backs the `emerald-*` utilities: re-anchor on primary. */
+	--jade-1: color-mix(in oklch, var(--primary) 6%, var(--background));
+	--jade-2: color-mix(in oklch, var(--primary) 10%, var(--background));
+	--jade-3: color-mix(in oklch, var(--primary) 16%, var(--background));
+	--jade-4: color-mix(in oklch, var(--primary) 24%, var(--background));
+	--jade-5: color-mix(in oklch, var(--primary) 34%, var(--background));
+	--jade-6: color-mix(in oklch, var(--primary) 48%, var(--background));
+	--jade-7: color-mix(in oklch, var(--primary) 62%, var(--background));
+	--jade-8: color-mix(in oklch, var(--primary) 78%, var(--background));
+	--jade-9: var(--primary);
+	--jade-10: color-mix(in oklch, var(--primary) 88%, black);
+	--jade-11: color-mix(in oklch, var(--primary) 72%, var(--foreground));
+	--jade-12: color-mix(in oklch, var(--primary) 45%, var(--foreground));
 
-	--black-transparent-5: rgba(18, 22, 31, 0.05);
-	--black-transparent-10: rgba(18, 22, 31, 0.1);
-	--black-transparent-20: rgba(18, 22, 31, 0.2);
-	--black-transparent-40: rgba(18, 22, 31, 0.4);
-	--black-transparent-60: rgba(18, 22, 31, 0.6);
-	--black-transparent-80: rgba(18, 22, 31, 0.8);
+	/* Radix blue ramp backs links, selections and primary actions. */
+	--blue-1: color-mix(in oklch, var(--primary) 6%, var(--background));
+	--blue-2: color-mix(in oklch, var(--primary) 10%, var(--background));
+	--blue-3: color-mix(in oklch, var(--primary) 16%, var(--background));
+	--blue-4: color-mix(in oklch, var(--primary) 24%, var(--background));
+	--blue-5: color-mix(in oklch, var(--primary) 34%, var(--background));
+	--blue-6: color-mix(in oklch, var(--primary) 48%, var(--background));
+	--blue-7: color-mix(in oklch, var(--primary) 62%, var(--background));
+	--blue-8: color-mix(in oklch, var(--primary) 78%, var(--background));
+	--blue-9: var(--primary);
+	--blue-10: color-mix(in oklch, var(--primary) 88%, black);
+	--blue-11: color-mix(in oklch, var(--primary) 72%, var(--foreground));
+	--blue-12: color-mix(in oklch, var(--primary) 45%, var(--foreground));
 
-	--white-transparent-5: rgba(255, 255, 255, 0.05);
-	--white-transparent-10: rgba(255, 255, 255, 0.1);
-	--white-transparent-20: rgba(255, 255, 255, 0.2);
-	--white-transparent-40: rgba(255, 255, 255, 0.4);
-	--white-transparent-60: rgba(255, 255, 255, 0.6);
-	--white-transparent-80: rgba(255, 255, 255, 0.8);
+	/* Radix red steps in use back destructive text/solids. */
+	--red-9: var(--destructive);
+	--red-11: color-mix(in oklch, var(--destructive) 80%, var(--foreground));
+
+	--transparent-window: color-mix(in oklch, var(--background) 80%, transparent);
+
+	--text-primary: var(--foreground);
+	--text-secondary: color-mix(
+		in oklch,
+		var(--foreground) 85%,
+		var(--background)
+	);
+	--text-tertiary: var(--muted-foreground);
+
+	--black-transparent-5: color-mix(in oklch, var(--foreground) 5%, transparent);
+	--black-transparent-10: color-mix(
+		in oklch,
+		var(--foreground) 10%,
+		transparent
+	);
+	--black-transparent-20: color-mix(
+		in oklch,
+		var(--foreground) 20%,
+		transparent
+	);
+	--black-transparent-40: color-mix(
+		in oklch,
+		var(--foreground) 40%,
+		transparent
+	);
+	--black-transparent-60: color-mix(
+		in oklch,
+		var(--foreground) 60%,
+		transparent
+	);
+	--black-transparent-80: color-mix(
+		in oklch,
+		var(--foreground) 80%,
+		transparent
+	);
+
+	--white-transparent-5: color-mix(in oklch, white 5%, transparent);
+	--white-transparent-10: color-mix(in oklch, white 10%, transparent);
+	--white-transparent-20: color-mix(in oklch, white 20%, transparent);
+	--white-transparent-40: color-mix(in oklch, white 40%, transparent);
+	--white-transparent-60: color-mix(in oklch, white 60%, transparent);
+	--white-transparent-80: color-mix(in oklch, white 80%, transparent);
 
 	--solid-white: #ffffff;
 
-	--blue-50: #ebf1ff;
-	--blue-100: #adc9ff;
-	--blue-200: #85adff;
-	--blue-300: #4785ff;
-	--blue-400: #3f75e0;
-	--blue-500: rgb(54, 102, 197);
+	--blue-50: color-mix(in oklch, var(--primary) 8%, var(--background));
+	--blue-100: color-mix(in oklch, var(--primary) 18%, var(--background));
+	--blue-200: color-mix(in oklch, var(--primary) 32%, var(--background));
+	--blue-300: color-mix(in oklch, var(--primary) 55%, var(--background));
+	--blue-400: var(--primary);
+	--blue-500: color-mix(in oklch, var(--primary) 88%, black);
 
-	--blue-transparent-0: rgba(34, 64, 122, 0);
-	--blue-transparent-10: rgba(34, 64, 122, 0.1);
-	--blue-transparent-20: rgba(34, 64, 122, 0.2);
+	--blue-transparent-0: color-mix(in oklch, var(--primary) 0%, transparent);
+	--blue-transparent-10: color-mix(in oklch, var(--primary) 10%, transparent);
+	--blue-transparent-20: color-mix(in oklch, var(--primary) 20%, transparent);
 
-	--red-50: #ffebee;
-	--red-100: #ffadbb;
-	--red-200: #ff8599;
-	--red-300: #ff4766;
-	--red-400: #e03f5a;
+	--red-50: color-mix(in oklch, var(--destructive) 8%, var(--background));
+	--red-100: color-mix(in oklch, var(--destructive) 18%, var(--background));
+	--red-200: color-mix(in oklch, var(--destructive) 32%, var(--background));
+	--red-300: color-mix(in oklch, var(--destructive) 55%, var(--background));
+	--red-400: var(--destructive);
 
-	--red-transparent-20: rgba(255, 71, 102, 0.2);
+	--red-transparent-20: color-mix(in oklch, var(--destructive) 20%, transparent);
 
 	--shadow-s: 0px 8px 16px 0px rgba(18, 22, 31, 0.04);
 }
 
-/* Dark theme variables */
+/* Dark theme variables: every token above already derives from the flipping
+ * theme set, so only structural contrast tweaks live here. */
 :root.dark {
 	color-scheme: dark;
-	--gray-50: #111111;
-	--gray-100: #1c1c1c;
-	--gray-200: #282828;
-	--gray-300: #323232;
-	--gray-400: #a1a1a1;
-	--gray-450: #eaeaea;
-	--gray-500: #ffffff;
-
-	--gray-50-transparent-50: rgba(17, 17, 17, 0.5);
-	--gray-100-transparent-50: rgba(28, 28, 28, 0.5);
-	--gray-200-transparent-50: rgba(40, 40, 40, 0.5);
-	--gray-300-transparent-50: rgba(50, 50, 50, 0.5);
-	--gray-400-transparent-50: rgba(161, 161, 161, 0.5);
-	--gray-450-transparent-50: rgba(234, 234, 234, 0.5);
-	--gray-500-transparent-50: rgba(255, 255, 255, 0.5);
-
-	--transparent-window: rgba(28, 28, 28, 0.85);
-
-	/* Add new variables for text hierarchy */
-	--text-primary: rgba(255, 255, 255, 0.95); /* Section titles, headings */
-	--text-secondary: rgba(255, 255, 255, 0.85); /* Important labels */
-	--text-tertiary: rgba(255, 255, 255, 0.65); /* Descriptions */
-
-	/* Transparent overlays - adjusted for better contrast */
-	--black-transparent-5: rgba(255, 255, 255, 0.05);
-	--black-transparent-10: rgba(255, 255, 255, 0.1);
-	--black-transparent-20: rgba(255, 255, 255, 0.2);
-	--black-transparent-40: rgba(255, 255, 255, 0.4);
-	--black-transparent-60: rgba(255, 255, 255, 0.6);
-	--black-transparent-80: rgba(255, 255, 255, 0.8);
-
-	/* White transparencies */
-	--white-transparent-5: rgba(18, 22, 31, 0.05);
-	--white-transparent-10: rgba(18, 22, 31, 0.1);
-	--white-transparent-20: rgba(18, 22, 31, 0.2);
-	--white-transparent-40: rgba(18, 22, 31, 0.4);
-	--white-transparent-60: rgba(18, 22, 31, 0.6);
-	--white-transparent-80: rgba(18, 22, 31, 0.8);
-
-	--solid-white: #ffffff;
-
-	/* Accent colors remain mostly the same but adjusted for dark theme */
-	--blue-50: #1a2438;
-	--blue-100: #243352;
-	--blue-200: #2e426b;
-	--blue-300: #4785ff;
-	--blue-400: #5c8fff;
-	--blue-500: #0a84ff;
-
-	--blue-transparent-10: rgba(71, 133, 255, 0.1);
-	--blue-transparent-20: rgba(71, 133, 255, 0.2);
-
-	--red-50: #2c1a1e;
-	--red-100: #52232c;
-	--red-200: #6b2c39;
-	--red-300: #ff4766;
-	--red-400: #ff5c7a;
-
-	--red-transparent-20: rgba(255, 71, 102, 0.2);
 
 	--shadow-s: 0px 8px 16px 0px rgba(0, 0, 0, 0.4);
 
-	--gray-1: #111111;
-	--gray-2: #1c1c1c;
-	--gray-3: #282828;
-	--gray-4: #323232;
-	--gray-5: #3a3a3a;
-	--gray-6: #444444;
-	--gray-11: #a1a1a1;
-
-	--ed-window: #090d0b;
-	--ed-card: #121815;
-	--ed-card-2: #16201b;
-	--ed-stage: #0c120f;
-	--ed-line: rgba(255, 255, 255, 0.08);
-	--ed-line-strong: rgba(255, 255, 255, 0.14);
-	--ed-text-1: #f4f5f5;
-	--ed-text-2: #9da39f;
-	--ed-text-3: #636b66;
-	--ed-ctl: rgba(255, 255, 255, 0.06);
-	--ed-ctl-hover: rgba(255, 255, 255, 0.1);
-	--ed-ctl-active: rgba(255, 255, 255, 0.15);
-	--ed-accent: #10b981;
-	--ed-accent-2: #34d399;
-	--ed-playhead: #f43f5e;
-	--ed-thumb: #e8eae9;
 	--ed-seg-tint: 20%;
 	--ed-seg-line: 42%;
 	--ed-seg-label-base: #ffffff;
@@ -351,13 +370,13 @@ html[data-transparent-window="true"] #app,
 
 @keyframes settings-section-pulse {
 	0% {
-		box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+		box-shadow: 0 0 0 0 color-mix(in oklch, var(--primary) 0%, transparent);
 	}
 	30% {
-		box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.45);
+		box-shadow: 0 0 0 4px color-mix(in oklch, var(--primary) 45%, transparent);
 	}
 	100% {
-		box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+		box-shadow: 0 0 0 0 color-mix(in oklch, var(--primary) 0%, transparent);
 	}
 }
 
@@ -558,4 +577,12 @@ html[data-transparent-window="true"] #app,
 	::file-selector-button {
 		border-color: var(--color-gray-200, currentColor);
 	}
+}
+
+.custom-bg {
+	background: linear-gradient(
+		180deg,
+		color-mix(in oklch, var(--primary) 14%, var(--background)) 0%,
+		color-mix(in oklch, var(--primary) 4%, var(--background)) 100%
+	);
 }
