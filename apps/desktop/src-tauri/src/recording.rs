@@ -2373,11 +2373,16 @@ async fn start_recording_prepared(
             _ => {}
         }
     }
-    let countdown = general_settings.and_then(|v| v.recording_countdown);
+    let recording_countdown = general_settings.and_then(|v| v.recording_countdown);
     crate::target_select_overlay::close_target_select_overlay_windows(&app);
     if clean_generation.is_none() {
+        #[cfg(target_os = "linux")]
+        let window_countdown = None;
+        #[cfg(not(target_os = "linux"))]
+        let window_countdown = recording_countdown;
+
         let _ = ShowCapWindow::InProgressRecording {
-            countdown,
+            countdown: window_countdown,
             capture_target: Some(inputs.capture_target.clone()),
         }
         .show(&app)
@@ -2422,19 +2427,23 @@ async fn start_recording_prepared(
         }
     };
 
-    let countdown = countdown.unwrap_or(0);
+    let countdown_secs = recording_countdown.unwrap_or(0);
+    #[cfg(not(target_os = "linux"))]
     // Every countdown second but the last elapses before the pipeline is
     // primed; the last one overlaps its warm-up so capture is live at the cue.
-    for t in 0..countdown.saturating_sub(1) {
+    for t in 0..countdown_secs.saturating_sub(1) {
         if let Some(reason) = start_cancel_reason() {
             return Err(reason.into());
         }
         let _ = RecordingEvent::Countdown {
-            value: countdown - t,
+            value: countdown_secs - t,
         }
         .emit(&app);
         countdown_tick(&start_cancel_reason).await?;
     }
+
+    #[cfg(target_os = "linux")]
+    let (pipeline_ready_tx, pipeline_ready_rx) = tokio::sync::oneshot::channel::<bool>();
 
     let start_cue_flow = {
         let app = app.clone();
@@ -2442,7 +2451,30 @@ async fn start_recording_prepared(
         let start_cancelled = start_cancelled.clone();
         let start_cancel_reason = start_cancel_reason.clone();
         async move {
-            if countdown >= 1 {
+            #[cfg(target_os = "linux")]
+            {
+                if !pipeline_ready_rx.await.unwrap_or(false) {
+                    return;
+                }
+                for t in (1..=countdown_secs).rev() {
+                    if let Some(reason) = start_cancel_reason() {
+                        let _ = start_cancelled.set(reason);
+                        start_gate.arm();
+                        return;
+                    }
+                    let _ = RecordingEvent::Countdown { value: t }.emit(&app);
+                    if let Err(reason) = countdown_tick(&start_cancel_reason).await {
+                        let _ = start_cancelled.set(reason);
+                        start_gate.arm();
+                        return;
+                    }
+                }
+                if countdown_secs >= 1 {
+                    let _ = RecordingEvent::Countdown { value: 0 }.emit(&app);
+                }
+            }
+            #[cfg(not(target_os = "linux"))]
+            if countdown_secs >= 1 {
                 let _ = RecordingEvent::Countdown { value: 1 }.emit(&app);
                 if let Err(reason) = countdown_tick(&start_cancel_reason).await {
                     let _ = start_cancelled.set(reason);
@@ -2483,6 +2515,8 @@ async fn start_recording_prepared(
         let inputs = inputs.clone();
         let start_gate = start_gate.clone();
         let start_cancelled = start_cancelled.clone();
+        #[cfg(target_os = "linux")]
+        let mut pipeline_ready_tx = Some(pipeline_ready_tx);
         async move {
             fail!("recording::spawn_actor");
 
@@ -2776,6 +2810,11 @@ async fn start_recording_prepared(
 
                 match actor_result {
                     Ok(mut actor) => {
+                        #[cfg(target_os = "linux")]
+                        if let Some(tx) = pipeline_ready_tx.take() {
+                            let _ = tx.send(true);
+                        }
+
                         // The recording stays out of app state until the cue has
                         // armed the gate, so nothing reports "recording" while the
                         // primed pipeline is still discarding frames.
@@ -2893,7 +2932,13 @@ async fn start_recording_prepared(
                             .map_err(|restart_err| anyhow!(restart_err))?;
                         tokio::time::sleep(Duration::from_millis(250)).await;
                     }
-                    Err(err) => return Err(err),
+                    Err(err) => {
+                        #[cfg(target_os = "linux")]
+                        if let Some(tx) = pipeline_ready_tx.take() {
+                            let _ = tx.send(false);
+                        }
+                        return Err(err);
+                    }
                 }
             };
 

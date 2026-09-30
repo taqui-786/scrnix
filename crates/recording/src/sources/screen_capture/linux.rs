@@ -378,8 +378,12 @@ impl PipewireCaptureState {
 async fn create_wayland_source_config(
     config: &ScreenCaptureConfig<X11Capture>,
 ) -> anyhow::Result<(VideoInfo, WaylandInputConfig)> {
-    let portal =
-        open_wayland_portal(&config.config.linux_source, config.config.show_cursor).await?;
+    let portal = open_wayland_portal(
+        &config.config.linux_source,
+        config.config.show_cursor,
+        Some(&config.config.display),
+    )
+    .await?;
     if matches!(config.config.linux_source, LinuxCaptureSource::Area) {
         let displays = Display::list();
         let selected = displays
@@ -418,9 +422,72 @@ async fn create_wayland_source_config(
     ))
 }
 
+static WAYLAND_RESTORE_TOKENS: parking_lot::Mutex<
+    Option<std::collections::HashMap<String, String>>,
+> = parking_lot::Mutex::new(None);
+
+fn restore_token_path(key: &str) -> Option<std::path::PathBuf> {
+    let base = std::env::var_os("XDG_CACHE_HOME")
+        .map(std::path::PathBuf::from)
+        .or_else(|| {
+            std::env::var_os("HOME").map(|home| std::path::PathBuf::from(home).join(".cache"))
+        })?;
+    let dir = base.join("scrinx");
+    let _ = std::fs::create_dir_all(&dir);
+    let safe_key: String = key
+        .chars()
+        .map(|c| {
+            if c.is_alphanumeric() || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
+    Some(dir.join(format!("portal_token_{safe_key}")))
+}
+
+fn load_restore_token(key: &str) -> Option<String> {
+    let mut tokens = WAYLAND_RESTORE_TOKENS.lock();
+    let map = tokens.get_or_insert_with(std::collections::HashMap::new);
+    if let Some(token) = map.get(key) {
+        return Some(token.clone());
+    }
+    if let Some(path) = restore_token_path(key)
+        && let Ok(token) = std::fs::read_to_string(&path)
+    {
+        let token = token.trim().to_string();
+        if !token.is_empty() {
+            map.insert(key.to_string(), token.clone());
+            return Some(token);
+        }
+    }
+    None
+}
+
+fn store_restore_token(key: &str, token: &str) {
+    let mut tokens = WAYLAND_RESTORE_TOKENS.lock();
+    let map = tokens.get_or_insert_with(std::collections::HashMap::new);
+    map.insert(key.to_string(), token.to_string());
+    if let Some(path) = restore_token_path(key) {
+        let _ = std::fs::write(path, token);
+    }
+}
+
+fn clear_restore_token(key: &str) {
+    let mut tokens = WAYLAND_RESTORE_TOKENS.lock();
+    if let Some(map) = tokens.as_mut() {
+        map.remove(key);
+    }
+    if let Some(path) = restore_token_path(key) {
+        let _ = std::fs::remove_file(path);
+    }
+}
+
 async fn open_wayland_portal(
     source: &LinuxCaptureSource,
     show_cursor: bool,
+    display_id: Option<&DisplayId>,
 ) -> anyhow::Result<WaylandPortalCapture> {
     let proxy: Screencast<'static> = Screencast::new()
         .await
@@ -435,24 +502,55 @@ async fn open_wayland_portal(
         CursorMode::Hidden
     };
 
+    let token_key = match source {
+        LinuxCaptureSource::Display => match display_id {
+            Some(id) => format!("display_{id:?}"),
+            None => "display_default".to_string(),
+        },
+        LinuxCaptureSource::Area => match display_id {
+            Some(id) => format!("area_{id:?}"),
+            None => "area_default".to_string(),
+        },
+        LinuxCaptureSource::Window { id } => format!("window_{id}"),
+    };
+
+    let restore_token = load_restore_token(&token_key);
+
     proxy
         .select_sources(
             &session,
             cursor_mode,
             wayland_source_type(source),
             false,
-            None,
-            PersistMode::DoNot,
+            restore_token.as_deref(),
+            PersistMode::ExplicitlyRevoked,
         )
         .await
         .context("select Wayland screen capture source")?;
 
-    let response = proxy
-        .start(&session, None)
-        .await
-        .context("start Wayland screen capture portal request")?
-        .response()
-        .context("Wayland screen capture portal request was cancelled")?;
+    let start_result = proxy.start(&session, None).await;
+    let response = match start_result {
+        Ok(req) => match req.response() {
+            Ok(resp) => resp,
+            Err(err) => {
+                if restore_token.is_some() {
+                    clear_restore_token(&token_key);
+                }
+                return Err(err).context("Wayland screen capture portal request was cancelled");
+            }
+        },
+        Err(err) => {
+            if restore_token.is_some() {
+                clear_restore_token(&token_key);
+            }
+            return Err(err).context("start Wayland screen capture portal request");
+        }
+    };
+
+    if let Some(new_token) = response.restore_token() {
+        store_restore_token(&token_key, new_token);
+    }
+
     let stream = response
         .streams()
         .first()
