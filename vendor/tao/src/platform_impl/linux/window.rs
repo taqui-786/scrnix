@@ -94,7 +94,7 @@ impl Window {
 
     let window = window_builder.build();
 
-    if is_wayland {
+    if is_wayland && attributes.decorations {
       WlHeader::setup(&window, &attributes.title);
     }
 

@@ -1149,11 +1149,7 @@ function InProgressRecordingInner() {
 						<div
 							aria-label="Move recording controls"
 							class="non-styled-move flex w-6 shrink-0 cursor-move items-center justify-center border-l border-gray-5 p-1 hover:cursor-move transition-colors duration-100 hover:bg-gray-12/4 dark:hover:bg-white/6 select-none"
-							onMouseDown={(e) => {
-								if (e.button !== 0) return;
-								e.preventDefault();
-								void getCurrentWindow().startDragging();
-							}}
+							data-tauri-drag-region
 						>
 							<IconCapMoreVertical class="pointer-events-none size-4 text-gray-10" />
 						</div>

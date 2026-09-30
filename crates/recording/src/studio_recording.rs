@@ -2905,6 +2905,10 @@ struct SegmentPipelineFactory {
     completion_tx: watch::Sender<Option<Result<(), PipelineDoneError>>>,
     #[cfg(windows)]
     encoder_preferences: crate::capture_pipeline::EncoderPreferences,
+    /// Carries the first segment's capture source across resumes. On Wayland
+    /// rebuilding it would re-open the portal and re-prompt for the screen.
+    #[cfg(target_os = "linux")]
+    reuse_video: Option<screen_capture::VideoSourceConfig>,
 }
 
 impl SegmentPipelineFactory {
@@ -2937,6 +2941,8 @@ impl SegmentPipelineFactory {
             completion_tx,
             #[cfg(windows)]
             encoder_preferences: crate::capture_pipeline::EncoderPreferences::new(),
+            #[cfg(target_os = "linux")]
+            reuse_video: None,
         }
     }
 
@@ -2978,6 +2984,8 @@ impl SegmentPipelineFactory {
             segment_start_time,
             #[cfg(windows)]
             self.encoder_preferences.clone(),
+            #[cfg(target_os = "linux")]
+            &mut self.reuse_video,
         )
         .await
     }
@@ -3130,6 +3138,7 @@ async fn create_segment_pipeline(
     quality: crate::StudioQuality,
     start_time: Timestamps,
     #[cfg(windows)] encoder_preferences: crate::capture_pipeline::EncoderPreferences,
+    #[cfg(target_os = "linux")] reuse_video: &mut Option<screen_capture::VideoSourceConfig>,
 ) -> anyhow::Result<Pipeline> {
     #[cfg(windows)]
     let d3d_device = crate::capture_pipeline::create_d3d_device()
@@ -3292,6 +3301,15 @@ async fn create_segment_pipeline(
             H264_MAX_DIMENSION,
         );
 
+        #[cfg(target_os = "linux")]
+        let (capture_source, system_audio) = {
+            let (source, audio) = screen_config
+                .to_sources_reusing(reuse_video.clone())
+                .await?;
+            *reuse_video = Some(source.clone());
+            (source, audio)
+        };
+        #[cfg(not(target_os = "linux"))]
         let (capture_source, system_audio) = screen_config.to_sources().await?;
         #[cfg(target_os = "linux")]
         {

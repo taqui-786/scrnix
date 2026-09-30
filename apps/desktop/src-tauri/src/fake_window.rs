@@ -100,6 +100,11 @@ pub async fn set_fake_window_bounds(
 
     map.insert(name, bounds);
 
+    #[cfg(target_os = "linux")]
+    if window.label() == RECORDING_CONTROLS_LABEL {
+        update_linux_recording_controls_input(window.app_handle())?;
+    }
+
     Ok(())
 }
 
@@ -118,11 +123,32 @@ pub async fn remove_fake_window(
 
     map.remove(&name);
 
+    #[cfg(target_os = "linux")]
+    if window.label() == RECORDING_CONTROLS_LABEL {
+        update_linux_recording_controls_input(window.app_handle())?;
+    }
+
     if map.is_empty() {
         state.remove(window.label());
     }
 
     Ok(())
+}
+
+#[cfg(target_os = "linux")]
+fn update_linux_recording_controls_input(app: &AppHandle) -> Result<(), String> {
+    let handle = app.clone();
+    app.run_on_main_thread(move || {
+        use gtk::prelude::*;
+        let Some(window) = handle.get_webview_window(RECORDING_CONTROLS_LABEL) else {
+            return;
+        };
+        let _ = window.set_ignore_cursor_events(false);
+        if let Ok(native) = window.gtk_window() {
+            native.input_shape_combine_region(None);
+        }
+    })
+    .map_err(|error| error.to_string())
 }
 
 fn should_ignore_cursor_events(
@@ -463,6 +489,16 @@ pub fn calculate_recording_controls_position_for_target(
 pub fn spawn_fake_window_listener(app: AppHandle, window: WebviewWindow) {
     let label = window.label().to_string();
     let is_recording_controls = label == RECORDING_CONTROLS_LABEL;
+    #[cfg(target_os = "linux")]
+    if is_recording_controls {
+        let _ = window.set_ignore_cursor_events(false);
+        tokio::spawn(async move {
+            if let Err(error) = update_linux_recording_controls_input(&app) {
+                tracing::error!(%error, "Failed to initialize recording controls input region");
+            }
+        });
+        return;
+    }
     let default_ignore = !is_recording_controls;
     let initial_ignore = if is_recording_controls {
         !prepare_recording_controls_default_interaction(&window)

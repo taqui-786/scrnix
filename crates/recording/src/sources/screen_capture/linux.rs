@@ -54,6 +54,7 @@ impl ScreenCaptureFormat for X11Capture {
     }
 }
 
+#[derive(Clone)]
 pub struct VideoSourceConfig {
     video_info: VideoInfo,
     input: LinuxInputConfig,
@@ -65,11 +66,13 @@ impl VideoSourceConfig {
     }
 }
 
+#[derive(Clone)]
 enum LinuxInputConfig {
     X11(X11InputConfig),
     Wayland(WaylandInputConfig),
 }
 
+#[derive(Clone)]
 pub(crate) struct X11InputConfig {
     pub display_name: String,
     pub window_id: Option<u32>,
@@ -81,12 +84,16 @@ pub(crate) struct X11InputConfig {
     pub show_cursor: bool,
 }
 
+/// One portal grant, shared by every segment of a recording. Studio resume
+/// builds a fresh pipeline, so without this the portal is asked to re-select
+/// the screen on every resume and the user has to approve it each time.
+#[derive(Clone)]
 struct WaylandInputConfig {
-    fd: OwnedFd,
+    fd: Arc<OwnedFd>,
     node_id: u32,
     fps: u32,
     crop_bounds: Option<CropBounds>,
-    portal_session: WaylandPortalSession,
+    portal_session: Arc<WaylandPortalSession>,
 }
 
 struct WaylandPortalSession {
@@ -171,6 +178,36 @@ impl ScreenCaptureConfig<X11Capture> {
             None
         };
 
+        Ok((source, system_audio))
+    }
+
+    /// Studio resume reuses the video source opened for the first segment. On
+    /// Wayland that keeps the portal grant the user already approved instead of
+    /// re-prompting; system audio is a fresh feed, so it is always rebuilt.
+    pub(crate) async fn to_sources_reusing(
+        &self,
+        video: Option<VideoSourceConfig>,
+    ) -> anyhow::Result<(VideoSourceConfig, Option<SystemAudioSourceConfig>)> {
+        let Some(mut source) = video else {
+            return self.to_sources().await;
+        };
+        if let LinuxInputConfig::Wayland(input) = &mut source.input {
+            // Duplicating an fd shares the old PipeWire protocol connection;
+            // a new segment needs a new remote, but not a new portal grant.
+            input.fd = Arc::new(
+                input
+                    .portal_session
+                    ._proxy
+                    .open_pipe_wire_remote(&input.portal_session._session)
+                    .await
+                    .context("reopen PipeWire remote for resumed recording")?,
+            );
+        }
+        let system_audio = if self.system_audio {
+            Some(create_system_audio_source_config().await?)
+        } else {
+            None
+        };
         Ok((source, system_audio))
     }
 }
@@ -346,11 +383,11 @@ async fn create_wayland_source_config(
     Ok((
         video_info,
         WaylandInputConfig {
-            fd: portal.fd,
+            fd: Arc::new(portal.fd),
             node_id: portal.stream.pipe_wire_node_id(),
             fps: config.config.fps,
             crop_bounds,
-            portal_session: portal.portal_session,
+            portal_session: Arc::new(portal.portal_session),
         },
     ))
 }
@@ -488,7 +525,13 @@ fn capture_wayland(
     let context = pw::context::ContextBox::new(thread_loop.loop_(), None)
         .context("create PipeWire context")?;
     let core = context
-        .connect_fd(input.fd, None)
+        .connect_fd(
+            input
+                .fd
+                .try_clone()
+                .context("duplicate PipeWire remote for capture")?,
+            None,
+        )
         .context("connect to PipeWire remote")?;
 
     let state = PipewireCaptureState {
@@ -2866,6 +2909,36 @@ mod pipewire_frame_tests {
         FrameScaler, LinuxCaptureSource, VideoInfo, prefers_wayland_environment,
         prepare_pipewire_frame, wayland_area_matches_display, wayland_video_info,
     };
+
+    /// A paused Studio recording resumes by building a new segment from the
+    /// factory's cached source, so the source config has to be cloneable. If it
+    /// stopped being `Clone`, resume would fall back to reopening the
+    /// xdg-desktop-portal ScreenCast session and re-prompt for the screen the
+    /// user already approved.
+    #[test]
+    fn the_video_source_config_can_be_reused_by_a_resumed_segment() {
+        use super::{LinuxInputConfig, VideoSourceConfig, X11InputConfig};
+
+        let config = VideoSourceConfig {
+            video_info: VideoInfo::from_raw_ffmpeg(ffmpeg::format::Pixel::BGRZ, 1920, 1080, 60),
+            input: LinuxInputConfig::X11(X11InputConfig {
+                display_name: ":0".to_string(),
+                window_id: None,
+                x: 0,
+                y: 0,
+                width: 1920,
+                height: 1080,
+                fps: 60,
+                show_cursor: true,
+            }),
+        };
+
+        let resumed = config.clone();
+
+        assert_eq!(resumed.video_info().width, 1920);
+        assert_eq!(resumed.video_info().height, 1080);
+        assert_eq!(resumed.video_info().fps(), 60);
+    }
 
     #[test]
     fn wayland_area_requires_the_selected_monitor_in_the_portal() {
