@@ -97,8 +97,29 @@ struct WaylandInputConfig {
 }
 
 struct WaylandPortalSession {
-    _proxy: Screencast<'static>,
-    _session: Session<'static, Screencast<'static>>,
+    proxy: Screencast<'static>,
+    session: Option<Session<'static, Screencast<'static>>>,
+}
+
+impl Drop for WaylandPortalSession {
+    fn drop(&mut self) {
+        if let Some(session) = self.session.take() {
+            if let Ok(handle) = tokio::runtime::Handle::try_current() {
+                let _ = handle.spawn(async move {
+                    let _ = session.close().await;
+                });
+            } else {
+                let _ = std::thread::spawn(move || {
+                    let _ = tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build()
+                        .map(|rt| {
+                            let _ = rt.block_on(session.close());
+                        });
+                });
+            }
+        }
+    }
 }
 
 pub struct VideoSource {
@@ -194,11 +215,16 @@ impl ScreenCaptureConfig<X11Capture> {
         if let LinuxInputConfig::Wayland(input) = &mut source.input {
             // Duplicating an fd shares the old PipeWire protocol connection;
             // a new segment needs a new remote, but not a new portal grant.
+            let session = input
+                .portal_session
+                .session
+                .as_ref()
+                .ok_or_else(|| anyhow!("Wayland portal session is already closed"))?;
             input.fd = Arc::new(
                 input
                     .portal_session
-                    ._proxy
-                    .open_pipe_wire_remote(&input.portal_session._session)
+                    .proxy
+                    .open_pipe_wire_remote(session)
                     .await
                     .context("reopen PipeWire remote for resumed recording")?,
             );
@@ -441,8 +467,8 @@ async fn open_wayland_portal(
         stream,
         fd,
         portal_session: WaylandPortalSession {
-            _proxy: proxy,
-            _session: session,
+            proxy,
+            session: Some(session),
         },
     })
 }

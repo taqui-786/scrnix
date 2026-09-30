@@ -240,7 +240,7 @@ export function Header(props: {
 						Export
 					</button>
 				</div>
-				<div class="mx-2 w-px h-4 shrink-0 bg-white/10" />
+				<div class="mx-2 w-px h-4 shrink-0 bg-gray-12/15 dark:bg-white/10" />
 				<CaptionControlsLinux class="mr-1 shrink-0" />
 			</div>
 		</div>

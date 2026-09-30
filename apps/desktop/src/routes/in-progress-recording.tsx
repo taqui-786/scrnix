@@ -516,12 +516,9 @@ function InProgressRecordingInner() {
 	createTimer(syncInteractiveAreaBounds, 250, setInterval);
 
 	createEffect(() => {
-		if (
-			state().variant === "stopped" &&
-			!currentRecording.isPending &&
-			(currentRecording.data === undefined || currentRecording.data === null)
-		)
-			getCurrentWindow().hide();
+		if (state().variant === "stopped") {
+			void getCurrentWindow().hide();
+		}
 	});
 
 	const stopRecording = createMutation(() => ({
@@ -532,6 +529,7 @@ function InProgressRecordingInner() {
 			};
 			stopRequest = request;
 			setStopRequested(true);
+			void getCurrentWindow().hide();
 			await runRecordingStopRequest({
 				stop: () => commands.stopRecording(),
 				isCurrent: () => stopRequest === request,

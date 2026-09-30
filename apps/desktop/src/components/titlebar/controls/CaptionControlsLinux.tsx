@@ -89,7 +89,7 @@ export default function CaptionControlsLinux(
 					onPointerDown={(e) => e.stopPropagation()}
 					aria-label="Minimize window"
 					title="Minimize"
-					class="flex items-center justify-center size-7 rounded-md text-white/70 hover:text-white hover:bg-white/10 active:bg-white/15 transition-all outline-hidden cursor-pointer"
+					class="flex items-center justify-center size-7 rounded-md text-gray-11 hover:text-gray-12 hover:bg-gray-12/10 active:bg-gray-12/15 dark:text-white/70 dark:hover:text-white dark:hover:bg-white/10 dark:active:bg-white/15 transition-all outline-hidden cursor-pointer"
 				>
 					<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
 						<path d="M2.5 8.75a.75.75 0 0 1 .75-.75h9.5a.75.75 0 0 1 0 1.5h-9.5a.75.75 0 0 1-.75-.75Z" />
@@ -104,7 +104,7 @@ export default function CaptionControlsLinux(
 					onPointerDown={(e) => e.stopPropagation()}
 					aria-label={maximized() ? "Restore window" : "Maximize window"}
 					title={maximized() ? "Restore" : "Maximize"}
-					class="flex items-center justify-center size-7 rounded-md text-white/70 hover:text-white hover:bg-white/10 active:bg-white/15 transition-all outline-hidden cursor-pointer"
+					class="flex items-center justify-center size-7 rounded-md text-gray-11 hover:text-gray-12 hover:bg-gray-12/10 active:bg-gray-12/15 dark:text-white/70 dark:hover:text-white dark:hover:bg-white/10 dark:active:bg-white/15 transition-all outline-hidden cursor-pointer"
 				>
 					<Show
 						when={maximized()}
@@ -141,7 +141,7 @@ export default function CaptionControlsLinux(
 				onPointerDown={(e) => e.stopPropagation()}
 				aria-label="Close window"
 				title="Close"
-				class="flex items-center justify-center size-7 rounded-md text-white/70 hover:text-white hover:bg-rose-600 active:bg-rose-700 transition-all outline-hidden cursor-pointer"
+				class="flex items-center justify-center size-7 rounded-md text-gray-11 hover:text-white hover:bg-rose-600 active:bg-rose-700 dark:text-white/70 dark:hover:text-white dark:hover:bg-rose-600 transition-all outline-hidden cursor-pointer"
 			>
 				<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
 					<path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.75.75 0 1 1 1.06 1.06L9.06 8l3.22 3.22a.75.75 0 1 1-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 0 1-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z" />

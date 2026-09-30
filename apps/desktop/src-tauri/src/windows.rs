@@ -218,7 +218,10 @@ fn hide_recording_windows(app: &AppHandle, restore_target_select_overlays: bool)
         if let Ok(id) = CapWindowId::from_str(&label)
             && matches!(
                 id,
-                CapWindowId::TargetSelectOverlay { .. } | CapWindowId::Main | CapWindowId::Camera
+                CapWindowId::TargetSelectOverlay { .. }
+                    | CapWindowId::Main
+                    | CapWindowId::Camera
+                    | CapWindowId::RecordingControls
             )
         {
             if matches!(id, CapWindowId::TargetSelectOverlay { .. }) {
@@ -2330,7 +2333,11 @@ impl ShowCapWindow {
                 let builder = self
                     .window_builder_with_id(app, "/editor", &_id, _id.label())
                     .maximizable(true)
-                    .focused(true);
+                    .maximized(true)
+                    .focused(true)
+                    .background_throttling(
+                        tauri::utils::config::BackgroundThrottlingPolicy::Disabled,
+                    );
                 #[cfg(debug_assertions)]
                 let builder = if crate::stop_editor_benchmark::enabled() {
                     builder.initialization_script(crate::stop_editor_benchmark::SCRIPT)
@@ -2351,26 +2358,24 @@ impl ShowCapWindow {
 
                 fit_content_window_bounds(&window, &_id, true).await;
 
-                // Show immediately: the native background color is already
-                // themed, so the window can appear before the webview loads and
-                // the editor skeleton takes over. When window transparency is
-                // enabled we keep the old behaviour (the frontend reveals the
-                // window after applying the HudWindow effects) to avoid an
-                // opaque-to-transparent pop.
+                // Show immediately when not on Linux: the native background color is already
+                // themed, so the window can appear before the webview loads. On Linux, WebKitGTK
+                // takes longer to initialize and paints an unrendered black box if shown early,
+                // so the window is revealed by the frontend once mounted.
                 let transparency_enabled = GeneralSettingsStore::get(app)
                     .ok()
                     .flatten()
                     .map(|s| s.window_transparency)
                     .unwrap_or(false);
-                if !transparency_enabled {
+                let shown_from_rust = !cfg!(target_os = "linux") && !transparency_enabled;
+                if shown_from_rust {
                     window.show().ok();
                     window.set_focus().ok();
                 }
 
                 info!(
                     window_built_and_shown_ms = open_started.elapsed().as_millis() as u64,
-                    shown_from_rust = !transparency_enabled,
-                    "Editor open: window ready"
+                    shown_from_rust, "Editor open: window ready"
                 );
 
                 window

@@ -629,6 +629,9 @@ impl Actor {
             })
         };
 
+        #[cfg(target_os = "linux")]
+        self.segment_factory.clear_reuse_video();
+
         self.update_diagnostic_segment_count();
         let recording = stop_recording(
             self.recording_dir.clone(),
@@ -1110,6 +1113,8 @@ impl Message<Cancel> for Actor {
         }
         #[cfg(target_os = "linux")]
         self.cancel_resume().await?;
+        #[cfg(target_os = "linux")]
+        self.segment_factory.clear_reuse_video();
         if let Some(failure) = self.terminal_stop_failure.as_ref() {
             bail!("Previous Studio stop failed: {}", failure.error);
         }
@@ -2944,6 +2949,11 @@ impl SegmentPipelineFactory {
             #[cfg(target_os = "linux")]
             reuse_video: None,
         }
+    }
+
+    #[cfg(target_os = "linux")]
+    pub fn clear_reuse_video(&mut self) {
+        self.reuse_video.take();
     }
 
     #[cfg(target_os = "linux")]
