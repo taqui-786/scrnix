@@ -9,8 +9,8 @@ import {
 	Pause,
 	Play,
 	Sparkles,
-	Video,
 } from "lucide-react";
+import Image from "next/image";
 import { useId, useState } from "react";
 
 type PackageFormat = "deb" | "appimage" | "tar";
@@ -70,9 +70,14 @@ export default function Page() {
 			<header className="landing-header">
 				<div className="header-inner">
 					<a className="brand-mark" href={`#${topId}`} aria-label="Scrinx home">
-						<span className="brand-icon">
-							<Video className="h-4 w-4" strokeWidth={1.8} />
-						</span>
+						<Image
+							className="brand-icon"
+							src="/logo.svg"
+							alt=""
+							width={32}
+							height={32}
+							priority
+						/>
 						<span className="brand-name">Scrinx</span>
 						<span className="brand-tag">Linux</span>
 					</a>

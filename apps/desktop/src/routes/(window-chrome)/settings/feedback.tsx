@@ -265,15 +265,15 @@ export default function FeedbackTab() {
 				</Section>
 
 				<Section
-					title="Join the Community"
-					description="Have questions, want to share ideas, or just hang out? Join the Scrinx Discord community."
+					title="Follow me on X / Twitter"
+					description="Follow Taqui for updates, experiments, and new projects."
 				>
 					<Button
-						onClick={() => shell.open("https://scrinx.link/discord")}
+						onClick={() => shell.open("https://twitter.com/md_taqui_imam")}
 						size="md"
 						variant="gray"
 					>
-						Join Discord
+						Follow on X / Twitter
 					</Button>
 				</Section>
 

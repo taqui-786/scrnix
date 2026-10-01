@@ -47,20 +47,17 @@ const SettingsTranscriptionPage = lazy(
 const SettingsScreenshotsPage = lazy(
 	() => import("./routes/(window-chrome)/settings/screenshots"),
 );
-const SettingsAutomationsPage = lazy(
-	() => import("./routes/(window-chrome)/settings/automations"),
-);
 const SettingsHotkeysPage = lazy(
 	() => import("./routes/(window-chrome)/settings/hotkeys"),
-);
-const SettingsCliPage = lazy(
-	() => import("./routes/(window-chrome)/settings/cli"),
 );
 const SettingsChangelogPage = lazy(
 	() => import("./routes/(window-chrome)/settings/changelog"),
 );
 const SettingsFeedbackPage = lazy(
 	() => import("./routes/(window-chrome)/settings/feedback"),
+);
+const SettingsAboutPage = lazy(
+	() => import("./routes/(window-chrome)/settings/about"),
 );
 const SettingsExperimentalPage = lazy(
 	() => import("./routes/(window-chrome)/settings/experimental"),
@@ -261,11 +258,10 @@ function Inner() {
 								component={SettingsTranscriptionPage}
 							/>
 							<Route path="/screenshots" component={SettingsScreenshotsPage} />
-							<Route path="/automations" component={SettingsAutomationsPage} />
 							<Route path="/hotkeys" component={SettingsHotkeysPage} />
-							<Route path="/cli" component={SettingsCliPage} />
 							<Route path="/changelog" component={SettingsChangelogPage} />
 							<Route path="/feedback" component={SettingsFeedbackPage} />
+							<Route path="/about" component={SettingsAboutPage} />
 							<Route
 								path="/experimental"
 								component={SettingsExperimentalPage}

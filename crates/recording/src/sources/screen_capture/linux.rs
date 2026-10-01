@@ -13,6 +13,7 @@ use ashpd::desktop::{
 };
 use cap_timestamp::Timestamp;
 use futures::{Stream, StreamExt, channel::mpsc};
+use image::RgbImage;
 use kameo::{Actor as _, actor::ActorRef};
 use pipewire as pw;
 use pw::{properties::properties, spa};
@@ -484,6 +485,23 @@ fn clear_restore_token(key: &str) {
     }
 }
 
+fn wayland_restore_token_key(
+    source: &LinuxCaptureSource,
+    display_id: Option<&DisplayId>,
+) -> String {
+    match source {
+        LinuxCaptureSource::Display => match display_id {
+            Some(id) => format!("display_{id:?}"),
+            None => "display_default".to_string(),
+        },
+        LinuxCaptureSource::Area => match display_id {
+            Some(id) => format!("area_{id:?}"),
+            None => "area_default".to_string(),
+        },
+        LinuxCaptureSource::Window { id } => format!("window_{id}"),
+    }
+}
+
 async fn open_wayland_portal(
     source: &LinuxCaptureSource,
     show_cursor: bool,
@@ -502,17 +520,7 @@ async fn open_wayland_portal(
         CursorMode::Hidden
     };
 
-    let token_key = match source {
-        LinuxCaptureSource::Display => match display_id {
-            Some(id) => format!("display_{id:?}"),
-            None => "display_default".to_string(),
-        },
-        LinuxCaptureSource::Area => match display_id {
-            Some(id) => format!("area_{id:?}"),
-            None => "area_default".to_string(),
-        },
-        LinuxCaptureSource::Window { id } => format!("window_{id}"),
-    };
+    let token_key = wayland_restore_token_key(source, display_id);
 
     let restore_token = load_restore_token(&token_key);
 
@@ -569,6 +577,107 @@ async fn open_wayland_portal(
             session: Some(session),
         },
     })
+}
+
+const WAYLAND_STILL_FPS: u32 = 30;
+const WAYLAND_STILL_FRAME_TIMEOUT_SECS: u64 = 15;
+
+/// Captures one frame of a single Wayland output through the ScreenCast
+/// portal. Unlike the Screenshot portal (whole desktop, callers must isolate),
+/// a ScreenCast session carries exactly the selected monitor, so this stays
+/// correct with any number of displays.
+pub(crate) async fn capture_wayland_display_still(
+    display_id: &DisplayId,
+) -> anyhow::Result<RgbImage> {
+    let portal = open_wayland_portal(&LinuxCaptureSource::Display, false, Some(display_id)).await?;
+
+    let token_key = wayland_restore_token_key(&LinuxCaptureSource::Display, Some(display_id));
+    let selected = Display::list()
+        .into_iter()
+        .find(|display| display.id() == *display_id)
+        .and_then(|display| display.raw_handle().logical_bounds())
+        .ok_or_else(|| anyhow!("Selected Wayland display is no longer available"))?;
+    if !wayland_area_matches_display(
+        portal.stream.position(),
+        portal.stream.size(),
+        selected,
+        false,
+    ) {
+        clear_restore_token(&token_key);
+        bail!(
+            "The display picked in the screen-sharing dialog does not match the requested display; please try again and pick the same display"
+        );
+    }
+
+    let (stream_width, stream_height) = portal
+        .stream
+        .size()
+        .filter(|(width, height)| *width > 0 && *height > 0)
+        .ok_or_else(|| anyhow!("Wayland screen capture stream reported no size"))?;
+    let (width, height) = (
+        ensure_even(stream_width as u32),
+        ensure_even(stream_height as u32),
+    );
+    let video_info = VideoInfo::from_raw_ffmpeg(
+        ffmpeg::format::Pixel::RGB24,
+        width,
+        height,
+        WAYLAND_STILL_FPS,
+    );
+
+    let (video_tx, mut video_rx) = mpsc::channel::<FFmpegVideoFrame>(4);
+    let (health_tx, _health_rx) = tokio::sync::mpsc::channel(8);
+    let stop_token = CancellationToken::new();
+    let capture_token = stop_token.clone();
+    let input = WaylandInputConfig {
+        fd: Arc::new(portal.fd),
+        node_id: portal.stream.pipe_wire_node_id(),
+        fps: WAYLAND_STILL_FPS,
+        crop_bounds: None,
+        portal_session: Arc::new(portal.portal_session),
+    };
+    let capture_task = tokio::task::spawn_blocking(move || {
+        capture_wayland(video_info, input, video_tx, capture_token, health_tx)
+    });
+
+    let frame = tokio::time::timeout(
+        Duration::from_secs(WAYLAND_STILL_FRAME_TIMEOUT_SECS),
+        video_rx.next(),
+    )
+    .await
+    .context("Timed out waiting for the first Wayland screen capture frame")?
+    .ok_or_else(|| anyhow!("Wayland screen capture ended before delivering a frame"))?;
+    stop_token.cancel();
+    let _ = capture_task.await;
+
+    still_image_from_frame(frame.inner, width, height)
+}
+
+fn still_image_from_frame(
+    frame: ffmpeg::frame::Video,
+    width: u32,
+    height: u32,
+) -> anyhow::Result<RgbImage> {
+    if frame.format() != ffmpeg::format::Pixel::RGB24
+        || frame.width() != width
+        || frame.height() != height
+    {
+        bail!("Wayland screen capture frame did not match the negotiated RGB frame");
+    }
+    let stride = frame.stride(0);
+    let row_bytes = width as usize * 3;
+    let data = frame.data(0);
+    if stride == row_bytes {
+        RgbImage::from_raw(width, height, data.to_vec())
+            .ok_or_else(|| anyhow!("Wayland screen capture frame buffer was invalid"))
+    } else {
+        let mut packed = Vec::with_capacity(row_bytes * height as usize);
+        for row in data.chunks(stride).take(height as usize) {
+            packed.extend_from_slice(&row[..row_bytes.min(row.len())]);
+        }
+        RgbImage::from_raw(width, height, packed)
+            .ok_or_else(|| anyhow!("Wayland screen capture frame buffer was invalid"))
+    }
 }
 
 pub(crate) fn prefers_wayland_portal() -> bool {

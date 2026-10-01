@@ -840,17 +840,16 @@ async fn capture_screenshot_wayland(target: &ScreenCaptureTarget) -> anyhow::Res
     let display_id = wayland_screenshot_display_id(target)?;
 
     let displays = scap_targets::Display::list();
+    let isolated = matches!(displays.as_slice(), [display] if display.id() == *display_id);
+    if !isolated {
+        return capture_screenshot_wayland_screencast(target, display_id, &displays).await;
+    }
+
     let [display] = displays.as_slice() else {
         return Err(anyhow!(
             "Wayland screenshot portal cannot safely isolate the selected display"
         ));
     };
-
-    if display.id() != *display_id {
-        return Err(anyhow!(
-            "Wayland screenshot portal cannot safely isolate the selected display"
-        ));
-    }
 
     let display_size = display
         .physical_size()
@@ -923,6 +922,35 @@ async fn capture_screenshot_wayland(target: &ScreenCaptureTarget) -> anyhow::Res
     }
 
     match crop {
+        Some((x, y, width, height)) => {
+            Ok(image::imageops::crop_imm(&image, x, y, width, height).to_image())
+        }
+        None => Ok(image),
+    }
+}
+
+/// Multi-display fallback: the Screenshot portal returns the whole desktop and
+/// cannot isolate one output, so capture the target output through a
+/// ScreenCast session, which carries exactly the selected monitor.
+#[cfg(target_os = "linux")]
+async fn capture_screenshot_wayland_screencast(
+    target: &ScreenCaptureTarget,
+    display_id: &scap_targets::DisplayId,
+    displays: &[scap_targets::Display],
+) -> anyhow::Result<RgbImage> {
+    let image = crate::sources::screen_capture::linux::capture_wayland_display_still(display_id)
+        .await
+        .context("Capture selected Wayland display through the screen capture portal")?;
+
+    let ScreenCaptureTarget::Area { .. } = target else {
+        return Ok(image);
+    };
+    let logical_size = displays
+        .iter()
+        .find(|display| display.id() == *display_id)
+        .and_then(|display| display.logical_size())
+        .ok_or_else(|| anyhow!("Selected Wayland display logical size unavailable"))?;
+    match checked_wayland_screenshot_crop(target, image.width(), image.height(), logical_size)? {
         Some((x, y, width, height)) => {
             Ok(image::imageops::crop_imm(&image, x, y, width, height).to_image())
         }

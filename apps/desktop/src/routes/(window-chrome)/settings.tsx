@@ -1,5 +1,9 @@
-import { Button } from "@cap/ui-solid";
-import { A, type RouteSectionProps, useNavigate } from "@solidjs/router";
+import {
+	A,
+	type RouteSectionProps,
+	useLocation,
+	useNavigate,
+} from "@solidjs/router";
 import { createQuery, useQueryClient } from "@tanstack/solid-query";
 import { getVersion } from "@tauri-apps/api/app";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
@@ -18,9 +22,8 @@ import {
 	Suspense,
 } from "solid-js";
 import toast from "solid-toast";
+import scrinxLogo from "~/assets/logo/scrinx_logo.svg";
 import { CapErrorBoundary } from "~/components/CapErrorBoundary";
-import { SignInButton } from "~/components/SignInButton";
-
 import { authStore, userProfileStore } from "~/store";
 import { resetUser, trackEvent } from "~/utils/analytics";
 import { createSignInMutation } from "~/utils/auth";
@@ -30,10 +33,8 @@ import {
 	getConfiguredServerUrl,
 	protectedHeaders,
 } from "~/utils/web-api";
+import IconLucideHeart from "~icons/lucide/heart";
 import IconLucideSlidersHorizontal from "~icons/lucide/sliders-horizontal";
-import IconLucideTerminal from "~icons/lucide/terminal";
-import IconLucideUserRound from "~icons/lucide/user-round";
-import IconLucideZap from "~icons/lucide/zap";
 
 const USER_PROFILE_CACHE_GC_MS = 2 * 60 * 60 * 1000;
 const USER_PROFILE_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
@@ -139,7 +140,7 @@ export default function Settings(props: RouteSectionProps) {
 	const signIn = createSignInMutation();
 	const [auth, setAuth] =
 		createSignal<Awaited<ReturnType<typeof authStore.get>>>();
-	const [authLoaded, setAuthLoaded] = createSignal(false);
+	const [_authLoaded, setAuthLoaded] = createSignal(false);
 	const [version, setVersion] = createSignal<string | null>(null);
 	const [isCheckingForUpdates, setIsCheckingForUpdates] = createSignal(false);
 	const [failedProfileImageUrl, setFailedProfileImageUrl] = createSignal<
@@ -212,11 +213,6 @@ export default function Settings(props: RouteSectionProps) {
 			icon: IconCapHotkeys,
 		},
 		{
-			href: "cli",
-			name: "CLI",
-			icon: IconLucideTerminal,
-		},
-		{
 			href: "recordings",
 			name: "Recordings",
 			icon: IconLucideSquarePlay,
@@ -225,11 +221,6 @@ export default function Settings(props: RouteSectionProps) {
 			href: "screenshots",
 			name: "Screenshots",
 			icon: IconLucideImage,
-		},
-		{
-			href: "automations",
-			name: "Automations",
-			icon: IconLucideZap,
 		},
 		{
 			href: "transcription",
@@ -241,13 +232,10 @@ export default function Settings(props: RouteSectionProps) {
 			name: "Experimental",
 			icon: IconCapSettings,
 		},
-		{
-			href: "feedback",
-			name: "Feedback",
-			icon: IconLucideMessageSquarePlus,
-		},
+		{ href: "about", name: "About", icon: IconLucideHeart },
 	];
-	const accountName = createMemo(() => {
+	const location = useLocation();
+	const _accountName = createMemo(() => {
 		if (!auth()) return "Click to sign in";
 		if (!userProfile.isSuccess) return "Signed in";
 
@@ -267,13 +255,13 @@ export default function Settings(props: RouteSectionProps) {
 
 		return imageUrl || null;
 	});
-	const accountImageUrl = createMemo(() => profileImageObjectUrl());
+	const _accountImageUrl = createMemo(() => profileImageObjectUrl());
 	const openDashboard = () => {
 		void getConfiguredServerUrl().then((serverUrl) =>
 			shell.open(new URL("/dashboard", serverUrl).toString()),
 		);
 	};
-	const handleProfileClick = () => {
+	const _handleProfileClick = () => {
 		if (auth()) {
 			openDashboard();
 			return;
@@ -393,7 +381,7 @@ export default function Settings(props: RouteSectionProps) {
 		stopAuthListening?.();
 	});
 
-	const handleAuth = async () => {
+	const _handleAuth = async () => {
 		if (auth()) {
 			trackEvent("user_signed_out", { platform: "desktop" });
 			await clearLocalAuth();
@@ -454,51 +442,25 @@ export default function Settings(props: RouteSectionProps) {
 				data-tauri-drag-region
 			>
 				<div class="cap-settings-window-spacer" data-tauri-drag-region />
-				<button
-					type="button"
-					class="cap-settings-profile flex h-11 gap-2 items-center mx-2 mt-2 mb-3 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-gray-3"
-					data-tauri-drag-region="false"
-					onClick={handleProfileClick}
-				>
-					<Show
-						when={accountImageUrl()}
-						fallback={
-							<div class="cap-settings-profile-icon flex justify-center items-center size-8 shrink-0 rounded-full bg-gray-3 text-gray-11">
-								<IconLucideUserRound class="size-4" aria-hidden="true" />
-							</div>
-						}
-					>
-						{(imageUrl) => (
-							<img
-								class="cap-settings-profile-image size-8 shrink-0 rounded-full object-cover bg-gray-3"
-								src={imageUrl()}
-								alt=""
-								draggable={false}
-								onError={() => {
-									const remoteUrl = accountRemoteImageUrl();
-									if (remoteUrl) handleProfileImageError(remoteUrl);
-									setProfileImageObjectUrl(null);
-								}}
-							/>
-						)}
-					</Show>
-					<div class="cap-settings-profile-copy flex h-8 flex-col flex-1 justify-center gap-0.5 min-w-0">
-						<p class="h-[15px] truncate text-[13px] leading-[15px] text-gray-12">
-							{accountName()}
-						</p>
-						<p class="h-[13px] truncate text-[11px] leading-[13px] text-gray-10">
-							Account
-						</p>
+				<div class="mx-2 mt-2 mb-3 flex h-11 items-center gap-2 rounded-lg bg-gray-3/60 px-3 text-gray-11">
+					<img
+						src={scrinxLogo}
+						alt=""
+						class="size-5 rounded-md"
+						draggable={false}
+					/>
+					<div class="min-w-0">
+						<p class="truncate text-[13px] text-gray-12">Scrinx</p>
+						<p class="text-[11px]">Desktop recording studio</p>
 					</div>
-				</button>
+				</div>
 				<ul class="cap-settings-nav min-w-48 h-full p-2.5 space-y-1 text-gray-12">
 					<For each={settingsItems}>
 						{(item) => (
 							<li>
 								<A
 									href={item.href}
-									activeClass="bg-gray-5 pointer-events-none"
-									class="cap-settings-nav-item rounded-lg h-8 hover:bg-gray-3 text-[13px] px-2 flex flex-row items-center gap-1.5 transition-colors"
+									class={`cap-settings-nav-item rounded-lg h-8 hover:bg-gray-3 text-[13px] px-2 flex flex-row items-center gap-1.5 transition-colors ${location.pathname.endsWith(`/${item.href}`) || (item.href === "general" && (location.pathname.endsWith("/settings") || location.pathname.endsWith("/settings/"))) ? "bg-gray-5 pointer-events-none" : ""}`}
 								>
 									<item.icon class="opacity-60 size-4" aria-hidden="true" />
 									<span>{item.name}</span>
@@ -544,23 +506,9 @@ export default function Settings(props: RouteSectionProps) {
 							</div>
 						)}
 					</Show>
-					<Show
-						when={authLoaded()}
-						fallback={
-							<div class="h-9 w-full rounded-lg bg-gray-4 animate-pulse" />
-						}
-					>
-						{auth() ? (
-							<Button onClick={handleAuth} variant="gray" class="w-full">
-								Sign Out
-							</Button>
-						) : (
-							<SignInButton>Sign In</SignInButton>
-						)}
-					</Show>
 				</div>
 			</div>
-			<div class="cap-settings-content overflow-y-hidden flex-1 min-w-0">
+			<div class="cap-settings-content overflow-y-auto flex-1 min-w-0">
 				<CapErrorBoundary>
 					<Suspense fallback={<SettingsContentSkeleton />}>
 						{props.children}

@@ -47,30 +47,22 @@ export interface ControlDockProps {
 
 export const ControlDock: Component<ControlDockProps> = (props) => {
 	return (
-		<div class="flex flex-col w-full select-none bg-transparent">
-			<div
-				class="flex items-center justify-center w-full h-5 cursor-grab active:cursor-grabbing bg-transparent"
-				data-tauri-drag-region
-				title="Drag Scrinx"
-			>
+		<div class="flex w-full select-none bg-transparent p-1">
+			<div class="flex items-center gap-1 px-1.5 py-1 mx-auto w-fit max-w-full rounded-xl bg-card shadow-[0_2px_5px_rgba(0,0,0,0.16)]">
 				<div
-					class="flex items-center justify-center px-4 py-0.5 rounded-full hover:bg-gray-4/40 transition-colors"
+					class="flex h-10 w-4 shrink-0 items-center justify-center cursor-grab active:cursor-grabbing text-gray-9 hover:text-gray-12"
 					data-tauri-drag-region
+					title="Drag Scrinx"
+					aria-label="Move Scrinx panel"
 				>
-					<IconLucideGripHorizontal
-						class="size-3.5 text-gray-10 hover:text-gray-12"
-						data-tauri-drag-region
-					/>
+					<IconLucideGripHorizontal class="size-3 rotate-90 pointer-events-none" />
 				</div>
-			</div>
-
-			<div class="flex items-center justify-between gap-1.5 px-3 py-2 mx-auto w-fit max-w-full rounded-2xl border border-border bg-card/95 backdrop-blur-md shadow-lg">
 				<div class="flex items-center gap-1.5 shrink-0">
 					<img
 						src={scrinxLogo}
 						alt="Scrinx"
 						title="Scrinx Linux Studio"
-						class="size-8 rounded-xl shrink-0"
+						class="size-6 rounded-md shrink-0"
 						draggable={false}
 					/>
 
@@ -81,7 +73,7 @@ export const ControlDock: Component<ControlDockProps> = (props) => {
 								disabled={props.isRecording}
 								onClick={() => props.onModeChange("studio")}
 								class={cx(
-									"flex items-center justify-center size-7 rounded-lg transition-all shrink-0",
+									"flex items-center justify-center size-6 rounded-md transition-all shrink-0",
 									props.mode === "studio"
 										? "bg-primary text-primary-foreground font-semibold shadow-xs"
 										: "text-gray-11 hover:text-gray-12 hover:bg-gray-4/50",
@@ -98,7 +90,7 @@ export const ControlDock: Component<ControlDockProps> = (props) => {
 								disabled={props.isRecording}
 								onClick={() => props.onModeChange("screenshot")}
 								class={cx(
-									"flex items-center justify-center size-7 rounded-lg transition-all shrink-0",
+									"flex items-center justify-center size-6 rounded-md transition-all shrink-0",
 									props.mode === "screenshot"
 										? "bg-primary text-primary-foreground font-semibold shadow-xs"
 										: "text-gray-11 hover:text-gray-12 hover:bg-gray-4/50",
@@ -111,7 +103,7 @@ export const ControlDock: Component<ControlDockProps> = (props) => {
 					</div>
 				</div>
 
-				<div class="h-6 w-px bg-gray-6/60 shrink-0" />
+				<div class="h-5 w-px bg-gray-6/60 shrink-0" />
 
 				<div class="flex items-center gap-1 shrink-0">
 					<div
@@ -126,7 +118,7 @@ export const ControlDock: Component<ControlDockProps> = (props) => {
 							type="button"
 							disabled={props.isRecording}
 							onClick={() => props.onSelectTarget("display")}
-							class="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium focus:outline-hidden whitespace-nowrap"
+							class="flex items-center gap-1 px-2 py-1 text-xs font-medium focus:outline-hidden whitespace-nowrap"
 							title={
 								props.mode === "studio"
 									? "Record Display"
@@ -142,7 +134,7 @@ export const ControlDock: Component<ControlDockProps> = (props) => {
 							onClick={props.onOpenDisplayMenu}
 							aria-label="Choose Display"
 							class={cx(
-								"flex items-center justify-center px-1.5 py-2 border-l border-gray-5/50 text-gray-10 hover:text-gray-12 hover:bg-gray-5/40 rounded-r-xl shrink-0",
+								"flex items-center justify-center px-1 py-1.5 border-l border-gray-5/50 text-gray-10 hover:text-gray-12 hover:bg-gray-5/40 rounded-r-lg shrink-0",
 								props.displayMenuOpen && "bg-gray-5/60 text-primary",
 							)}
 						>
@@ -162,7 +154,7 @@ export const ControlDock: Component<ControlDockProps> = (props) => {
 							type="button"
 							disabled={props.isRecording}
 							onClick={() => props.onSelectTarget("window")}
-							class="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium focus:outline-hidden whitespace-nowrap"
+							class="flex items-center gap-1 px-2 py-1 text-xs font-medium focus:outline-hidden whitespace-nowrap"
 							title={
 								props.mode === "studio"
 									? "Record Window"
@@ -178,7 +170,7 @@ export const ControlDock: Component<ControlDockProps> = (props) => {
 							onClick={props.onOpenWindowMenu}
 							aria-label="Choose Window"
 							class={cx(
-								"flex items-center justify-center px-1.5 py-2 border-l border-gray-5/50 text-gray-10 hover:text-gray-12 hover:bg-gray-5/40 rounded-r-xl shrink-0",
+								"flex items-center justify-center px-1 py-1.5 border-l border-gray-5/50 text-gray-10 hover:text-gray-12 hover:bg-gray-5/40 rounded-r-lg shrink-0",
 								props.windowMenuOpen && "bg-gray-5/60 text-primary",
 							)}
 						>
@@ -191,7 +183,7 @@ export const ControlDock: Component<ControlDockProps> = (props) => {
 						disabled={props.isRecording}
 						onClick={() => props.onSelectTarget("area")}
 						class={cx(
-							"flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-medium transition-all focus:outline-hidden shrink-0 whitespace-nowrap",
+							"flex items-center gap-1 px-2 py-1 rounded-lg border text-xs font-medium transition-all focus:outline-hidden shrink-0 whitespace-nowrap",
 							props.targetMode === "area"
 								? "border-primary/60 bg-primary/15 text-primary"
 								: "border-gray-5/60 bg-gray-3/40 text-gray-12 hover:border-gray-7 hover:bg-gray-4/50",
@@ -207,7 +199,7 @@ export const ControlDock: Component<ControlDockProps> = (props) => {
 					</button>
 				</div>
 
-				<div class="h-6 w-px bg-gray-6/60 shrink-0" />
+				<div class="h-5 w-px bg-gray-6/60 shrink-0" />
 
 				<div class="flex items-center gap-1 shrink-0">
 					<Tooltip content={<span>Camera & Audio Devices</span>}>
@@ -215,7 +207,7 @@ export const ControlDock: Component<ControlDockProps> = (props) => {
 							type="button"
 							onClick={props.onToggleDevices}
 							class={cx(
-								"relative flex items-center justify-center size-8 rounded-xl border transition-all shrink-0",
+								"relative flex items-center justify-center size-7 rounded-lg border transition-all shrink-0",
 								props.devicesOpen
 									? "border-primary/60 bg-primary/15 text-primary"
 									: "border-gray-5/60 bg-gray-3/40 text-gray-11 hover:text-gray-12 hover:bg-gray-4/50",
@@ -239,7 +231,7 @@ export const ControlDock: Component<ControlDockProps> = (props) => {
 						<button
 							type="button"
 							onClick={props.onOpenTeleprompter}
-							class="flex items-center justify-center size-8 rounded-xl border border-gray-5/60 bg-gray-3/40 text-gray-11 hover:text-gray-12 hover:bg-gray-4/50 transition-all shrink-0"
+							class="flex items-center justify-center size-7 rounded-lg border border-gray-5/60 bg-gray-3/40 text-gray-11 hover:text-gray-12 hover:bg-gray-4/50 transition-all shrink-0"
 							aria-label="Open Teleprompter"
 						>
 							<IconLucideScanText class="size-3.5" />
@@ -255,7 +247,7 @@ export const ControlDock: Component<ControlDockProps> = (props) => {
 									: props.onOpenRecordings
 							}
 							class={cx(
-								"flex items-center justify-center size-8 rounded-xl border transition-all shrink-0",
+								"flex items-center justify-center size-7 rounded-lg border transition-all shrink-0",
 								props.recordingsOpen || props.screenshotsOpen
 									? "border-primary/60 bg-primary/15 text-primary"
 									: "border-gray-5/60 bg-gray-3/40 text-gray-11 hover:text-gray-12 hover:bg-gray-4/50",
@@ -268,7 +260,7 @@ export const ControlDock: Component<ControlDockProps> = (props) => {
 
 					<Popover placement="bottom-end">
 						<Popover.Trigger
-							class="flex items-center justify-center size-8 rounded-xl border border-gray-5/60 bg-gray-3/40 text-gray-11 hover:text-gray-12 hover:bg-gray-4/50 transition-all focus:outline-hidden shrink-0"
+							class="flex items-center justify-center size-7 rounded-lg border border-gray-5/60 bg-gray-3/40 text-gray-11 hover:text-gray-12 hover:bg-gray-4/50 transition-all focus:outline-hidden shrink-0"
 							aria-label="More options"
 						>
 							<IconLucideMoreHorizontal class="size-3.5" />
@@ -307,7 +299,7 @@ export const ControlDock: Component<ControlDockProps> = (props) => {
 						<button
 							type="button"
 							onClick={props.onHide}
-							class="flex items-center justify-center size-8 rounded-xl border border-gray-5/60 bg-gray-3/40 text-gray-11 hover:text-secondary hover:border-secondary/40 hover:bg-secondary/10 transition-all shrink-0"
+							class="flex items-center justify-center size-7 rounded-lg border border-gray-5/60 bg-gray-3/40 text-gray-11 hover:text-secondary hover:border-secondary/40 hover:bg-secondary/10 transition-all shrink-0"
 							aria-label="Hide panel"
 						>
 							<IconLucideX class="size-3.5" />
