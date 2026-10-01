@@ -13,7 +13,9 @@ const STOP_PREFIX: &str = "Export stopped to protect your computer: ";
 enum MemoryPressure {
     #[default]
     Unknown,
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
     Normal,
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
     Warning,
     Critical,
 }

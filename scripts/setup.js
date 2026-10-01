@@ -42,7 +42,6 @@ async function main() {
 		buildConfig["rustc-wrapper"] = `"${sccachePath.replaceAll("\\", "/")}"`;
 		console.log(`Using sccache at ${sccachePath}`);
 	} else if (!sccachePath)
-
 		console.log("sccache not found, using rustc directly");
 	else if (!useSccache)
 		console.log(
@@ -334,7 +333,9 @@ async function main() {
 				path.relative(__root, onnxRuntimePath),
 			)}" }\n`;
 			buildConfig.target = `"${triple}"`;
-			const ldWrapperPath = cargoConfigPath(path.join(__root, "scripts", "ld-wrapper.sh"));
+			const ldWrapperPath = cargoConfigPath(
+				path.join(__root, "scripts", "ld-wrapper.sh"),
+			);
 			cargoConfigContents += `\n[target.${triple}]\nlinker = "${ldWrapperPath}"\nrustflags = ["-C", "link-arg=-Wl,-rpath,$ORIGIN", "-C", "link-arg=-Wl,-rpath,$ORIGIN/../lib/scrinx"]\n`;
 		} else {
 			const onnxRuntimePath = await setupLinuxOnnxRuntime();
@@ -346,7 +347,9 @@ async function main() {
 
 	let buildTable = "";
 	if (Object.keys(buildConfig).length > 0) {
-		buildTable = `\n[build]\n${Object.entries(buildConfig).map(([k, v]) => `${k} = ${v}`).join("\n")}\n`;
+		buildTable = `\n[build]\n${Object.entries(buildConfig)
+			.map(([k, v]) => `${k} = ${v}`)
+			.join("\n")}\n`;
 	}
 
 	await fs.mkdir(path.join(__root, ".cargo"), { recursive: true });

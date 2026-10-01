@@ -85,7 +85,7 @@ jobs:
       - uses: ./.github/actions/setup-js
 
       - name: Test workspace tooling
-        run: node --test scripts/bun-scripts.test.mjs scripts/check-tauri-plugin-versions.test.mjs
+        run: node --test scripts/check-tauri-plugin-versions.test.mjs scripts/package-desktop-release.test.mjs
 
       - name: Build and typecheck web app
         run: bun run --cwd apps/web build
@@ -129,16 +129,17 @@ jobs:
       fail-fast: false
       matrix:
         settings:
-          - target: aarch64-apple-darwin
-            runner: macos-latest
-          - target: x86_64-pc-windows-msvc
-            runner: windows-2022
+          - target: x86_64-unknown-linux-gnu
+            runner: ubuntu-24.04
     runs-on: ${{ matrix.settings.runner }}
     permissions:
       contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Install Linux desktop dependencies
+        uses: ./.github/actions/install-desktop-deps
 
       - name: Rust setup
         uses: dtolnay/rust-toolchain@1.88.0
@@ -149,6 +150,8 @@ jobs:
       - uses: ./.github/actions/setup-rust-cache
         with:
           target: ${{ matrix.settings.target }}
+
+      - uses: ./.github/actions/setup-js
 
       - name: Create .env file in root
         run: |
@@ -164,7 +167,9 @@ jobs:
 
       - name: Run setup
         shell: bash
-        run: node scripts/setup.js
+        run: bun run cap-setup
+        env:
+          RUST_TARGET_TRIPLE: ${{ matrix.settings.target }}
 
       - name: Test desktop installation and storage helpers
         shell: bash
@@ -190,7 +195,7 @@ jobs:
           version: 2.2.0
 
       - name: Run Biome
-        run: biome ci . || true
+        run: biome ci .
 
   build-desktop:
     name: Build Desktop
@@ -200,10 +205,6 @@ jobs:
       fail-fast: false
       matrix:
         settings:
-          - target: aarch64-apple-darwin
-            runner: macos-latest
-          - target: x86_64-pc-windows-msvc
-            runner: windows-2022
           - target: x86_64-unknown-linux-gnu
             runner: ubuntu-24.04
     runs-on: ${{ matrix.settings.runner }}
@@ -218,7 +219,6 @@ jobs:
         run: node --test scripts/prepare-gpui-dependency.test.mjs scripts/build-macos-packages.test.mjs
 
       - name: Install Linux desktop dependencies
-        if: ${{ runner.os == 'Linux' }}
         uses: ./.github/actions/install-desktop-deps
 
       - name: Rust setup
@@ -245,9 +245,6 @@ jobs:
       - name: Copy .env to apps/desktop
         run: cp .env apps/desktop/.env
 
-      - name: Output .env file
-        run: cat apps/desktop/.env
-
       - name: Run cap-setup
         shell: bash
         run: bun run cap-setup
@@ -259,7 +256,6 @@ jobs:
         run: ./scripts/build-desktop-binaries.sh ${{ matrix.settings.target }}
 
       - name: Test Linux desktop regressions
-        if: ${{ runner.os == 'Linux' }}
         shell: bash
         run: |
           node --test scripts/linux-bundle-config.test.mjs scripts/finalize-linux-appimage.test.mjs
@@ -278,27 +274,15 @@ jobs:
       - name: Test GPUI desktop
         shell: bash
         run: |
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            export PATH="$(cygpath "$GITHUB_WORKSPACE/target/debug"):$PATH"
-          elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            frameworks="$GITHUB_WORKSPACE/apps/desktop-gpui/target/${{ matrix.settings.target }}/debug/Frameworks"
-            mkdir -p "$frameworks"
-            ln -sfn "$GITHUB_WORKSPACE/target/Frameworks/Spacedrive.framework" "$frameworks/Spacedrive.framework"
-          elif [[ "$RUNNER_OS" == "Linux" ]]; then
-            export LD_LIBRARY_PATH="$GITHUB_WORKSPACE/target/native-deps/lib:$GITHUB_WORKSPACE/target/debug:$GITHUB_WORKSPACE/target/${{ matrix.settings.target }}/debug${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-          fi
-          if [[ "$RUNNER_OS" == "Linux" ]]; then
-            xvfb-run -a --server-args="-screen 0 1920x1080x24 -noreset" \
-              cargo +1.95.0 test --manifest-path apps/desktop-gpui/Cargo.toml --locked --target ${{ matrix.settings.target }} --bin cap-gpui
-          else
-            cargo +1.95.0 test --manifest-path apps/desktop-gpui/Cargo.toml --locked --target ${{ matrix.settings.target }} --bin cap-gpui
-          fi
+          export LD_LIBRARY_PATH="$GITHUB_WORKSPACE/target/native-deps/lib:$GITHUB_WORKSPACE/target/debug:$GITHUB_WORKSPACE/target/${{ matrix.settings.target }}/debug${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          xvfb-run -a --server-args="-screen 0 1920x1080x24 -noreset" \
+            cargo test --manifest-path apps/desktop-gpui/Cargo.toml --locked --target ${{ matrix.settings.target }} --bin cap-gpui
 
       - name: Build app
         working-directory: apps/desktop
         run: bun run tauri build --debug --target ${{ matrix.settings.target }} --no-bundle
         env:
-          LD_LIBRARY_PATH: ${{ runner.os == 'Linux' && format('{0}/target/native-deps/lib:{0}/target/debug:{0}/target/{1}/debug', github.workspace, matrix.settings.target) || '' }}
+          LD_LIBRARY_PATH: ${{ format('{0}/target/native-deps/lib:{0}/target/debug:{0}/target/{1}/debug', github.workspace, matrix.settings.target) }}
           RUST_TARGET_TRIPLE: ${{ matrix.settings.target }}
 
   tauri-plugins:
@@ -324,18 +308,17 @@ jobs:
       fail-fast: false
       matrix:
         settings:
-          - target: x86_64-apple-darwin
-            runner: macos-latest
-          - target: aarch64-apple-darwin
-            runner: macos-latest
-          - target: x86_64-pc-windows-msvc
-            runner: windows-2022
+          - target: x86_64-unknown-linux-gnu
+            runner: ubuntu-24.04
     runs-on: ${{ matrix.settings.runner }}
     env:
       RUST_TARGET_TRIPLE: ${{ matrix.settings.target }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install Linux desktop dependencies
+        uses: ./.github/actions/install-desktop-deps
 
       - name: Rust setup
         uses: dtolnay/rust-toolchain@1.88.0
@@ -348,12 +331,11 @@ jobs:
           target: ${{ matrix.settings.target }}
           save-cache: true
 
-      - name: Setup node
-        uses: actions/setup-node@v3
-        with:
-          node-version: 24
+      - uses: ./.github/actions/setup-js
 
-      - run: node scripts/setup.js
+      - run: bun run cap-setup
+        env:
+          RUST_TARGET_TRIPLE: ${{ matrix.settings.target }}
 
       - name: Build desktop binaries
         shell: bash
@@ -366,5 +348,4 @@ jobs:
         run: cargo check --all --release --target ${{ matrix.settings.target }}
 
       - name: Run Clippy
-        if: ${{ matrix.settings.target == 'aarch64-apple-darwin' || matrix.settings.target == 'x86_64-pc-windows-msvc' }}
         run: cargo clippy --workspace --all-features --locked --target ${{ matrix.settings.target }} -- -D warnings

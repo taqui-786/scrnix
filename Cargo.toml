@@ -77,8 +77,8 @@ windows-capture = "1.5.0"
 percent-encoding = "2.3.1"
 sysinfo = "0.32"
 
-# TODO: Reenable these: https://github.com/CapSoftware/Cap/issues/859
 [workspace.lints.rust]
+dead_code = "allow"
 deprecated = "allow"
 unexpected_cfgs = "allow"
 unused_must_use = "deny"

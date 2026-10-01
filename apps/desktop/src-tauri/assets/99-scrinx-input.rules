@@ -1,0 +1,1 @@
+KERNEL=="mice", MODE="0660", TAG+="uaccess"

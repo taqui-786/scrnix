@@ -113,7 +113,8 @@
 					"/usr/share/icons/hicolor/scalable/status/com.scrinx.desktop-tray-instant-symbolic.svg": "icons/linux/so.cap.desktop-tray-instant-symbolic.svg",
 					"/usr/share/icons/hicolor/scalable/status/com.scrinx.desktop-tray-screenshot-symbolic.svg": "icons/linux/so.cap.desktop-tray-screenshot-symbolic.svg",
 					"/usr/share/icons/hicolor/scalable/status/com.scrinx.desktop-tray-studio-symbolic.svg": "icons/linux/so.cap.desktop-tray-studio-symbolic.svg",
-					"/usr/share/icons/hicolor/scalable/status/com.scrinx.desktop-tray-stop-symbolic.svg": "icons/linux/so.cap.desktop-tray-stop-symbolic.svg"
+					"/usr/share/icons/hicolor/scalable/status/com.scrinx.desktop-tray-stop-symbolic.svg": "icons/linux/so.cap.desktop-tray-stop-symbolic.svg",
+					"/lib/udev/rules.d/99-scrinx-input.rules": "assets/99-scrinx-input.rules"
 				}
 			}
 		},

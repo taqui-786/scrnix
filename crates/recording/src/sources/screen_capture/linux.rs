@@ -15,6 +15,7 @@ use cap_timestamp::Timestamp;
 use futures::{Stream, StreamExt, channel::mpsc};
 use image::RgbImage;
 use kameo::{Actor as _, actor::ActorRef};
+use libspa_sys as spa_sys;
 use pipewire as pw;
 use pw::{properties::properties, spa};
 use std::{
@@ -106,9 +107,9 @@ impl Drop for WaylandPortalSession {
     fn drop(&mut self) {
         if let Some(session) = self.session.take() {
             if let Ok(handle) = tokio::runtime::Handle::try_current() {
-                let _ = handle.spawn(async move {
+                drop(handle.spawn(async move {
                     let _ = session.close().await;
-                });
+                }));
             } else {
                 let _ = std::thread::spawn(move || {
                     let _ = tokio::runtime::Builder::new_current_thread()
@@ -517,7 +518,7 @@ async fn open_wayland_portal(
     let cursor_mode = if show_cursor {
         CursorMode::Embedded
     } else {
-        CursorMode::Hidden
+        CursorMode::Metadata
     };
 
     let token_key = wayland_restore_token_key(source, display_id);
@@ -833,8 +834,13 @@ fn capture_wayland(
         .context("register PipeWire stream listener")?;
 
     let param_bytes = pipewire_format_param(input.fps)?;
-    let mut params = [spa::pod::Pod::from_bytes(&param_bytes)
-        .ok_or_else(|| anyhow!("create PipeWire format parameter"))?];
+    let cursor_meta_bytes = pipewire_cursor_meta_param()?;
+    let mut params = [
+        spa::pod::Pod::from_bytes(&param_bytes)
+            .ok_or_else(|| anyhow!("create PipeWire format parameter"))?,
+        spa::pod::Pod::from_bytes(&cursor_meta_bytes)
+            .ok_or_else(|| anyhow!("create PipeWire cursor meta parameter"))?,
+    ];
 
     stream
         .connect(
@@ -922,6 +928,29 @@ fn process_pipewire_frame(
     let Some(mut buffer) = stream.dequeue_buffer() else {
         return Ok(None);
     };
+    if let Some(cursor_meta) = buffer.find_meta::<spa::buffer::meta::MetaCursor>() {
+        if cursor_meta.is_valid() {
+            let pos = cursor_meta.position();
+            let size = state.format.size();
+            let sw = if size.width > 0 {
+                size.width as usize
+            } else {
+                state.video_info.width as usize
+            };
+            let sh = if size.height > 0 {
+                size.height as usize
+            } else {
+                state.video_info.height as usize
+            };
+            if let Ok((crop_x, crop_y, crop_w, crop_h)) = pipewire_crop(sw, sh, state.crop_bounds) {
+                if crop_w > 0 && crop_h > 0 {
+                    let norm_x = (pos.x as f64 - crop_x as f64) / (crop_w as f64);
+                    let norm_y = (pos.y as f64 - crop_y as f64) / (crop_h as f64);
+                    crate::cursor::update_wayland_cursor(norm_x, norm_y);
+                }
+            }
+        }
+    }
     let datas = buffer.datas_mut();
     if datas.is_empty() {
         return Ok(None);
@@ -1189,6 +1218,35 @@ fn pipewire_format_param(fps: u32) -> anyhow::Result<Vec<u8>> {
         &spa::pod::Value::Object(obj),
     )
     .map_err(|error| anyhow!("serialize PipeWire format parameter: {error:?}"))?
+    .0
+    .into_inner())
+}
+
+fn pipewire_cursor_meta_param() -> anyhow::Result<Vec<u8>> {
+    let obj = spa::pod::Object {
+        type_: spa_sys::SPA_TYPE_OBJECT_ParamMeta,
+        id: spa_sys::SPA_PARAM_Meta,
+        properties: vec![
+            spa::pod::Property::new(
+                spa_sys::SPA_PARAM_META_type,
+                spa::pod::Value::Id(spa::utils::Id(spa_sys::SPA_META_Cursor)),
+            ),
+            spa::pod::Property::new(
+                spa_sys::SPA_PARAM_META_size,
+                spa::pod::Value::Int(
+                    (std::mem::size_of::<spa_sys::spa_meta_cursor>()
+                        + std::mem::size_of::<spa_sys::spa_meta_bitmap>()
+                        + 256 * 256 * 4) as i32,
+                ),
+            ),
+        ],
+    };
+
+    Ok(spa::pod::serialize::PodSerializer::serialize(
+        std::io::Cursor::new(Vec::new()),
+        &spa::pod::Value::Object(obj),
+    )
+    .map_err(|error| anyhow!("serialize PipeWire cursor meta parameter: {error:?}"))?
     .0
     .into_inner())
 }
@@ -3291,5 +3349,13 @@ mod pipewire_frame_tests {
         assert_eq!(prepared.format(), ffmpeg::format::Pixel::BGRZ);
         assert_eq!((prepared.width(), prepared.height()), (8, 6));
         assert!(scaler.is_some());
+    }
+
+    #[test]
+    fn pipewire_cursor_meta_param_serializes_valid_pod() {
+        let bytes = super::pipewire_cursor_meta_param().unwrap();
+        assert!(!bytes.is_empty());
+        let pod = super::spa::pod::Pod::from_bytes(&bytes);
+        assert!(pod.is_some());
     }
 }

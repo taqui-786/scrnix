@@ -54,7 +54,8 @@ export function createLinuxBundleConfig(
 							"../../../target/native-deps/cap-appimage-libs/libasound_module_pcm_pulse.so",
 						"/usr/lib/scrinx/alsa-pulse.conf":
 							"../../../packaging/linux/alsa-pulse.conf",
-						"/usr/lib/scrinx/package-format": "../../../packaging/linux/appimage",
+						"/usr/lib/scrinx/package-format":
+							"../../../packaging/linux/appimage",
 					},
 				},
 			},

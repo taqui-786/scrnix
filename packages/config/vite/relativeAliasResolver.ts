@@ -13,24 +13,26 @@ const resolver: Alias = {
 		const [_, sourcePath] = source.split("~/");
 
 		if (importer?.includes("/src/")) {
-			const [pkg] = importer?.split("/src/");
-
-			root = `${pkg!}/src`;
-		} else {
-			let parent = importer!;
+			const [pkg] = importer.split("/src/");
+			root = `${pkg}/src`;
+		} else if (importer) {
+			let parent = importer;
 
 			while (parent !== "/") {
 				parent = path.dirname(parent);
 
 				let hasPkgJson = pkgJsonCache.get(parent);
 
-				if (hasPkgJson === undefined)
+				if (hasPkgJson === undefined) {
 					try {
 						await fs.stat(`${parent}/package.json`);
-						pkgJsonCache.set(parent, (hasPkgJson = true));
+						hasPkgJson = true;
+						pkgJsonCache.set(parent, true);
 					} catch {
-						pkgJsonCache.set(parent, (hasPkgJson = false));
+						hasPkgJson = false;
+						pkgJsonCache.set(parent, false);
 					}
+				}
 
 				if (hasPkgJson) {
 					root = parent;
@@ -48,9 +50,11 @@ const resolver: Alias = {
 
 		const folderItems = await fs.readdir(path.join(absolutePath, "../"));
 
-		const item = folderItems.find((i) =>
-			i.startsWith(sourcePath.split("/").at(-1)!),
-		)!;
+		const segment = sourcePath.split("/").at(-1) ?? "";
+		const item = folderItems.find((i) => i.startsWith(segment));
+		if (!item) {
+			throw new Error(`Could not find matching file for ${sourcePath}`);
+		}
 
 		const fullPath = absolutePath + path.extname(item);
 

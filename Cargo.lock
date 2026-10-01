@@ -1948,6 +1948,8 @@ dependencies = [
  "kameo",
  "libc",
  "libproc",
+ "libspa",
+ "libspa-sys",
  "objc",
  "objc2 0.6.2",
  "objc2-app-kit 0.3.1",

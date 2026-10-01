@@ -130,6 +130,34 @@ mod window_cursor_tests {
         assert_eq!(normalized_window_cursor(1, 1, 0, 300), None);
         assert_eq!(normalized_window_cursor(1, 1, 600, 0), None);
     }
+
+    #[test]
+    fn wayland_cursor_atomic_store_and_load_roundtrips() {
+        super::update_wayland_cursor(0.25, 0.75);
+        let pos = super::get_wayland_cursor().expect("cursor should be valid");
+        assert!((pos.0 - 0.25).abs() < 1e-5);
+        assert!((pos.1 - 0.75).abs() < 1e-5);
+
+        super::update_wayland_cursor(-0.5, 1.5);
+        let pos = super::get_wayland_cursor().expect("cursor should be valid");
+        assert_eq!(pos.0, 0.0);
+        assert_eq!(pos.1, 1.0);
+    }
+
+    #[test]
+    fn parse_mice_packets_detects_clicks_and_releases() {
+        let mut buttons = [false; 3];
+        let mut events = Vec::new();
+
+        let stream = [0x09, 0x00, 0x00, 0x08, 0x00, 0x00, 0x0a, 0x05, 0xfe];
+
+        super::parse_mice_packets(&stream, &mut buttons, |btn, down| {
+            events.push((btn, down));
+        });
+
+        assert_eq!(events, vec![(0, true), (0, false), (1, true),]);
+        assert_eq!(buttons, [false, true, false]);
+    }
 }
 
 impl CursorActor {
@@ -155,6 +183,101 @@ fn prefers_wayland_portal_cursor() -> bool {
     std::env::var_os("DISPLAY").is_none()
         || std::env::var("XDG_SESSION_TYPE")
             .is_ok_and(|session| session.eq_ignore_ascii_case("wayland"))
+}
+
+#[cfg(target_os = "linux")]
+static WAYLAND_CURSOR: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+#[cfg(target_os = "linux")]
+static WAYLAND_CURSOR_VALID: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
+
+#[cfg(target_os = "linux")]
+pub fn update_wayland_cursor(norm_x: f64, norm_y: f64) {
+    use std::sync::atomic::Ordering;
+    let x_f32 = norm_x.clamp(0.0, 1.0) as f32;
+    let y_f32 = norm_y.clamp(0.0, 1.0) as f32;
+    let packed = ((x_f32.to_bits() as u64) << 32) | (y_f32.to_bits() as u64);
+    WAYLAND_CURSOR.store(packed, Ordering::Relaxed);
+    WAYLAND_CURSOR_VALID.store(true, Ordering::Relaxed);
+}
+
+#[cfg(target_os = "linux")]
+pub fn get_wayland_cursor() -> Option<(f64, f64)> {
+    use std::sync::atomic::Ordering;
+    if !WAYLAND_CURSOR_VALID.load(Ordering::Relaxed) {
+        return None;
+    }
+    let val = WAYLAND_CURSOR.load(Ordering::Relaxed);
+    let x = f32::from_bits((val >> 32) as u32) as f64;
+    let y = f32::from_bits((val & 0xffff_ffff) as u32) as f64;
+    Some((x, y))
+}
+
+#[cfg(target_os = "linux")]
+struct MiceReader {
+    file: Option<std::fs::File>,
+    buttons: [bool; 3],
+}
+
+#[cfg(target_os = "linux")]
+impl MiceReader {
+    fn new() -> Self {
+        use std::os::unix::fs::OpenOptionsExt;
+        let file = std::fs::OpenOptions::new()
+            .read(true)
+            .custom_flags(libc::O_NONBLOCK)
+            .open("/dev/input/mice")
+            .ok();
+        Self {
+            file,
+            buttons: [false; 3],
+        }
+    }
+
+    fn is_available(&self) -> bool {
+        self.file.is_some()
+    }
+
+    fn drain_events<F>(&mut self, mut on_event: F)
+    where
+        F: FnMut(u8, bool),
+    {
+        let Some(file) = &mut self.file else {
+            return;
+        };
+        use std::io::Read;
+        let mut buf = [0u8; 96];
+        while let Ok(n) = file.read(&mut buf) {
+            if n == 0 {
+                break;
+            }
+            parse_mice_packets(&buf[..n], &mut self.buttons, &mut on_event);
+        }
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn parse_mice_packets(bytes: &[u8], buttons: &mut [bool; 3], mut on_event: impl FnMut(u8, bool)) {
+    let mut i = 0;
+    while i + 3 <= bytes.len() {
+        let flags = bytes[i];
+        if (flags & 0x08) != 0 {
+            let new_buttons = [
+                (flags & 0x01) != 0,
+                (flags & 0x02) != 0,
+                (flags & 0x04) != 0,
+            ];
+            for (num, &is_down) in new_buttons.iter().enumerate() {
+                if is_down != buttons[num] {
+                    buttons[num] = is_down;
+                    on_event(num as u8, is_down);
+                }
+            }
+            i += 3;
+        } else {
+            i += 1;
+        }
+    }
 }
 
 fn flush_cursor_data(output_path: &Path, moves: &[CursorMoveEvent], clicks: &[CursorClickEvent]) {
@@ -315,24 +438,6 @@ pub fn spawn_cursor_recorder(
     start_gate: Option<RecordingStartGate>,
     incremental_outputs: IncrementalCaptureOutputs,
 ) -> CursorActor {
-    #[cfg(target_os = "linux")]
-    if prefers_wayland_portal_cursor() {
-        let (tx, rx) = oneshot::channel();
-        let _ = tx.send(CursorActorResponse {
-            cursors: prev_cursors,
-            next_cursor_id,
-            moves: vec![],
-            clicks: vec![],
-            keyboard_presses: vec![],
-        });
-        return CursorActor {
-            stop: None,
-            stop_wakeup: None,
-            thread: None,
-            rx: rx.shared(),
-        };
-    }
-
     use device_query::{DeviceQuery, DeviceState};
     use sha2::{Digest, Sha256};
     use std::time::Duration;
@@ -365,6 +470,10 @@ pub fn spawn_cursor_recorder(
         let mut last_keys: Vec<device_query::Keycode> = device_state.get_keys();
 
         let mut last_position = cap_cursor_capture::RawCursorPosition::get();
+        #[cfg(target_os = "linux")]
+        let mut mice_reader = MiceReader::new();
+        #[cfg(target_os = "linux")]
+        let mut last_wayland_pos = get_wayland_cursor();
 
         std::fs::create_dir_all(&cursors_dir).unwrap();
 
@@ -397,24 +506,48 @@ pub fn spawn_cursor_recorder(
                 last_position = cap_cursor_capture::RawCursorPosition::get();
                 last_mouse_state = device_state.get_mouse();
                 last_keys = device_state.get_keys();
+                #[cfg(target_os = "linux")]
+                {
+                    last_wayland_pos = get_wayland_cursor();
+                }
                 continue;
             };
             let elapsed = epoch.elapsed().as_secs_f64() * 1000.0;
             let mouse_state = device_state.get_mouse();
 
-            let position = cap_cursor_capture::RawCursorPosition::get();
-            // The first sample after the gate opens is always recorded so the
-            // cursor has a known position at the recording's time zero.
-            let position_changed = position != last_position || std::mem::take(&mut awaiting_start);
+            #[cfg(target_os = "linux")]
+            let is_wayland = prefers_wayland_portal_cursor();
+            #[cfg(not(target_os = "linux"))]
+            let is_wayland = false;
 
-            if position_changed {
-                last_position = position;
-            }
+            let position = cap_cursor_capture::RawCursorPosition::get();
+            let mut position_changed = if is_wayland {
+                #[cfg(target_os = "linux")]
+                {
+                    let current_wayland_pos = get_wayland_cursor();
+                    let changed = current_wayland_pos != last_wayland_pos
+                        || std::mem::take(&mut awaiting_start);
+                    if changed {
+                        last_wayland_pos = current_wayland_pos;
+                    }
+                    changed
+                }
+                #[cfg(not(target_os = "linux"))]
+                false
+            } else {
+                let changed = position != last_position || std::mem::take(&mut awaiting_start);
+                if changed {
+                    last_position = position;
+                }
+                changed
+            };
+
             #[cfg(target_os = "linux")]
             let window_position = window_cursor.as_ref().and_then(X11WindowCursor::position);
             #[cfg(target_os = "linux")]
-            let position_changed = position_changed
-                || (target.window.is_some() && window_position != last_window_position);
+            if !is_wayland && target.window.is_some() && window_position != last_window_position {
+                position_changed = true;
+            }
             #[cfg(target_os = "linux")]
             {
                 last_window_position = window_position;
@@ -468,16 +601,26 @@ pub fn spawn_cursor_recorder(
             };
 
             if position_changed {
-                let cropped_norm_pos = position
-                    .relative_to_display(display)
-                    .and_then(|p| p.normalize())
-                    .map(|p| p.with_crop(crop_bounds))
-                    .map(|p| (p.x(), p.y()));
-                #[cfg(target_os = "linux")]
-                let cropped_norm_pos = if target.window.is_some() {
-                    window_position
+                let cropped_norm_pos = if is_wayland {
+                    #[cfg(target_os = "linux")]
+                    {
+                        last_wayland_pos.or(Some((0.5, 0.5)))
+                    }
+                    #[cfg(not(target_os = "linux"))]
+                    None
                 } else {
-                    cropped_norm_pos
+                    let cropped = position
+                        .relative_to_display(display)
+                        .and_then(|p| p.normalize())
+                        .map(|p| p.with_crop(crop_bounds))
+                        .map(|p| (p.x(), p.y()));
+                    #[cfg(target_os = "linux")]
+                    let cropped = if target.window.is_some() {
+                        window_position
+                    } else {
+                        cropped
+                    };
+                    cropped
                 };
 
                 if let Some((x, y)) = cropped_norm_pos {
@@ -492,23 +635,43 @@ pub fn spawn_cursor_recorder(
                 }
             }
 
-            for (num, &pressed) in mouse_state.button_pressed.iter().enumerate() {
-                let Some(prev) = last_mouse_state.button_pressed.get(num) else {
-                    continue;
-                };
+            #[cfg(target_os = "linux")]
+            let handled_by_mice_reader = if mice_reader.is_available() {
+                mice_reader.drain_events(|cursor_num, down| {
+                    response.clicks.push(CursorClickEvent {
+                        down,
+                        active_modifiers: vec![],
+                        cursor_num,
+                        cursor_id: cursor_id.clone(),
+                        time_ms: elapsed,
+                    });
+                });
+                true
+            } else {
+                false
+            };
+            #[cfg(not(target_os = "linux"))]
+            let handled_by_mice_reader = false;
 
-                if pressed == *prev {
-                    continue;
+            if !handled_by_mice_reader {
+                for (num, &pressed) in mouse_state.button_pressed.iter().enumerate() {
+                    let Some(prev) = last_mouse_state.button_pressed.get(num) else {
+                        continue;
+                    };
+
+                    if pressed == *prev {
+                        continue;
+                    }
+
+                    let mouse_event = CursorClickEvent {
+                        down: pressed,
+                        active_modifiers: vec![],
+                        cursor_num: num as u8,
+                        cursor_id: cursor_id.clone(),
+                        time_ms: elapsed,
+                    };
+                    response.clicks.push(mouse_event);
                 }
-
-                let mouse_event = CursorClickEvent {
-                    down: pressed,
-                    active_modifiers: vec![],
-                    cursor_num: num as u8,
-                    cursor_id: cursor_id.clone(),
-                    time_ms: elapsed,
-                };
-                response.clicks.push(mouse_event);
             }
 
             last_mouse_state = mouse_state;
