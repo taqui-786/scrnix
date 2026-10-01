@@ -11,49 +11,44 @@ import {
 	Sparkles,
 } from "lucide-react";
 import Image from "next/image";
-import { useId, useState } from "react";
-
-type PackageFormat = "deb" | "appimage" | "tar";
-
-type PackageDetails = {
-	label: string;
-	file: string;
-	size: string;
-	distros: string;
-	install: string;
-};
-
-const formatDetails: Record<PackageFormat, PackageDetails> = {
-	deb: {
-		label: "Debian package",
-		file: "scrinx_0.1.0_amd64.deb",
-		size: "38.4 MB",
-		distros: "Ubuntu 22.04+, Debian 12+, Pop!_OS, Mint",
-		install: "sudo dpkg -i scrinx_0.1.0_amd64.deb",
-	},
-	appimage: {
-		label: "AppImage",
-		file: "Scrinx-0.1.0-x86_64.AppImage",
-		size: "41.2 MB",
-		distros: "Arch, Fedora, openSUSE, any Linux",
-		install: "chmod +x Scrinx-0.1.0-x86_64.AppImage",
-	},
-	tar: {
-		label: "Standalone tarball",
-		file: "scrinx-linux-x86_64.tar.gz",
-		size: "36.8 MB",
-		distros: "Headless systems, custom setups, CLI scripts",
-		install: "tar -xzf scrinx-linux-x86_64.tar.gz",
-	},
-};
+import { useEffect, useId, useState } from "react";
+import {
+	buildPackageDetails,
+	getDefaultManifest,
+	getPublicReleaseBaseUrl,
+	type PackageFormat,
+	type ReleaseManifest,
+} from "@/lib/releases";
 
 export default function Page() {
 	const topId = useId();
 	const installId = useId();
+	const initialManifest = getDefaultManifest();
+	const [version, setVersion] = useState(initialManifest.version);
+	const [packages, setPackages] = useState(() =>
+		buildPackageDetails(initialManifest),
+	);
 	const [selectedFormat, setSelectedFormat] = useState<PackageFormat>("deb");
 	const [isPreviewing, setIsPreviewing] = useState(true);
 	const [copied, setCopied] = useState(false);
-	const activePackage = formatDetails[selectedFormat];
+
+	useEffect(() => {
+		const baseUrl = getPublicReleaseBaseUrl().replace(/\/+$/, "");
+		fetch(`${baseUrl}/releases/latest/latest.json`)
+			.then((res) => {
+				if (res.ok) return res.json();
+				throw new Error("Manifest not found");
+			})
+			.then((data: ReleaseManifest) => {
+				if (data?.version && data?.files) {
+					setVersion(data.version);
+					setPackages(buildPackageDetails(data));
+				}
+			})
+			.catch(() => {});
+	}, []);
+
+	const activePackage = packages[selectedFormat];
 
 	async function copyCommand() {
 		try {
@@ -83,11 +78,11 @@ export default function Page() {
 					</a>
 					<div className="header-status">
 						<span className="status-dot" />
-						<span>Native studio / v0.1.0</span>
+						<span>Native studio / v{version}</span>
 					</div>
 					<a
 						className="button button-small button-primary"
-						href="/api/download"
+						href="/api/download?format=deb"
 					>
 						Download
 						<Download className="h-3.5 w-3.5" />
@@ -111,7 +106,10 @@ export default function Page() {
 							story on your machine.
 						</p>
 						<div className="hero-actions">
-							<a className="button button-primary" href="/api/download">
+							<a
+								className="button button-primary"
+								href="/api/download?format=deb"
+							>
 								<Download className="h-4 w-4" />
 								Download Scrinx
 							</a>
@@ -185,7 +183,7 @@ export default function Page() {
 					<div className="dock-heading">
 						<span className="eyebrow-line" />
 						<div>
-							<span className="card-kicker">INSTALL / v0.1.0</span>
+							<span className="card-kicker">INSTALL / v{version}</span>
 							<strong>Ready to record</strong>
 						</div>
 					</div>
@@ -194,7 +192,7 @@ export default function Page() {
 						role="tablist"
 						aria-label="Linux package format"
 					>
-						{(Object.keys(formatDetails) as PackageFormat[]).map((format) => (
+						{(["deb", "appimage", "tar"] as PackageFormat[]).map((format) => (
 							<button
 								type="button"
 								role="tab"
@@ -203,7 +201,7 @@ export default function Page() {
 								onClick={() => setSelectedFormat(format)}
 								key={format}
 							>
-								{formatDetails[format].label}
+								{packages[format].label}
 							</button>
 						))}
 					</div>
@@ -234,7 +232,7 @@ export default function Page() {
 					</div>
 					<a
 						className="button button-primary dock-download"
-						href="/api/download"
+						href={`/api/download?format=${selectedFormat}`}
 					>
 						<Download className="h-4 w-4" />
 						Download

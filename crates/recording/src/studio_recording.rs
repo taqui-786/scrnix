@@ -3182,8 +3182,6 @@ async fn create_segment_pipeline(
         screen_capture::ScreenCaptureTarget::CameraOnly
     );
     #[cfg(target_os = "linux")]
-    let custom_cursor_capture = custom_cursor_capture && !screen_capture::prefers_wayland_portal();
-    #[cfg(target_os = "linux")]
     let mut start_time = start_time;
 
     let (screen, system_audio, cursor_display) = if camera_only {

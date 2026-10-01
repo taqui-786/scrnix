@@ -2193,7 +2193,11 @@ async fn start_attempt_with_upload(
     // `RecordingDefaults` seam so both apps build recordings identically.
     let settings = crate::store::GeneralSettings::load();
     let defaults = cap_recording::RecordingDefaults {
-        custom_cursor_capture: settings.custom_cursor_capture,
+		custom_cursor_capture: if cfg!(target_os = "linux") {
+			true
+		} else {
+			settings.custom_cursor_capture
+		},
         capture_keyboard_events: settings.capture_keyboard_events,
         crash_recovery_recording: settings.crash_recovery_recording,
         max_fps: settings.max_fps,

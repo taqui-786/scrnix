@@ -1,0 +1,122 @@
+name: "Desktop Release"
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (leave empty to read from Cargo.toml)"
+        required: false
+        default: ""
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-linux:
+    name: Build & Publish Linux Release (.deb, .AppImage, tarball)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version
+        id: get_version
+        shell: bash
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION=$(node -e "
+              const fs = require('fs');
+              const toml = fs.readFileSync('apps/desktop/src-tauri/Cargo.toml', 'utf8');
+              const match = toml.match(/\[package\][\s\S]*?version\s*=\s*\"([^\"]+)\"/);
+              console.log(match[1]);
+            ")
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Building Scrinx release version: ${VERSION}"
+
+      - name: Install Linux desktop dependencies
+        uses: ./.github/actions/install-desktop-deps
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@1.88.0
+        with:
+          targets: x86_64-unknown-linux-gnu
+
+      - name: Setup Rust cache
+        uses: ./.github/actions/setup-rust-cache
+        with:
+          target: x86_64-unknown-linux-gnu
+
+      - name: Setup JS environment
+        uses: ./.github/actions/setup-js
+
+      - name: Create desktop environment file
+        shell: bash
+        run: |
+          echo "VITE_ENVIRONMENT=production" >> .env
+          echo "NEXT_PUBLIC_WEB_URL=${{ secrets.NEXT_PUBLIC_WEB_URL }}" >> .env
+          cp .env apps/desktop/.env
+
+      - name: Run workspace setup
+        shell: bash
+        run: bun run cap-setup
+        env:
+          RUST_TARGET_TRIPLE: x86_64-unknown-linux-gnu
+
+      - name: Package desktop release
+        shell: bash
+        run: node scripts/package-desktop-release.mjs x86_64-unknown-linux-gnu "${{ steps.get_version.outputs.version }}"
+        env:
+          RUST_TARGET_TRIPLE: x86_64-unknown-linux-gnu
+          R2_PUBLIC_URL: ${{ secrets.R2_PUBLIC_URL }}
+          NEXT_PUBLIC_RELEASES_URL: ${{ secrets.NEXT_PUBLIC_RELEASES_URL }}
+
+      - name: Upload artifacts to Cloudflare R2
+        if: ${{ secrets.R2_ACCOUNT_ID != '' && secrets.R2_SECRET_ACCESS_KEY != '' }}
+        shell: bash
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          R2_BUCKET: ${{ secrets.R2_BUCKET_NAME || 'scrinx-releases' }}
+          RELEASE_VERSION: ${{ steps.get_version.outputs.version }}
+        run: |
+          echo "Uploading release artifacts to Cloudflare R2..."
+          aws s3 cp target/dist-release/ "s3://${R2_BUCKET}/releases/v${RELEASE_VERSION}/" \
+            --recursive \
+            --exclude "latest/*" \
+            --endpoint-url "${R2_ENDPOINT}"
+
+          echo "Updating latest pointers on Cloudflare R2..."
+          aws s3 cp target/dist-release/latest/ "s3://${R2_BUCKET}/releases/latest/" \
+            --recursive \
+            --endpoint-url "${R2_ENDPOINT}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('v{0}', steps.get_version.outputs.version) }}
+          files: |
+            target/dist-release/*.deb
+            target/dist-release/*.AppImage
+            target/dist-release/*.tar.gz
+            target/dist-release/release.json
+            target/dist-release/SHA256SUMS.txt
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

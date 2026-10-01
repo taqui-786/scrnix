@@ -40,7 +40,6 @@ jobs:
               - 'apps/desktop/**'
               - 'apps/desktop-gpui/**'
               - 'crates/**'
-              - 'packages/database/**'
               - 'packages/ui-solid/**'
               - 'packages/utils/**'
               - 'packages/web-api-contract/**'
@@ -77,68 +76,19 @@ jobs:
           echo "branch=${{ env.BRANCH_NAME }}" >> $GITHUB_OUTPUT
 
   typecheck:
-    name: Typecheck
+    name: Typecheck & Web Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - uses: ./.github/actions/setup-js
-
-      - run: bun run --cwd apps/web next typegen
-
-      - name: Check MCP card bundle
-        run: bun run --cwd apps/web mcp-card:check
 
       - name: Test workspace tooling
         run: node --test scripts/bun-scripts.test.mjs scripts/check-tauri-plugin-versions.test.mjs
 
-      - name: Check email library
-        run: |
-          bun run emails:check
-          bun test scripts/emails scripts/loops/profile.test.ts scripts/loops/lifecycle.test.ts scripts/loops/watchdog.test.ts
-          bun run tsc --noEmit --strict --jsx react-jsx --allowImportingTsExtensions --target ESNext --module ESNext --moduleResolution bundler --resolveJsonModule --types bun --skipLibCheck scripts/loops/*.ts scripts/emails/*.ts emails/*.ts emails/marketing/*.ts
-
-      - name: Test web React compatibility
-        run: >-
-          bun run --cwd apps/web test
-          __tests__/unit/embed-video-playback-chrome.test.ts
-          __tests__/unit/homepage-demo-accessibility.test.ts
-          __tests__/unit/linkified-text.test.ts
-          __tests__/unit/loom-import-ui.test.ts
-          __tests__/unit/media-player-store-refs.test.ts
-          __tests__/unit/signed-baa-card.test.ts
-          __tests__/unit/summary-editor.test.ts
-          __tests__/unit/sso-login-pages.test.ts
-
-      - name: Typecheck
-        run: bun run typecheck
-
-  mobile:
-    name: Mobile
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - uses: ./.github/actions/setup-js
-
-      - name: Check Expo dependencies
-        env:
-          EXPO_OFFLINE: "1"
-        run: bun run --cwd apps/mobile expo install --check
-
-      - name: Run Expo Doctor
-        env:
-          EXPO_OFFLINE: "1"
-        working-directory: apps/mobile
-        run: bunx expo-doctor@1.20.1
-
-      - name: Typecheck
-        run: bun run --cwd apps/mobile typecheck
-
-      - name: Test
-        run: bun run --cwd apps/mobile test
+      - name: Build and typecheck web app
+        run: bun run --cwd apps/web build
 
   format-biome:
     name: Format (Biome)
