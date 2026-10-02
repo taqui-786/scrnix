@@ -84,16 +84,20 @@ jobs:
           NEXT_PUBLIC_RELEASES_URL: ${{ secrets.NEXT_PUBLIC_RELEASES_URL }}
 
       - name: Upload artifacts to Cloudflare R2
-        if: ${{ secrets.R2_ACCOUNT_ID != '' && secrets.R2_SECRET_ACCESS_KEY != '' }}
         shell: bash
         env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: auto
-          R2_ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
           R2_BUCKET: ${{ secrets.R2_BUCKET_NAME || 'scrinx-releases' }}
           RELEASE_VERSION: ${{ steps.get_version.outputs.version }}
         run: |
+          if [[ -z "${R2_ACCOUNT_ID}" || -z "${AWS_SECRET_ACCESS_KEY}" ]]; then
+            echo "Skipping Cloudflare R2 upload: R2_ACCOUNT_ID or R2_SECRET_ACCESS_KEY secret is not configured."
+            exit 0
+          fi
+          R2_ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
           echo "Uploading release artifacts to Cloudflare R2..."
           aws s3 cp target/dist-release/ "s3://${R2_BUCKET}/releases/v${RELEASE_VERSION}/" \
             --recursive \
