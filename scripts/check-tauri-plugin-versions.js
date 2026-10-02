@@ -39,8 +39,10 @@ export function parseDesktopTauriDependencies(bunLock) {
 		);
 	}
 	const lock = parsed.config;
-	if (lock?.lockfileVersion !== 2) {
-		throw new Error("Unsupported bun.lock format; expected lockfileVersion 2");
+	if (lock?.lockfileVersion !== 1 && lock?.lockfileVersion !== 2) {
+		throw new Error(
+			`Unsupported bun.lock format; expected lockfileVersion 1 or 2, received ${lock?.lockfileVersion}`,
+		);
 	}
 	const workspace = lock.workspaces?.["apps/desktop"];
 	if (!workspace?.name) throw new Error("Missing apps/desktop in bun.lock");
