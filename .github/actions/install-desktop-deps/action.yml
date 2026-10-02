@@ -56,3 +56,4 @@ runs:
           libarchive-tools \
           zstd \
           patchelf
+        sudo apt install -y --no-install-recommends libfuse2t64 2>/dev/null || sudo apt install -y --no-install-recommends libfuse2 2>/dev/null || true

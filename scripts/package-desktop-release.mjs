@@ -108,22 +108,46 @@ export async function packageRelease({ target, version, outputDir }) {
 		path.join(repoRoot, "apps/desktop"),
 	);
 
+	process.env.NO_STRIP = process.env.NO_STRIP || "true";
+	process.env.APPIMAGE_EXTRACT_AND_RUN =
+		process.env.APPIMAGE_EXTRACT_AND_RUN || "1";
+
 	const desktopDir = path.join(repoRoot, "apps/desktop");
-	await runStep(
-		"bun",
-		[
-			"run",
-			"tauri",
-			"build",
-			"--target",
-			target,
-			"--bundles",
-			"deb,appimage",
-			"--config",
-			"src-tauri/tauri.prod.conf.json",
-		],
-		desktopDir,
-	);
+	const rawBundles = process.env.TAURI_BUNDLES || "deb,appimage";
+	const bundles = rawBundles
+		.split(",")
+		.map((b) => b.trim())
+		.filter(Boolean);
+
+	for (const bundle of bundles) {
+		console.log(`Bundling Scrinx for ${bundle}...`);
+		try {
+			await runStep(
+				"bun",
+				[
+					"run",
+					"tauri",
+					"build",
+					"--target",
+					target,
+					"--bundles",
+					bundle,
+					"--config",
+					"src-tauri/tauri.prod.conf.json",
+				],
+				desktopDir,
+			);
+		} catch (error) {
+			if (bundle === "appimage" && bundles.includes("deb")) {
+				console.error(
+					`Warning: Bundling ${bundle} failed, proceeding with remaining packages:`,
+					error instanceof Error ? error.message : error,
+				);
+			} else {
+				throw error;
+			}
+		}
+	}
 
 	const distDir = outputDir || path.join(repoRoot, "target", "dist-release");
 	const latestDistDir = path.join(distDir, "latest");
@@ -185,6 +209,20 @@ export async function packageRelease({ target, version, outputDir }) {
 	}
 
 	if (appImageFile) {
+		try {
+			const { finalizeLinuxAppImage } = await import(
+				"./finalize-linux-appimage.mjs"
+			);
+			await finalizeLinuxAppImage(appImageFile, {
+				unsigned: !process.env.TAURI_SIGNING_PRIVATE_KEY,
+			});
+		} catch (err) {
+			console.warn(
+				"AppImage finalization skipped or warning:",
+				err instanceof Error ? err.message : err,
+			);
+		}
+
 		const destFilename = `Scrinx-${resolvedVersion}-x86_64.AppImage`;
 		const destPath = path.join(distDir, destFilename);
 		await fs.copyFile(appImageFile, destPath);

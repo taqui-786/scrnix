@@ -21,6 +21,9 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+    env:
+      NO_STRIP: "true"
+      APPIMAGE_EXTRACT_AND_RUN: "1"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -80,6 +83,8 @@ jobs:
         run: node scripts/package-desktop-release.mjs x86_64-unknown-linux-gnu "${{ steps.get_version.outputs.version }}"
         env:
           RUST_TARGET_TRIPLE: x86_64-unknown-linux-gnu
+          NO_STRIP: "true"
+          APPIMAGE_EXTRACT_AND_RUN: "1"
           R2_PUBLIC_URL: ${{ secrets.R2_PUBLIC_URL }}
           NEXT_PUBLIC_RELEASES_URL: ${{ secrets.NEXT_PUBLIC_RELEASES_URL }}
 

@@ -55,12 +55,17 @@ async function findReleaseBinary() {
 async function findReleaseFile(releaseDir) {
 	if (!(await fileExists(releaseDir))) return null;
 	const releaseFiles = await fs.readdir(releaseDir);
-	for (const name of ["Cap", "cap-desktop"]) {
+	for (const name of ["Scrinx", "scrinx", "Cap", "cap-desktop"]) {
 		if (releaseFiles.includes(name)) return name;
 	}
 
 	for (const releaseFile of releaseFiles) {
-		if (releaseFile.startsWith("Cap")) return releaseFile;
+		if (
+			releaseFile.startsWith("Scrinx") ||
+			releaseFile.startsWith("scrinx") ||
+			releaseFile.startsWith("Cap")
+		)
+			return releaseFile;
 	}
 
 	return null;
