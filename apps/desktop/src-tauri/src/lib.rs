@@ -817,7 +817,7 @@ fn build_macos_app_menu(app_handle: &AppHandle) -> tauri::Result<Menu<tauri::Wry
         .product_name
         .as_ref()
         .map(|name| format!("Quit {name}"))
-        .unwrap_or_else(|| "Quit Cap".to_string());
+        .unwrap_or_else(|| "Quit Scrinx".to_string());
 
     let window_menu = Submenu::with_id_and_items(
         app_handle,
@@ -3638,7 +3638,7 @@ fn show_exit_blocked(app: &AppHandle, reason: ExitBlocked) {
     );
     app.dialog()
         .message(reason.message())
-        .title("Cap is still busy")
+        .title("Scrinx is still busy")
         .kind(tauri_plugin_dialog::MessageDialogKind::Warning)
         .show(|_| {});
 }
@@ -3741,7 +3741,7 @@ fn restart_app(app: AppHandle) -> Result<(), String> {
             app.request_restart();
             Ok(())
         }
-        Ok(false) => Err("Cap is already shutting down.".into()),
+        Ok(false) => Err("Scrinx is already shutting down.".into()),
         Err(reason) => Err(reason.message().into()),
     }
 }
@@ -3767,7 +3767,7 @@ pub async fn request_app_exit(app: AppHandle) {
             warn!(%error, "Quit canceled because an editor title could not be saved");
             app.dialog()
                 .message(format!(
-                    "{error}\n\nCap is still open. Your title is still in the editor."
+                    "{error}\n\nScrinx is still open. Your title is still in the editor."
                 ))
                 .title("Title not saved")
                 .kind(tauri_plugin_dialog::MessageDialogKind::Warning)
@@ -6213,7 +6213,7 @@ async fn editor_delete_project(
 
 async fn open_pricing_page(app: &AppHandle) -> Result<(), String> {
     app.shell()
-        .open("https://cap.so/pricing?ref=desktop", None)
+        .open("https://scrinx.com/pricing?ref=desktop", None)
         .map_err(|e| e.to_string())
 }
 
@@ -6581,7 +6581,7 @@ fn configure_windows_graphics_recovery(
         cap_rendering::set_force_software_wgpu_adapter(true);
         crash_sentinel::mark_graphics_recovery();
         warn!(
-            "Previous Cap session terminated during GPU initialisation; using Windows software graphics recovery mode for this launch"
+            "Previous Scrinx session terminated during GPU initialisation; using Windows software graphics recovery mode for this launch"
         );
     } else if previous_termination.is_some() {
         info!(
@@ -6648,7 +6648,7 @@ fn configure_camera_blur_recovery(
         crash_sentinel::mark_blur_recovery();
         if stored.is_none() {
             error!(
-                "Previous Cap session died with camera background blur active; disabling blur until the next app update"
+                "Previous Scrinx session died with camera background blur active; disabling blur until the next app update"
             );
         } else {
             warn!("Camera background blur remains disabled by crash recovery for this launch");
@@ -7035,7 +7035,7 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: PathBuf) {
                 if let Err(error) = app.run_on_main_thread(move || {
                     handle_single_instance(&handle, args);
                 }) {
-                    warn!(%error, "Could not queue Cap activation");
+                    warn!(%error, "Could not queue Scrinx activation");
                 }
             }
             #[cfg(not(target_os = "linux"))]
@@ -7169,9 +7169,9 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: PathBuf) {
                         if let Some(pid) = reopen_pid
                         {
                             match tokio::task::spawn_blocking(move || gpui_app::request_gpui_reopen(pid)).await {
-                                Ok(Ok(())) => info!(pid, "Queued a request to reopen Cap GPUI"),
-                                Ok(Err(error)) => warn!(pid, %error, "Could not confirm Cap GPUI reopening; the existing instance remains unchanged"),
-                                Err(error) => warn!(pid, %error, "Cap GPUI reopen forwarding did not finish"),
+                                Ok(Ok(())) => info!(pid, "Queued a request to reopen Scrinx GPUI"),
+                                Ok(Err(error)) => warn!(pid, %error, "Could not confirm Scrinx GPUI reopening; the existing instance remains unchanged"),
+                                Err(error) => warn!(pid, %error, "Scrinx GPUI reopen forwarding did not finish"),
                             }
                         }
                         app.exit(0);
@@ -7286,7 +7286,7 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: PathBuf) {
                 } else {
                     (
                         option_env!("VITE_SERVER_URL")
-                            .unwrap_or("https://cap.so")
+                            .unwrap_or("https://scrinx.com")
                             .to_string(),
                         true,
                     )
@@ -7929,7 +7929,7 @@ fn handle_single_instance(app: &AppHandle, args: Vec<String>) {
             .show(&app)
             .await
             {
-                warn!(%error, "Could not show Cap recording controls");
+                warn!(%error, "Could not show Scrinx recording controls");
             }
         });
         return;
@@ -8016,7 +8016,7 @@ struct StartupOpenQueue {
 impl StartupOpenQueue {
     fn request(&mut self, urls: Vec<tauri::Url>) -> Result<Option<StartupOpenDispatch>, String> {
         if self.cancelled {
-            return Err("Cap startup stopped before the project could be opened".into());
+            return Err("Scrinx startup stopped before the project could be opened".into());
         }
         if self.destination == Some(StartupOpenDestination::Desktop) {
             return Ok(Some(StartupOpenDispatch {
@@ -8033,7 +8033,7 @@ impl StartupOpenQueue {
                 continue;
             }
             if self.urls.len() + self.gpui_dispatched.len() + additions.len() >= 64 {
-                return Err("Too many projects were requested while Cap was starting".into());
+                return Err("Too many projects were requested while Scrinx was starting".into());
             }
             additions.push(url);
         }
@@ -8109,11 +8109,11 @@ impl Drop for StartupOpenGuard {
 fn queue_macos_startup_urls(app: &AppHandle, urls: Vec<tauri::Url>) -> Result<(), String> {
     let gate = app
         .try_state::<StartupOpenGate>()
-        .ok_or_else(|| "Cap startup is not ready to receive projects".to_string())?;
+        .ok_or_else(|| "Scrinx startup is not ready to receive projects".to_string())?;
     let dispatch = gate
         .0
         .lock()
-        .map_err(|_| "Cap startup file-open state is unavailable".to_string())?
+        .map_err(|_| "Scrinx startup file-open state is unavailable".to_string())?
         .request(urls)?;
     if let Some(dispatch) = dispatch {
         dispatch_macos_startup_urls(app, dispatch);
@@ -8157,7 +8157,7 @@ fn dispatch_macos_startup_urls(app: &AppHandle, dispatch: StartupOpenDispatch) {
 
     if dispatch.destination == StartupOpenDestination::Gpui {
         let Some(redirect) = app.try_state::<gpui_app::StartupRedirectState>() else {
-            warn!("Cap GPUI startup forwarding state is unavailable");
+            warn!("Scrinx GPUI startup forwarding state is unavailable");
             return;
         };
         if redirect.begin_forwarding() {
@@ -8175,7 +8175,7 @@ fn dispatch_macos_startup_urls(app: &AppHandle, dispatch: StartupOpenDispatch) {
                     if let Some(pid) = forwarded {
                         forwarded_pid = Some(pid);
                     } else {
-                        warn!("Could not forward the requested project batch to Cap GPUI");
+                        warn!("Could not forward the requested project batch to Scrinx GPUI");
                     }
                     let next = app.try_state::<StartupOpenGate>().and_then(|gate| {
                         gate.0
@@ -8198,7 +8198,7 @@ fn dispatch_macos_startup_urls(app: &AppHandle, dispatch: StartupOpenDispatch) {
                         gpui_app::activate_instance(pid);
                     })
                 {
-                    warn!(%error, "Could not activate Cap GPUI after forwarding a project");
+                    warn!(%error, "Could not activate Scrinx GPUI after forwarding a project");
                 }
                 if app
                     .try_state::<gpui_app::StartupRedirectState>()
@@ -8209,7 +8209,7 @@ fn dispatch_macos_startup_urls(app: &AppHandle, dispatch: StartupOpenDispatch) {
             });
         } else {
             cancel_macos_startup_opens(app);
-            warn!("Cap GPUI handoff already finished before the project could be forwarded");
+            warn!("Scrinx GPUI handoff already finished before the project could be forwarded");
         }
         return;
     }
@@ -9185,12 +9185,12 @@ fn open_project_from_path(path: &Path, app: AppHandle) -> Result<(), String> {
     {
         let gate = app
             .try_state::<StartupOpenGate>()
-            .ok_or_else(|| "Cap startup is not ready to receive projects".to_string())?;
+            .ok_or_else(|| "Scrinx startup is not ready to receive projects".to_string())?;
         let ready = {
             let queue = gate
                 .0
                 .lock()
-                .map_err(|_| "Cap startup file-open state is unavailable".to_string())?;
+                .map_err(|_| "Scrinx startup file-open state is unavailable".to_string())?;
             !queue.cancelled && queue.destination == Some(StartupOpenDestination::Desktop)
         };
         if !ready {

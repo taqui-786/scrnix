@@ -1,26 +1,26 @@
-# Cap Contributor Guide
+# Scrinx Contributor Guide
 
 ## Introduction
 
-### What is Cap?
+### What is Scrinx?
 
-Cap is an open source and privacy focused alternative to Loom. It's a video messaging tool that allows you to record, edit and share videos in seconds.
+Scrinx is an open source and privacy focused alternative to Loom. It's a video messaging tool that allows you to record, edit and share videos in seconds.
 
-The development of Cap is still in its early stages, so please bare with us as we build out this guide.
+The development of Scrinx is still in its early stages, so please bear with us as we build out this guide.
 
 ### What is this guide?
 
-This guide is for anyone who wants to contribute to Cap. It's a work in progress, and will be updated regularly.
+This guide is for anyone who wants to contribute to Scrinx. It's a work in progress, and will be updated regularly.
 
 ### How can I contribute?
 
-There are many ways to contribute to Cap. You can:
+There are many ways to contribute to Scrinx. You can:
 
-- [Report a bug](https://github.com/CapSoftware/cap/issues/new)
-- [Suggest a feature (via Discord)](https://discord.com/invite/y8gdQ3WRN3)
+- [Report a bug](https://github.com/taqui-786/scrnix/issues/new)
+- Suggest a feature (via GitHub Issues or Discussions)
 - Submit a PR
 
-## Running Cap
+## Running Scrinx
 
 ### Development Requirements
 
@@ -33,8 +33,6 @@ Before anything else, make sure you have the following installed:
 
 ### General Setup
 
-Keep the root `react` and `react-dom` development dependencies aligned with `apps/mobile`. They keep Expo native dependencies deduplicated under Bun’s hoisted linker, while the web app retains its separately resolved React version.
-
 Run `bun install`, then run `bun run env-setup` to generate a `.env` file configured for your environment.
 It will ask you which apps you intend to run, whether you'd like to use Docker to run S3 (MinIO) and MySQL locally,
 and allow you to provide overrides as needed.
@@ -45,22 +43,22 @@ On Windows, llvm, clang, and VCPKG must be installed.
 On MacOS, cmake must be installed.
 `bun run cap-setup` does not yet install these dependencies for you.
 
-To run both `@cap/desktop` and `@cap/web` together, use `bun run dev`.
+To run both desktop and web together, use `bun run dev`.
 To run only one of them, use `bun run dev:desktop` or `bun run dev:web` respectively.
 
-### `@cap/desktop` (desktop app)
+### Desktop app
 
-When running `@cap/desktop` from a terminal on macOS,
-you will need to grant permissions (screen recording, microphone, etc.) to the terminal, not the Cap app.
+When running the desktop app from a terminal on macOS,
+you will need to grant permissions (screen recording, microphone, etc.) to the terminal, not the app.
 For example, if you run `bun run dev:desktop` in the macOS `Terminal.app`,
-you will need to grant permissions to it instead of `Cap - Development.app`.
+you will need to grant permissions to it instead of the app bundle.
 
 #### Where are my recordings stored?
 
-You can find your recordings at `~/Library/Application Support/so.cap.desktop.dev/recordings` on macOS,
-and `%programfiles%/so.cap.desktop.dev/recordings` on Windows.
+You can find your recordings at `~/Library/Application Support/com.scrinx.desktop.dev/recordings` on macOS,
+and `%programfiles%/com.scrinx.desktop.dev/recordings` on Windows.
 
-### `@cap/web` (cap.so website)
+### Web app (scrinx.com website)
 
 When running `bun run dev` or `bun run dev:web`, a MySQL database and MinIO S3 server will also be using Docker.
-If you want to _only_ run the `@cap/web` NextJS app, `cd` into `./apps/web` and run `bun run dev`.
+If you want to _only_ run the web NextJS app, `cd` into `./apps/web` and run `bun run dev`.

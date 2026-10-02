@@ -26,7 +26,7 @@ const DOCKER_DB_ENVS = {
 };
 
 async function main() {
-	intro("Welcome to the Cap env setup CLI!");
+	intro("Welcome to the Scrinx env setup CLI!");
 
 	const targets = await multiselect({
 		message: "Which apps will you be working on?",
@@ -151,15 +151,15 @@ async function main() {
 					if (!hasWeb)
 						return text({
 							message: "VITE_SERVER_URL",
-							placeholder: "https://cap.so",
-							defaultValue: "https://cap.so",
+							placeholder: "https://scrinx.com",
+							defaultValue: "https://scrinx.com",
 						});
 				},
 				VITE_VERCEL_AUTOMATION_BYPASS_SECRET: () => {
 					if (!hasWeb)
 						return text({
 							message:
-								"VITE_VERCEL_AUTOMATION_BYPASS_SECRET - skip if you're not a Cap team member",
+								"VITE_VERCEL_AUTOMATION_BYPASS_SECRET - skip if you're not a Scrinx team member",
 							placeholder: allEnvs.VITE_VERCEL_AUTOMATION_BYPASS_SECRET,
 							defaultValue: allEnvs.VITE_VERCEL_AUTOMATION_BYPASS_SECRET,
 						});

@@ -736,7 +736,7 @@ impl EditorWindow {
             .summary()
             .map(|summary| summary.pretty_name.clone())
             .filter(|name| !name.trim().is_empty())
-            .unwrap_or_else(|| "Cap Recording".into());
+            .unwrap_or_else(|| "Scrinx Recording".into());
         let Some(ui) = self.export.as_mut() else {
             return;
         };

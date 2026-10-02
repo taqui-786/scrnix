@@ -16,9 +16,9 @@ fn main() {
     println!("cargo:rerun-if-changed={icon}");
     tauri_winres::WindowsResource::new()
         .set_icon_with_id(icon, "1")
-        .set("ProductName", "Cap")
-        .set("FileDescription", "Cap")
+        .set("ProductName", "Scrinx")
+        .set("FileDescription", "Scrinx")
         .set("OriginalFilename", "cap-gpui.exe")
         .compile()
-        .expect("failed to compile the Cap Windows icon resource");
+        .expect("failed to compile the Scrinx Windows icon resource");
 }

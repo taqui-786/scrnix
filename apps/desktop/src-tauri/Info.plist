@@ -7,12 +7,13 @@
 		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
+				<string>scrinx</string>
 				<string>cap</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>icon.icns</string>
 			<key>CFBundleTypeName</key>
-			<string>Cap Recording</string>
+			<string>Scrinx Recording</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSHandlerRank</key>
@@ -22,11 +23,11 @@
 		</dict>
 	</array>
 	<key>NSCameraUsageDescription</key>
-	<string>Cap uses your camera to record you in your Caps</string>
+	<string>Scrinx uses your camera to record you in your recordings</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Cap uses your microphone to record you in your Caps</string>
+	<string>Scrinx uses your microphone to record you in your recordings</string>
 	<key>NSScreenCaptureUsageDescription</key>
-	<string>Cap captures your screen as part of recording your Caps</string>
+	<string>Scrinx captures your screen as part of recording your videos</string>
 	<key>NSCameraUseContinuityCameraDeviceType</key>
 	<true/>
 </dict>

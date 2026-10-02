@@ -634,7 +634,9 @@ fn is_listable_macos_window(
         && include_accessory_panels
         && is_accessory_application
         && bundle_identifier.is_some_and(|identifier| {
-            !identifier.starts_with("com.apple.") && !identifier.starts_with("so.cap.desktop")
+            !identifier.starts_with("com.apple.")
+                && !identifier.starts_with("com.scrinx.desktop")
+                && !identifier.starts_with("so.cap.desktop")
         })
 }
 
@@ -780,6 +782,13 @@ mod tests {
             Some(25),
             "Control Centre",
             Some("com.apple.controlcenter"),
+            true,
+            true,
+        ));
+        assert!(!is_listable_macos_window(
+            Some(3),
+            "Scrinx",
+            Some("com.scrinx.desktop.dev"),
             true,
             true,
         ));

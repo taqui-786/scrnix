@@ -29,7 +29,7 @@ verify_checkout() (
 	for ((patch_index=${#patch_files[@]}-1; patch_index>=0; patch_index--)); do
 		patch_file="${patch_files[patch_index]}"
 		if ! git -C "$verification_dir" apply --reverse --unidiff-zero "$patch_file"; then
-			echo "error: $zed_dir does not contain Cap's pinned GPUI patch: $patch_file" >&2
+			echo "error: $zed_dir does not contain Scrinx's pinned GPUI patch: $patch_file" >&2
 			exit 1
 		fi
 	done

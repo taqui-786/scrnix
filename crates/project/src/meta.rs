@@ -1199,7 +1199,7 @@ mod display_notch_tests {
     fn multiple_segments(display_notch: &str) -> String {
         format!(
             r#"{{
-              "pretty_name": "Cap",
+              "pretty_name": "Scrinx",
               "segments": [
                 {{
                   "display": {{ "path": "content/segments/segment-0/display.mp4", "fps": 30 }}
@@ -1261,7 +1261,7 @@ mod display_notch_tests {
     fn legacy_single_segment_has_no_notch() {
         let meta: RecordingMeta = serde_json::from_str(
             r#"{
-              "pretty_name": "Cap",
+              "pretty_name": "Scrinx",
               "display": { "path": "content/display.mp4" },
               "segments": [{ "start": 0.0, "end": 1.0 }]
             }"#,

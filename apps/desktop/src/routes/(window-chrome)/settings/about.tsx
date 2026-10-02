@@ -28,8 +28,8 @@ export default function AboutSettings() {
 						India.
 					</p>
 					<p>
-						It was fully inspired by Cap, with a local-first workflow for
-						recording, editing, and sharing your work.
+						Scrinx provides a local-first workflow for recording, editing, and
+						sharing your work.
 					</p>
 					<div class="flex flex-wrap gap-2 pt-2">
 						<button
@@ -47,13 +47,6 @@ export default function AboutSettings() {
 							}
 						>
 							<IconLucideGithub class="size-4" /> GitHub
-						</button>
-						<button
-							type="button"
-							class="flex items-center gap-2 rounded-lg bg-gray-4 px-3 py-2 text-gray-12 hover:bg-gray-5"
-							onClick={() => void shell.open("https://cap.so/")}
-						>
-							<IconLucideExternalLink class="size-4" /> Inspired by Cap
 						</button>
 					</div>
 				</div>

@@ -102,7 +102,7 @@ fn existing_clean_capture_stop(store: &HotkeysStore) -> Result<bool, String> {
     for (action, hotkey) in &store.hotkeys {
         if Shortcut::from(*hotkey) == shortcut {
             if !matches!(action, HotkeyAction::StopRecording) {
-                return Err("Ctrl+Shift+F9 is assigned to another Cap action. Change that shortcut before starting clean Studio capture.".into());
+                return Err("Ctrl+Shift+F9 is assigned to another Scrinx action. Change that shortcut before starting clean Studio capture.".into());
             }
             existing_stop = true;
         }

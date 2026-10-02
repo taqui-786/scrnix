@@ -7,7 +7,7 @@ export const stripe = () =>
 	new Stripe(key(), {
 		apiVersion: "2023-10-16",
 		appInfo: {
-			name: "Cap",
+			name: "Scrinx",
 			version: "0.1.0",
 		},
 	});

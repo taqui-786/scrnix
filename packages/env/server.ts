@@ -16,7 +16,7 @@ function createServerEnv() {
 			DATABASE_URL: z.string().describe("MySQL database URL"),
 			WEB_URL: z
 				.string()
-				.describe("Public URL of the server eg. https://cap.so"),
+				.describe("Public URL of the server eg. https://scrinx.com"),
 			NEXTAUTH_SECRET: z.string().describe("32 byte base64 string"),
 			NEXTAUTH_URL: z.string().describe("Should be the same as WEB_URL"),
 			DATABASE_ENCRYPTION_KEY: z
@@ -26,7 +26,7 @@ function createServerEnv() {
 					"32 byte hex string for encrypting values like AWS access keys",
 				),
 
-			// Cap uses Resend for email sending, including sending login code emails
+			// Scrinx uses Resend for email sending, including sending login code emails
 			RESEND_API_KEY: z.string().optional(),
 			RESEND_FROM_DOMAIN: z.string().optional(),
 
@@ -142,8 +142,8 @@ function createServerEnv() {
 			SUPERMEMORY_API_KEY: z.string().optional(),
 			SUPERMEMORY_KNOWLEDGE_TAG: z.string().optional(),
 
-			/// Cap Cloud
-			// These are only needed for Cap Cloud (https://cap.so)
+			/// Scrinx Cloud
+			// These are only needed for Scrinx Cloud (https://scrinx.com)
 			STRIPE_SECRET_KEY: z.string().optional(),
 			STRIPE_SAML_SSO_PRICE_ID: z.string().optional(),
 			STRIPE_WEBHOOK_SECRET: z.string().optional(),

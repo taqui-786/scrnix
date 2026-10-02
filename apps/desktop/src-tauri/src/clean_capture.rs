@@ -2961,7 +2961,7 @@ pub(crate) fn admit_wayland_window_creation(app: &AppHandle) -> Result<(), Strin
     if inner.lease.as_ref().is_some_and(|lease| {
         lease.wayland && wayland_blocks_mapping(lease.phase) && lease.phase != Phase::Stopping
     }) {
-        return Err("Pause or stop recording before opening another Cap window".into());
+        return Err("Pause or stop recording before opening another Scrinx window".into());
     }
     Ok(())
 }
@@ -3027,10 +3027,10 @@ fn wayland_restore_plan(
             wanted = saved_main.as_ref().is_some_and(|saved| saved.visible);
         }
         if wanted && label_changed {
-            return Err("A retained Cap window changed identity".into());
+            return Err("A retained Scrinx window changed identity".into());
         }
         if wanted && !current.contains(&saved.window) {
-            return Err("A retained Cap window disappeared before restoration".into());
+            return Err("A retained Scrinx window disappeared before restoration".into());
         }
         result.push((saved, wanted));
     }
@@ -3068,7 +3068,7 @@ fn restore_wayland_windows(
             saved.window.hide();
         }
         if saved.window.is_visible() != wanted || (!wanted && saved.window.is_mapped()) {
-            return Err("GTK did not acknowledge Cap window restoration".into());
+            return Err("GTK did not acknowledge Scrinx window restoration".into());
         }
     }
     Ok(())

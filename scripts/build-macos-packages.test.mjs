@@ -91,7 +91,7 @@ test("macOS deployment targets preserve compatible overrides and reject unsafe v
 	for (const version of ["10.13", "11.0", "12", "12.2.99"]) {
 		assert.throws(
 			() => resolveMacosDeploymentTarget(version),
-			/below Cap's minimum/,
+			/below Scrinx's minimum/,
 		);
 	}
 	for (const version of [
@@ -134,7 +134,7 @@ test("an unsupported macOS override fails before starting a compiler or packager
 	fixture.options.env.MACOSX_DEPLOYMENT_TARGET = "10.13";
 	await assert.rejects(
 		buildMacosPackages(target, config, fixture.options),
-		/below Cap's minimum macOS version 12.3/,
+		/below Scrinx's minimum macOS version 12.3/,
 	);
 	assert.deepEqual(fixture.calls, []);
 });

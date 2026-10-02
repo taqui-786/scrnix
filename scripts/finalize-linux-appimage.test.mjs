@@ -48,7 +48,7 @@ async function assertOriginalArtifact(image, signature) {
 async function fixture(t) {
 	const root = await mkdtemp(path.join(tmpdir(), "cap-appimage-test-"));
 	t.after(() => rm(root, { recursive: true, force: true }));
-	const image = path.join(root, "Cap.AppImage");
+	const image = path.join(root, "Scrinx.AppImage");
 	const plugin = path.join(root, "output-plugin");
 	await writeFile(image, originalImage, { mode: 0o755 });
 	await writeFile(`${image}.sig`, "original signature");
@@ -558,7 +558,7 @@ test("embedded GPG signatures and signing requests fail without changing the inp
 
 test("AppRun preserves caller paths and arguments in mounted and extracted launches", async (t) => {
 	const { root } = await fixture(t);
-	const appDir = path.join(root, "Cap's AppDir");
+	const appDir = path.join(root, "Scrinx's AppDir");
 	await mkdir(path.join(appDir, "usr"), { recursive: true });
 	const launcher = path.join(appDir, "AppRun");
 	const original = `#!/bin/sh

@@ -25,7 +25,7 @@ const desktopDirectory = fileURLToPath(
 const upstreamGtkBackendAssignment =
 	"export GDK_BACKEND=x11 # Crash with Wayland backend on Wayland - We tested it without it and ended up with this: https://github.com/tauri-apps/tauri/issues/8541";
 
-// The upstream X11 workaround otherwise conflicts with Cap's Wayland recording fence.
+// The upstream X11 workaround otherwise conflicts with Scrinx's Wayland recording fence.
 const gtkBackendSelection = `if [ -z "\${GDK_BACKEND:-}" ]; then
 	cap_uses_wayland=0
 	if [ "\${WAYLAND_DISPLAY+x}" = x ]; then
@@ -49,7 +49,7 @@ const gtkBackendSelection = `if [ -z "\${GDK_BACKEND:-}" ]; then
 			*) cap_wayland_socket= ;;
 		esac
 		if [ -z "$cap_wayland_socket" ] || [ ! -S "$cap_wayland_socket" ]; then
-			printf '%s\\n' 'Cap cannot connect to the advertised Wayland socket. Start Cap from the active desktop session or correct WAYLAND_DISPLAY and XDG_RUNTIME_DIR.' >&2
+			printf '%s\\n' 'Scrinx cannot connect to the advertised Wayland socket. Start Scrinx from the active desktop session or correct WAYLAND_DISPLAY and XDG_RUNTIME_DIR.' >&2
 			exit 1
 		fi
 		export GDK_BACKEND=wayland
@@ -361,7 +361,7 @@ if (
 	if (unsigned) args.shift();
 	if (process.platform !== "linux" || args.length !== 1) {
 		throw new Error(
-			"Run on Linux: node scripts/finalize-linux-appimage.mjs [--unsigned] <Cap.AppImage>",
+			"Run on Linux: node scripts/finalize-linux-appimage.mjs [--unsigned] <Scrinx.AppImage>",
 		);
 	}
 	const excluded = await finalizeLinuxAppImage(args[0], { unsigned });
