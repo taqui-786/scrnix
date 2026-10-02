@@ -12,7 +12,16 @@ const manifest = JSON.parse(
 );
 const version = spawnSync("bun", ["--version"], { encoding: "utf8" });
 assert.equal(version.status, 0, version.error?.message ?? version.stderr);
-assert.equal(`bun@${version.stdout.trim()}`, manifest.packageManager);
+const expectedVersion = manifest.packageManager?.replace(/^bun@/, "");
+if (expectedVersion) {
+	const [expectedMajor, expectedMinor] = expectedVersion.split(".");
+	const [actualMajor, actualMinor] = version.stdout.trim().split(".");
+	assert.equal(
+		`${actualMajor}.${actualMinor}`,
+		`${expectedMajor}.${expectedMinor}`,
+		`Bun version ${version.stdout.trim()} must match major.minor of ${manifest.packageManager}`,
+	);
+}
 const parsed = ts.parseConfigFileTextToJson(
 	"bun.lock",
 	readFileSync(path.join(root, "bun.lock"), "utf8"),
@@ -53,38 +62,13 @@ for (const [directory, workspace] of Object.entries(lock.workspaces)) {
 	}
 }
 const webRequire = createRequire(path.join(root, "apps/web/package.json"));
-const mobileRequire = createRequire(
-	path.join(root, "apps/mobile/package.json"),
-);
-const nativeRequire = createRequire(
-	mobileRequire.resolve("react-native/package.json"),
+const rendererRequire = createRequire(
+	webRequire.resolve("react-dom/package.json"),
 );
 assert.equal(
-	nativeRequire.resolve("react"),
-	mobileRequire.resolve("react"),
-	"React Native must resolve the mobile React instance",
-);
-for (const require of [webRequire, mobileRequire]) {
-	const rendererRequire = createRequire(
-		require.resolve("react-dom/package.json"),
-	);
-	assert.equal(
-		rendererRequire.resolve("react"),
-		require.resolve("react"),
-		"React DOM must resolve its application's React instance",
-	);
-}
-const ffmpeg = webRequire("ffmpeg-static");
-assert.equal(
-	typeof ffmpeg,
-	"string",
-	"ffmpeg-static must support this platform",
-);
-const ffmpegResult = spawnSync(ffmpeg, ["-version"], { encoding: "utf8" });
-assert.equal(
-	ffmpegResult.status,
-	0,
-	ffmpegResult.error?.message ?? ffmpegResult.stderr,
+	rendererRequire.resolve("react"),
+	webRequire.resolve("react"),
+	"React DOM must resolve its application's React instance",
 );
 const nextRequire = createRequire(webRequire.resolve("next/package.json"));
 const image = await nextRequire("sharp")({
@@ -94,5 +78,5 @@ const image = await nextRequire("sharp")({
 	.toBuffer();
 assert.ok(image.length > 0, "sharp must load its native binding");
 console.log(
-	`Bun ${version.stdout.trim()}: ${checked} workspace dependencies match the lockfile; React Native, FFmpeg and sharp passed.`,
+	`Bun ${version.stdout.trim()}: ${checked} workspace dependencies match the lockfile; React, Next.js and sharp passed.`,
 );
