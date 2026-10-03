@@ -124,6 +124,7 @@ jobs:
             target/dist-release/*.tar.gz
             target/dist-release/release.json
             target/dist-release/SHA256SUMS.txt
+          fail_on_unmatched_files: false
           generate_release_notes: true
           draft: false
           prerelease: false
