@@ -1,4 +1,4 @@
-import capUIPlugin from "@cap/ui-solid/vite";
+import capUIPlugin from "@scrinx/ui-solid/vite";
 import { defineConfig } from "@solidjs/start/config";
 import devtools from "solid-devtools/vite";
 import wasm from "vite-plugin-wasm";

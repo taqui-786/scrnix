@@ -3,7 +3,7 @@ use std::{
     time::SystemTime,
 };
 
-use cap_project::{RecordingMeta, RecordingMetaInner};
+use scrinx_project::{RecordingMeta, RecordingMetaInner};
 use serde::Serialize;
 
 use crate::{OutputFormat, write_json};

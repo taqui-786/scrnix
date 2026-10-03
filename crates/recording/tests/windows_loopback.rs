@@ -17,7 +17,7 @@
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use cap_timestamp::{Timestamp, Timestamps};
+use scrinx_timestamp::{Timestamp, Timestamps};
 
 #[derive(Debug, Clone, Copy)]
 struct PacketEvent {

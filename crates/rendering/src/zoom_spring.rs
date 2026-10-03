@@ -25,7 +25,7 @@
 //! so sequential playback and seeking produce bit-identical transforms, and
 //! export matches playback by construction.
 
-use cap_project::{
+use scrinx_project::{
     Crop, CursorEvents, ProjectConfiguration, ScreenMovementSpring, TimelineConfiguration, XY,
     ZoomMode, ZoomSegment,
 };
@@ -347,11 +347,11 @@ pub(crate) fn build_clusters(
     // Non-finite coordinates (corrupted files, synthetic event generators)
     // must never reach the cluster math: NaN propagates through min/max and
     // clamp, which would poison the spring targets for the whole timeline.
-    let finite = |m: &&cap_project::CursorMoveEvent| {
+    let finite = |m: &&scrinx_project::CursorMoveEvent| {
         m.x.is_finite() && m.y.is_finite() && m.time_ms.is_finite()
     };
 
-    let events_in_range: Vec<&cap_project::CursorMoveEvent> = cursor_events
+    let events_in_range: Vec<&scrinx_project::CursorMoveEvent> = cursor_events
         .moves
         .iter()
         .filter(finite)
@@ -1041,7 +1041,7 @@ impl ZoomTransformTimeline {
 
 #[cfg(test)]
 mod tests {
-    use cap_project::{
+    use scrinx_project::{
         BackgroundConfiguration, ClipTransition, ClipTransitionType, CursorClickEvent,
         CursorMoveEvent, GlideDirection, StyleOverrides, StyleSegment, TimelineSegment, ZoomMode,
     };

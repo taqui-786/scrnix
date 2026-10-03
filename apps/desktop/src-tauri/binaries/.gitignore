@@ -1,4 +1,7 @@
 cap-muxer-*
 cap-exporter-*
 cap-*
+scrinx-muxer-*
+scrinx-exporter-*
+scrinx-*
 !.gitignore

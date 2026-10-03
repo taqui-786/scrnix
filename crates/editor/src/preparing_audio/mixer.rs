@@ -1,10 +1,10 @@
 use crate::SegmentAudioTimingRepair;
-use cap_audio::{
+use scrinx_audio::{
     AudioData, AudioRendererTrack, AudioSampleSource, AudioSampleWindow, AudioWindowRead,
     ProgressiveAudio, VOICE_PROFILE_SAMPLES, VOICE_WINDOW_PADDING_SAMPLES, VoiceEnhancer,
     VoiceProfile, VoiceSource,
 };
-use cap_project::ProjectConfiguration;
+use scrinx_project::ProjectConfiguration;
 use std::{ops::Range, sync::Arc};
 
 const RATE: f64 = AudioData::SAMPLE_RATE as f64;
@@ -408,18 +408,24 @@ impl PreparingAudioMixer {
                         },
                         stereo_mode: if track == 0 {
                             match audio.mic_stereo_mode {
-                                cap_project::StereoMode::Stereo => cap_audio::StereoMode::Stereo,
-                                cap_project::StereoMode::MonoL => cap_audio::StereoMode::MonoL,
-                                cap_project::StereoMode::MonoR => cap_audio::StereoMode::MonoR,
+                                scrinx_project::StereoMode::Stereo => {
+                                    scrinx_audio::StereoMode::Stereo
+                                }
+                                scrinx_project::StereoMode::MonoL => {
+                                    scrinx_audio::StereoMode::MonoL
+                                }
+                                scrinx_project::StereoMode::MonoR => {
+                                    scrinx_audio::StereoMode::MonoR
+                                }
                             }
                         } else {
-                            cap_audio::StereoMode::Stereo
+                            scrinx_audio::StereoMode::Stereo
                         },
                         offset: self.clips[span.clip].offsets[track],
                     })
                 })
                 .collect::<Vec<_>>();
-            cap_audio::render_audio(
+            scrinx_audio::render_audio(
                 &tracks,
                 span.local,
                 span.frames,
@@ -441,8 +447,8 @@ impl PreparingAudioMixer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cap_audio::{AudioChunk, DecodedAudio, ProgressiveAudioTestProducer};
-    use cap_project::{ClipConfiguration, TimelineConfiguration, TimelineSegment};
+    use scrinx_audio::{AudioChunk, DecodedAudio, ProgressiveAudioTestProducer};
+    use scrinx_project::{ClipConfiguration, TimelineConfiguration, TimelineSegment};
 
     fn audio(frames: usize, channels: u16, seed: usize) -> Arc<AudioData> {
         Arc::new(AudioData::from_raw_f32(
@@ -557,9 +563,9 @@ mod tests {
     fn studio_sound_pending_and_completed_audio_match_all_tiers() {
         ffmpeg::init().unwrap();
         for isolation in [
-            cap_project::VoiceIsolation::Light,
-            cap_project::VoiceIsolation::Balanced,
-            cap_project::VoiceIsolation::Strong,
+            scrinx_project::VoiceIsolation::Light,
+            scrinx_project::VoiceIsolation::Balanced,
+            scrinx_project::VoiceIsolation::Strong,
         ] {
             let mic = audio(VOICE_PROFILE_SAMPLES + 32_768, 1, 17);
             let (loader, producer) = ProgressiveAudioTestProducer::new();
@@ -598,9 +604,9 @@ mod tests {
     fn pending_blocks_match_ordinary_offset_gain_stereo_and_mute_mixing() {
         for channels in [1, 2] {
             for mode in [
-                cap_project::StereoMode::Stereo,
-                cap_project::StereoMode::MonoL,
-                cap_project::StereoMode::MonoR,
+                scrinx_project::StereoMode::Stereo,
+                scrinx_project::StereoMode::MonoL,
+                scrinx_project::StereoMode::MonoR,
             ] {
                 for mute in [false, true] {
                     let mic = audio(65_536, channels, 17);

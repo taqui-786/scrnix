@@ -16,11 +16,11 @@ fn main() {
 #[cfg(target_os = "macos")]
 #[tokio::main]
 async fn main() {
-    use cap_enc_ffmpeg::remux::{concatenate_m4s_segments_with_init, probe_video_can_decode};
-    use cap_recording::{
+    use scap_targets::bounds::{LogicalBounds, LogicalPosition, LogicalSize};
+    use scrinx_enc_ffmpeg::remux::{concatenate_m4s_segments_with_init, probe_video_can_decode};
+    use scrinx_recording::{
         SendableShareableContent, instant_recording, sources::screen_capture::ScreenCaptureTarget,
     };
-    use scap_targets::bounds::{LogicalBounds, LogicalPosition, LogicalSize};
     use std::{path::PathBuf, time::Duration};
 
     tracing_subscriber::fmt()

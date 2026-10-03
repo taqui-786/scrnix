@@ -5,13 +5,13 @@ use super::{
 };
 use crate::studio_recording::{CleanStoppedStudio, CleanStoppedStudioClaim, CompletedRecording};
 use anyhow::{Context, Result, bail, ensure};
-use cap_audio::{AudioStream, ChunkRead};
-use cap_enc_ffmpeg::RelocatableSource;
-use cap_project::{
+use scrinx_audio::{AudioStream, ChunkRead};
+use scrinx_enc_ffmpeg::RelocatableSource;
+use scrinx_project::{
     Cursors, MultipleSegment, ProjectConfiguration, RecordingMeta, RecordingMetaInner,
     StudioRecordingMeta,
 };
-use cap_rendering::decoder::{
+use scrinx_rendering::decoder::{
     DecodedFrame, ManagedVideoDecoder, PixelFormat, spawn_managed_decoder,
 };
 use serde::{Deserialize, Serialize};

@@ -1,5 +1,5 @@
-use cap_media_info::RawVideoFormat;
 use ffmpeg::{format, frame};
+use scrinx_media_info::RawVideoFormat;
 use std::{path::PathBuf, time::Duration};
 use tracing::*;
 

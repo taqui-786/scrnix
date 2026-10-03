@@ -21,11 +21,11 @@ async fn main() {
     use std::time::Duration;
     use std::{fs, process};
 
-    use cap_recording::screen_capture::ScreenCaptureTarget;
-    use cap_recording::studio_recording;
     use scap_targets::Display;
+    use scrinx_recording::screen_capture::ScreenCaptureTarget;
+    use scrinx_recording::studio_recording;
 
-    unsafe { std::env::set_var("RUST_LOG", "info,cap_recording=debug") };
+    unsafe { std::env::set_var("RUST_LOG", "info,scrinx_recording=debug") };
     tracing_subscriber::fmt::init();
 
     let fail = |msg: String| -> ! {

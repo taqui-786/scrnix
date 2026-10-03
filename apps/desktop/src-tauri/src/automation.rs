@@ -1,12 +1,12 @@
-use cap_automation::{
+#[cfg(not(target_os = "linux"))]
+use clipboard_rs::Clipboard;
+use clipboard_rs::common::RustImage;
+use scrinx_automation::{
     AutomationExportCompression, AutomationHost, AutomationRecordingMode, AutomationsStore,
     Capability, CaptureTargetKind, ClipboardSource, ExportDestination, ExportFormat, ExportProfile,
     Trigger, TriggerContext, sanitize_filename_component,
 };
-use cap_recording::sources::screen_capture::ScreenCaptureTarget;
-#[cfg(not(target_os = "linux"))]
-use clipboard_rs::Clipboard;
-use clipboard_rs::common::RustImage;
+use scrinx_recording::sources::screen_capture::ScreenCaptureTarget;
 use serde_json::json;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -193,7 +193,7 @@ impl AutomationHost for DesktopAutomationHost {
             }
         };
 
-        let mut builder = cap_export::ExporterBase::builder(project_path.clone());
+        let mut builder = scrinx_export::ExporterBase::builder(project_path.clone());
 
         if let Some(ref out) = output_path {
             builder = builder.with_output_path(out.clone());
@@ -332,7 +332,7 @@ impl AutomationHost for DesktopAutomationHost {
         info!(program, "Automation: running command");
 
         let mut cmd = if use_shell {
-            let shell_line = cap_automation::shell_command_line(program, args);
+            let shell_line = scrinx_automation::shell_command_line(program, args);
 
             #[cfg(target_os = "windows")]
             let mut c = tokio::process::Command::new("cmd");
@@ -528,7 +528,7 @@ impl AutomationHost for DesktopAutomationHost {
 
         info!(preset = name, project = %project_path.display(), "Automation: applying preset");
 
-        let existing_timeline = cap_project::ProjectConfiguration::load(project_path)
+        let existing_timeline = scrinx_project::ProjectConfiguration::load(project_path)
             .ok()
             .and_then(|c| c.timeline);
 
@@ -595,16 +595,16 @@ fn build_desktop_export_settings(profile: &ExportProfile) -> crate::export::Expo
     let compression = profile
         .compression
         .map(|c| match c {
-            AutomationExportCompression::Maximum => cap_export::mp4::ExportCompression::Maximum,
-            AutomationExportCompression::Social => cap_export::mp4::ExportCompression::Social,
-            AutomationExportCompression::Web => cap_export::mp4::ExportCompression::Web,
-            AutomationExportCompression::Potato => cap_export::mp4::ExportCompression::Potato,
+            AutomationExportCompression::Maximum => scrinx_export::mp4::ExportCompression::Maximum,
+            AutomationExportCompression::Social => scrinx_export::mp4::ExportCompression::Social,
+            AutomationExportCompression::Web => scrinx_export::mp4::ExportCompression::Web,
+            AutomationExportCompression::Potato => scrinx_export::mp4::ExportCompression::Potato,
         })
-        .unwrap_or(cap_export::mp4::ExportCompression::Web);
+        .unwrap_or(scrinx_export::mp4::ExportCompression::Web);
 
     match profile.format {
         ExportFormat::Mp4 => {
-            crate::export::ExportSettings::Mp4(cap_export::mp4::Mp4ExportSettings {
+            crate::export::ExportSettings::Mp4(scrinx_export::mp4::Mp4ExportSettings {
                 fps: profile.fps,
                 resolution_base: profile.resolution_base,
                 compression,
@@ -614,14 +614,14 @@ fn build_desktop_export_settings(profile: &ExportProfile) -> crate::export::Expo
             })
         }
         ExportFormat::Gif => {
-            crate::export::ExportSettings::Gif(cap_export::gif::GifExportSettings {
+            crate::export::ExportSettings::Gif(scrinx_export::gif::GifExportSettings {
                 fps: profile.fps,
                 resolution_base: profile.resolution_base,
                 quality: None,
             })
         }
         ExportFormat::Mov => {
-            crate::export::ExportSettings::Mov(cap_export::mov::MovExportSettings {
+            crate::export::ExportSettings::Mov(scrinx_export::mov::MovExportSettings {
                 fps: profile.fps,
                 resolution_base: profile.resolution_base,
                 cursor_only: false,
@@ -694,7 +694,7 @@ pub async fn run_trigger(app: &AppHandle, trigger: Trigger, ctx: TriggerContext)
         return;
     };
 
-    let results = cap_automation::run(&host, &store, &trigger, &ctx).await;
+    let results = scrinx_automation::run(&host, &store, &trigger, &ctx).await;
     for result in &results {
         for action in &result.action_results {
             if let Some(error) = &action.error {
@@ -726,7 +726,7 @@ pub fn should_open_screenshot_editor(app: &AppHandle, target: &ScreenCaptureTarg
         ctx = ctx.with_window_title(title);
     }
 
-    !cap_automation::has_skip_editor(&store, &Trigger::ScreenshotTaken, &ctx)
+    !scrinx_automation::has_skip_editor(&store, &Trigger::ScreenshotTaken, &ctx)
 }
 
 // `None` means a matching `SkipEditor` rule asked for a headless flow, so the caller must suppress
@@ -749,9 +749,9 @@ pub fn studio_recording_editor_behaviour(
         ctx = ctx.with_duration(duration_secs);
     }
 
-    if cap_automation::has_skip_editor(&store, &Trigger::StudioRecordingFinished, &ctx) {
+    if scrinx_automation::has_skip_editor(&store, &Trigger::StudioRecordingFinished, &ctx) {
         None
-    } else if cap_automation::has_open_editor(&store, &Trigger::StudioRecordingFinished, &ctx) {
+    } else if scrinx_automation::has_open_editor(&store, &Trigger::StudioRecordingFinished, &ctx) {
         Some(PostStudioRecordingBehaviour::OpenEditor)
     } else {
         Some(default)

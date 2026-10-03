@@ -1,8 +1,8 @@
 use std::{cell::RefCell, collections::VecDeque};
 
-use cap_camera::CapturedFrame;
-use cap_camera_windows::PixelFormat;
 use ffmpeg::{Packet, format::Pixel, frame::Video as FFVideo};
+use scrinx_camera::CapturedFrame;
+use scrinx_camera_windows::PixelFormat;
 
 use crate::CapturedFrameExt;
 

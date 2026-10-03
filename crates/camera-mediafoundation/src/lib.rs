@@ -1,8 +1,8 @@
 #![cfg(windows)]
 #![allow(non_snake_case)]
 
-use cap_mediafoundation_utils::*;
 use parking_lot::Mutex;
+use scrinx_mediafoundation_utils::*;
 use std::{
     ffi::OsString,
     fmt::Display,

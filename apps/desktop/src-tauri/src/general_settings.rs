@@ -61,17 +61,17 @@ impl Default for StudioRecordingQuality {
     }
 }
 
-impl From<cap_recording::StudioQuality> for StudioRecordingQuality {
-    fn from(value: cap_recording::StudioQuality) -> Self {
+impl From<scrinx_recording::StudioQuality> for StudioRecordingQuality {
+    fn from(value: scrinx_recording::StudioQuality) -> Self {
         match value {
-            cap_recording::StudioQuality::Compatibility => Self::Compatibility,
-            cap_recording::StudioQuality::Balanced => Self::Balanced,
-            cap_recording::StudioQuality::Ultra => Self::Ultra,
+            scrinx_recording::StudioQuality::Compatibility => Self::Compatibility,
+            scrinx_recording::StudioQuality::Balanced => Self::Balanced,
+            scrinx_recording::StudioQuality::Ultra => Self::Ultra,
         }
     }
 }
 
-impl From<StudioRecordingQuality> for cap_recording::StudioQuality {
+impl From<StudioRecordingQuality> for scrinx_recording::StudioQuality {
     fn from(value: StudioRecordingQuality) -> Self {
         match value {
             StudioRecordingQuality::Compatibility => Self::Compatibility,
@@ -82,7 +82,7 @@ impl From<StudioRecordingQuality> for cap_recording::StudioQuality {
 }
 
 pub fn default_studio_recording_quality() -> StudioRecordingQuality {
-    cap_recording::default_studio_recording_quality().into()
+    scrinx_recording::default_studio_recording_quality().into()
 }
 
 impl MainWindowRecordingStartBehaviour {
@@ -279,23 +279,23 @@ fn default_true() -> bool {
 }
 
 fn default_instant_mode_max_resolution() -> u32 {
-    cap_recording::DEFAULT_INSTANT_MODE_MAX_RESOLUTION
+    scrinx_recording::DEFAULT_INSTANT_MODE_MAX_RESOLUTION
 }
 
 fn default_max_fps() -> u32 {
-    cap_recording::DEFAULT_STUDIO_MAX_FPS
+    scrinx_recording::DEFAULT_STUDIO_MAX_FPS
 }
 
 fn default_custom_cursor_capture() -> bool {
-    cap_recording::DEFAULT_CUSTOM_CURSOR_CAPTURE
+    scrinx_recording::DEFAULT_CUSTOM_CURSOR_CAPTURE
 }
 
 fn default_capture_keyboard_events() -> bool {
-    cap_recording::DEFAULT_CAPTURE_KEYBOARD_EVENTS
+    scrinx_recording::DEFAULT_CAPTURE_KEYBOARD_EVENTS
 }
 
 fn default_crash_recovery_recording() -> bool {
-    cap_recording::DEFAULT_CRASH_RECOVERY_RECORDING
+    scrinx_recording::DEFAULT_CRASH_RECOVERY_RECORDING
 }
 
 fn default_transcription_hints() -> Vec<String> {
@@ -338,7 +338,7 @@ impl Default for GeneralSettingsStore {
             window_transparency: false,
             post_studio_recording_behaviour: PostStudioRecordingBehaviour::OpenEditor,
             main_window_recording_start_behaviour: MainWindowRecordingStartBehaviour::Close,
-            custom_cursor_capture: cap_recording::DEFAULT_CUSTOM_CURSOR_CAPTURE,
+            custom_cursor_capture: scrinx_recording::DEFAULT_CUSTOM_CURSOR_CAPTURE,
             server_url: default_server_url(),
             recording_countdown: Some(3),
             enable_native_camera_preview: default_enable_native_camera_preview(),
@@ -347,14 +347,14 @@ impl Default for GeneralSettingsStore {
             auto_zoom_on_clicks: true,
             default_zoom_amount: None,
             macbook_notch_overlay: None,
-            capture_keyboard_events: cap_recording::DEFAULT_CAPTURE_KEYBOARD_EVENTS,
+            capture_keyboard_events: scrinx_recording::DEFAULT_CAPTURE_KEYBOARD_EVENTS,
             post_deletion_behaviour: PostDeletionBehaviour::DoNothing,
             excluded_windows: default_excluded_windows(),
             delete_instant_recordings_after_upload: false,
-            instant_mode_max_resolution: cap_recording::DEFAULT_INSTANT_MODE_MAX_RESOLUTION,
+            instant_mode_max_resolution: scrinx_recording::DEFAULT_INSTANT_MODE_MAX_RESOLUTION,
             default_project_name_template: None,
-            crash_recovery_recording: cap_recording::DEFAULT_CRASH_RECOVERY_RECORDING,
-            max_fps: cap_recording::DEFAULT_STUDIO_MAX_FPS,
+            crash_recovery_recording: scrinx_recording::DEFAULT_CRASH_RECOVERY_RECORDING,
+            max_fps: scrinx_recording::DEFAULT_STUDIO_MAX_FPS,
             transcription_hints: default_transcription_hints(),
             editor_preview_quality: EditorPreviewQuality::Half,
             studio_recording_quality: default_studio_recording_quality(),
@@ -363,7 +363,7 @@ impl Default for GeneralSettingsStore {
             camera_window_positions_by_monitor_name: BTreeMap::new(),
             has_completed_onboarding: false,
             enable_telemetry: true,
-            out_of_process_muxer: cap_recording::DEFAULT_OUT_OF_PROCESS_MUXER,
+            out_of_process_muxer: scrinx_recording::DEFAULT_OUT_OF_PROCESS_MUXER,
             recordings_path: None,
             previous_recordings_paths: Vec::new(),
             camera_blur_disabled_by_crash: None,
@@ -720,7 +720,7 @@ pub fn init(app: &AppHandle) {
 }
 
 fn register_bundled_muxer_binary(_app: &AppHandle) {
-    if std::env::var_os(cap_recording::oop_muxer::ENV_BIN_PATH).is_some() {
+    if std::env::var_os(scrinx_recording::oop_muxer::ENV_BIN_PATH).is_some() {
         return;
     }
 
@@ -729,18 +729,18 @@ fn register_bundled_muxer_binary(_app: &AppHandle) {
     {
         let candidate = dir.join(bundled_muxer_bin_name());
         if candidate.is_file() {
-            match cap_recording::oop_muxer::set_muxer_binary_override(candidate.clone()) {
+            match scrinx_recording::oop_muxer::set_muxer_binary_override(candidate.clone()) {
                 Ok(()) => {
                     tracing::info!(
                         path = %candidate.display(),
-                        "Registered executable-adjacent cap-muxer binary for out-of-process muxer"
+                        "Registered executable-adjacent scrinx-muxer binary for out-of-process muxer"
                     );
                 }
                 Err(existing) => {
                     tracing::debug!(
                         existing = %existing.display(),
                         candidate = %candidate.display(),
-                        "cap-muxer override already registered; keeping existing"
+                        "scrinx-muxer override already registered; keeping existing"
                     );
                 }
             }
@@ -750,9 +750,9 @@ fn register_bundled_muxer_binary(_app: &AppHandle) {
 
 fn bundled_muxer_bin_name() -> &'static str {
     if cfg!(windows) {
-        "cap-muxer.exe"
+        "scrinx-muxer.exe"
     } else {
-        "cap-muxer"
+        "scrinx-muxer"
     }
 }
 
@@ -821,7 +821,7 @@ mod tests {
                         assert_eq!(saved[key], original[key], "{key}");
                     }
                     assert_eq!(saved["theme"], "system");
-                    assert_eq!(saved["maxFps"], cap_recording::DEFAULT_STUDIO_MAX_FPS);
+                    assert_eq!(saved["maxFps"], scrinx_recording::DEFAULT_STUDIO_MAX_FPS);
                     assert!(serde_json::from_value::<GeneralSettingsStore>(saved).is_ok());
                     Ok(())
                 },

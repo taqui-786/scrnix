@@ -424,7 +424,7 @@ async fn screen_capture_kit_check(permissions: &Permissions) -> Check {
     }
 }
 
-fn install_check(install: &Result<cap_cli_install::CliInstallStatus, String>) -> Check {
+fn install_check(install: &Result<scrinx_cli_install::CliInstallStatus, String>) -> Check {
     match install {
         Ok(status) if status.installed && status.on_path => Check {
             id: CheckId::CliInstall,
@@ -494,7 +494,7 @@ pub struct Doctor {
     pub version: VersionInfo,
     pub permissions: Permissions,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub install: Option<cap_cli_install::CliInstallStatus>,
+    pub install: Option<scrinx_cli_install::CliInstallStatus>,
     pub checks: Vec<Check>,
     /// Automation rules shared with Cap Desktop that the CLI honors after capture/upload.
     pub automations: AutomationsInfo,
@@ -541,7 +541,7 @@ fn distribution_label(distribution: Distribution) -> &'static str {
 pub async fn run_doctor(format: OutputFormat) -> Result<(), String> {
     let version = VersionInfo::collect();
     let permissions = permissions();
-    let install = cap_cli_install::status();
+    let install = scrinx_cli_install::status();
 
     let mut checks = vec![ffmpeg_check(), permission_check(&permissions)];
 

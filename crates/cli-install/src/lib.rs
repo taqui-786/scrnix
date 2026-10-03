@@ -16,19 +16,19 @@ use std::{
 #[cfg(unix)]
 pub mod appimage;
 
-const CAP_DIR_NAME: &str = ".cap";
+const CAP_DIR_NAME: &str = ".scrinx";
 const BIN_DIR_NAME: &str = "bin";
-const CLI_BINARY_STEM: &str = "cap-cli";
+const CLI_BINARY_STEM: &str = "scrinx-cli";
 
 #[cfg(windows)]
-const SHIM_NAME: &str = "cap.cmd";
+const SHIM_NAME: &str = "scrinx.cmd";
 #[cfg(not(windows))]
-const SHIM_NAME: &str = "cap";
+const SHIM_NAME: &str = "scrinx";
 
 #[cfg(windows)]
-const CLI_BINARY_NAME: &str = "cap-cli.exe";
+const CLI_BINARY_NAME: &str = "scrinx-cli.exe";
 #[cfg(not(windows))]
-const CLI_BINARY_NAME: &str = "cap-cli";
+const CLI_BINARY_NAME: &str = "scrinx-cli";
 
 #[derive(Clone, Serialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
@@ -187,7 +187,7 @@ fn current_target_triple() -> Option<&'static str> {
 
 #[cfg(unix)]
 fn cli_binary_file_name_is_cap_managed(name: &OsStr) -> bool {
-    if name == CLI_BINARY_NAME {
+    if name == CLI_BINARY_NAME || name == "cap-cli" {
         return true;
     }
 
@@ -197,6 +197,7 @@ fn cli_binary_file_name_is_cap_managed(name: &OsStr) -> bool {
 
     current_target_triple().is_some_and(|target_triple| {
         name.eq_ignore_ascii_case(&target_specific_cli_binary_name(target_triple))
+            || name.eq_ignore_ascii_case(&format!("cap-cli-{target_triple}"))
     })
 }
 
@@ -321,7 +322,10 @@ fn windows_path_file_name(path: &[u8]) -> &[u8] {
 
 #[cfg(any(windows, test))]
 fn windows_cli_binary_file_name_is_cap_managed(name: &[u8]) -> bool {
-    name.eq_ignore_ascii_case(b"cap-cli.exe")
+    name.eq_ignore_ascii_case(b"scrinx-cli.exe")
+        || name.eq_ignore_ascii_case(b"scrinx-cli-x86_64-pc-windows-msvc.exe")
+        || name.eq_ignore_ascii_case(b"scrinx-cli-aarch64-pc-windows-msvc.exe")
+        || name.eq_ignore_ascii_case(b"cap-cli.exe")
         || name.eq_ignore_ascii_case(b"cap-cli-x86_64-pc-windows-msvc.exe")
         || name.eq_ignore_ascii_case(b"cap-cli-aarch64-pc-windows-msvc.exe")
 }
@@ -791,8 +795,10 @@ mod tests {
         let dir = Path::new("/Applications/Cap.app/Contents/MacOS");
         let candidates = cli_binary_candidates_for_triple(dir, Some("x86_64-pc-windows-msvc"));
 
-        assert!(candidates.contains(&dir.join("cap-cli-x86_64-pc-windows-msvc.exe")));
-        assert!(candidates.contains(&dir.join("../Resources/cap-cli-x86_64-pc-windows-msvc.exe")));
+        assert!(candidates.contains(&dir.join("scrinx-cli-x86_64-pc-windows-msvc.exe")));
+        assert!(
+            candidates.contains(&dir.join("../Resources/scrinx-cli-x86_64-pc-windows-msvc.exe"))
+        );
     }
 
     #[test]

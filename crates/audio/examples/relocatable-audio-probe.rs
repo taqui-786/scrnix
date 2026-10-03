@@ -1,5 +1,5 @@
-use cap_audio::{AudioData, AudioStream, ChunkRead};
-use cap_enc_ffmpeg::RelocatableSource;
+use scrinx_audio::{AudioData, AudioStream, ChunkRead};
+use scrinx_enc_ffmpeg::RelocatableSource;
 use std::{
     error::Error,
     fs, io,

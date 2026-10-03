@@ -19,7 +19,7 @@ import {
 } from "solid-js";
 import { Toaster } from "solid-toast";
 
-import "@cap/ui-solid/main.css";
+import "@scrinx/ui-solid/main.css";
 import "unfonts.css";
 import "./styles/theme.css";
 

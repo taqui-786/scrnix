@@ -1,11 +1,11 @@
-use cap_export::{
+use chrono::{Local, Utc};
+use clap::{Parser, Subcommand};
+use scrinx_export::{
     ExporterBase,
     gif::GifExportSettings,
     mp4::{ExportCompression, Mp4ExportSettings},
 };
-use cap_project::XY;
-use chrono::{Local, Utc};
-use clap::{Parser, Subcommand};
+use scrinx_project::XY;
 use std::{
     fs,
     io::Write,

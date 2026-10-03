@@ -38,7 +38,7 @@ const metadata = runCommand(
 const workspace = JSON.parse(metadata.stdout);
 const targetDirectory = workspace.target_directory;
 const version = workspace.packages.find(
-	(pkg) => pkg.name === "cap-desktop",
+	(pkg) => pkg.name === "scrinx-desktop",
 )?.version;
 if (!version) throw new Error("Desktop version is missing from Cargo metadata");
 const bundles = supportedLinuxBundles(version).join(",");

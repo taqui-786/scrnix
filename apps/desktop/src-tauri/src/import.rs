@@ -1,16 +1,3 @@
-use cap_enc_ffmpeg::{
-    AudioEncoder,
-    h264::{H264EncoderBuilder, H264Preset},
-    opus::OpusEncoder,
-    remux::{get_media_duration, probe_video_can_decode},
-};
-use cap_media_info::{AudioInfo, FFRational, Pixel, VideoInfo, ensure_even};
-use cap_project::{
-    AudioMeta, ClipConfiguration, CursorEvents, CursorMeta, Cursors, InstantRecordingMeta,
-    MultipleSegment, MultipleSegments, Platform, ProjectConfiguration, RecordingMeta,
-    RecordingMetaInner, SingleSegment, StudioRecordingMeta, StudioRecordingStatus,
-    TimelineConfiguration, TimelineSegment, VideoMeta, XY,
-};
 use ffmpeg::{
     ChannelLayout,
     codec::{self as avcodec},
@@ -18,6 +5,19 @@ use ffmpeg::{
 };
 use image::ImageEncoder;
 use relative_path::{Component as RelativeComponent, RelativePathBuf};
+use scrinx_enc_ffmpeg::{
+    AudioEncoder,
+    h264::{H264EncoderBuilder, H264Preset},
+    opus::OpusEncoder,
+    remux::{get_media_duration, probe_video_can_decode},
+};
+use scrinx_media_info::{AudioInfo, FFRational, Pixel, VideoInfo, ensure_even};
+use scrinx_project::{
+    AudioMeta, ClipConfiguration, CursorEvents, CursorMeta, Cursors, InstantRecordingMeta,
+    MultipleSegment, MultipleSegments, Platform, ProjectConfiguration, RecordingMeta,
+    RecordingMetaInner, SingleSegment, StudioRecordingMeta, StudioRecordingStatus,
+    TimelineConfiguration, TimelineSegment, VideoMeta, XY,
+};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::{
@@ -591,8 +591,10 @@ fn copy_keyboard_path(
     target_relative_dir: &str,
 ) -> Result<Option<RelativePathBuf>, String> {
     if let Some(source_relative_path) = &source_segment.keyboard {
-        let file_name =
-            relative_file_name(source_relative_path, cap_project::KEYBOARD_EVENTS_FILE_NAME);
+        let file_name = relative_file_name(
+            source_relative_path,
+            scrinx_project::KEYBOARD_EVENTS_FILE_NAME,
+        );
         let Some(source_path) = source_asset_path(
             &source_meta.project_path,
             source_relative_path,
@@ -617,8 +619,8 @@ fn copy_keyboard_path(
     };
 
     for file_name in [
-        cap_project::KEYBOARD_EVENTS_FILE_NAME,
-        cap_project::LEGACY_KEYBOARD_EVENTS_FILE_NAME,
+        scrinx_project::KEYBOARD_EVENTS_FILE_NAME,
+        scrinx_project::LEGACY_KEYBOARD_EVENTS_FILE_NAME,
     ] {
         let source_relative_path = display_dir.join(file_name);
         let Some(source_path) = source_asset_path(
@@ -1969,7 +1971,7 @@ pub async fn start_image_import(app: AppHandle, source_path: PathBuf) -> Result<
     let project_name = generate_image_project_name(&source_path);
     let filename = project_name.replace(":", ".");
     let filename = format!("{}.cap", sanitize_filename::sanitize(&filename));
-    let project_path = screenshots_dir.join(cap_utils::ensure_unique_filename(
+    let project_path = screenshots_dir.join(scrinx_utils::ensure_unique_filename(
         &filename,
         &screenshots_dir,
     )?);

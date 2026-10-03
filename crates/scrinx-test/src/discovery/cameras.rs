@@ -33,7 +33,7 @@ impl CameraFormat {
 }
 
 pub fn discover_cameras() -> Result<Vec<DiscoveredCamera>> {
-    use cap_camera::list_cameras;
+    use scrinx_camera::list_cameras;
 
     let mut result = Vec::new();
 

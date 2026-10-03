@@ -16,15 +16,15 @@ use std::{
     time::{Duration, Instant},
 };
 
-use cap_audio::{AudioData, FromSampleBytes};
-#[cfg(not(target_os = "windows"))]
-use cap_audio::{LatencyCorrectionConfig, LatencyCorrector, default_output_latency_hint};
-use cap_media_info::AudioInfo;
-use cap_project::ProjectConfiguration;
 use cpal::{
     SampleFormat,
     traits::{DeviceTrait, HostTrait, StreamTrait},
 };
+use scrinx_audio::{AudioData, FromSampleBytes};
+#[cfg(not(target_os = "windows"))]
+use scrinx_audio::{LatencyCorrectionConfig, LatencyCorrector, default_output_latency_hint};
+use scrinx_media_info::AudioInfo;
+use scrinx_project::ProjectConfiguration;
 use tokio::sync::watch;
 use tracing::{error, info};
 

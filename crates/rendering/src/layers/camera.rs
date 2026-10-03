@@ -1,4 +1,4 @@
-use cap_project::XY;
+use scrinx_project::XY;
 use std::sync::Arc;
 use wgpu::util::DeviceExt;
 
@@ -28,7 +28,7 @@ pub struct CameraLayer {
 #[derive(Clone, Copy)]
 struct BlurCacheEntry {
     recording_time: f32,
-    mode: cap_camera_effects::BlurMode,
+    mode: scrinx_camera_effects::BlurMode,
     texture_idx: usize,
     output_generation: u64,
 }
@@ -542,8 +542,8 @@ impl CameraLayer {
     pub fn attach_shared_blur(
         &mut self,
         device: &wgpu::Device,
-        processor: &cap_camera_effects::BlurProcessor,
-        mode: cap_camera_effects::BlurMode,
+        processor: &scrinx_camera_effects::BlurProcessor,
+        mode: scrinx_camera_effects::BlurMode,
     ) {
         if self.hidden || self.last_recording_time.is_none() {
             return;

@@ -1897,7 +1897,7 @@ mod tests {
         let value = client
             .mutate_json(
                 Method::POST,
-                "/caps/cap_test/comments",
+                "/caps/scrinx_test/comments",
                 &json!({"content":"ok"}),
             )
             .await
@@ -1938,7 +1938,7 @@ mod tests {
         let value = client
             .mutate_json(
                 Method::POST,
-                "/caps/cap_test/comments",
+                "/caps/scrinx_test/comments",
                 &json!({"content":"ok"}),
             )
             .await
@@ -1961,13 +1961,13 @@ mod tests {
         });
         let client = AgentClient::new(format!("http://{address}"), "token".to_string()).unwrap();
         client.access_grants.write().unwrap().insert(
-            "cap_test".to_string(),
+            "scrinx_test".to_string(),
             credentials::AgentAccessGrant {
                 value: "encrypted_access_grant".to_string(),
                 expires_at: chrono::Utc::now() + chrono::Duration::minutes(1),
             },
         );
-        client.get_json("/caps/cap_test/context").await.unwrap();
+        client.get_json("/caps/scrinx_test/context").await.unwrap();
         let request = server.await.unwrap();
         assert!(request.contains("x-cap-access-grant: encrypted_access_grant"));
         assert!(!request.contains("password"));

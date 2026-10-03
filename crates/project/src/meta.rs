@@ -598,7 +598,7 @@ pub struct CursorMeta {
     pub image_path: RelativePathBuf,
     pub hotspot: XY<f64>,
     #[serde(default)]
-    pub shape: Option<cap_cursor_info::CursorShape>,
+    pub shape: Option<scrinx_cursor_info::CursorShape>,
 }
 
 impl MultipleSegments {
@@ -611,11 +611,11 @@ impl MultipleSegments {
             Cursors::Correct(map) => map
                 .iter()
                 .filter_map(|(id, cursor)| match cursor.shape.as_ref() {
-                    Some(cap_cursor_info::CursorShape::MacOS(
-                        cap_cursor_info::CursorShapeMacOS::Arrow,
+                    Some(scrinx_cursor_info::CursorShape::MacOS(
+                        scrinx_cursor_info::CursorShapeMacOS::Arrow,
                     ))
-                    | Some(cap_cursor_info::CursorShape::Windows(
-                        cap_cursor_info::CursorShapeWindows::Arrow,
+                    | Some(scrinx_cursor_info::CursorShape::Windows(
+                        scrinx_cursor_info::CursorShapeWindows::Arrow,
                     )) => Some(id.clone()),
                     _ => None,
                 })

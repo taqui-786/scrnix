@@ -5,12 +5,12 @@ fn main() {
 
 #[cfg(target_os = "macos")]
 mod macos {
-    use cap_camera_avfoundation::{
-        CallbackOutputDelegate, CallbackOutputDelegateInner, YCbCrMatrix, list_video_devices,
-    };
     use cidre::*;
     use clap::{Parser, Subcommand};
     use inquire::Select;
+    use scrinx_camera_avfoundation::{
+        CallbackOutputDelegate, CallbackOutputDelegateInner, YCbCrMatrix, list_video_devices,
+    };
     use std::{fmt::Display, ops::Deref};
 
     #[derive(Parser)]

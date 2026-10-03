@@ -60,8 +60,8 @@ test("web development alias forwards both exclusion filters and extra arguments"
 		"an argument with spaces",
 	]);
 	assert.deepEqual(result.args, [
-		"--filter=!@cap/desktop",
-		"--filter=!@cap/mobile",
+		"--filter=!@scrinx/desktop",
+		"--filter=!@scrinx/mobile",
 		"--port",
 		"4321",
 		"an argument with spaces",

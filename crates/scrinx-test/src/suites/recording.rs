@@ -50,11 +50,11 @@ impl RecordingTestRunner {
     }
 
     async fn run_real_recording(&self) -> Result<RecordingMetrics> {
-        use cap_recording::{
-            CameraFeed, MicrophoneFeed, screen_capture::ScreenCaptureTarget, studio_recording,
-        };
         use kameo::Actor as _;
         use scap_targets::Display;
+        use scrinx_recording::{
+            CameraFeed, MicrophoneFeed, screen_capture::ScreenCaptureTarget, studio_recording,
+        };
 
         let temp_dir = TempDir::new()?;
         let output_path = temp_dir.path().to_path_buf();
@@ -89,7 +89,7 @@ impl RecordingTestRunner {
         let shareable_content = cidre::sc::ShareableContent::current()
             .await
             .context("Failed to get shareable content - check screen recording permissions")
-            .map(cap_recording::SendableShareableContent::from)?;
+            .map(scrinx_recording::SendableShareableContent::from)?;
 
         let (error_tx, _error_rx) = flume::bounded::<StreamError>(16);
 
@@ -97,7 +97,7 @@ impl RecordingTestRunner {
             if let Some((label, _, _)) = MicrophoneFeed::default_device() {
                 let mic_feed = MicrophoneFeed::spawn(MicrophoneFeed::new(error_tx.clone()));
                 mic_feed
-                    .ask(cap_recording::feeds::microphone::SetInput {
+                    .ask(scrinx_recording::feeds::microphone::SetInput {
                         label,
                         settings: None,
                     })
@@ -105,7 +105,9 @@ impl RecordingTestRunner {
                     .await?;
                 tokio::time::sleep(Duration::from_millis(100)).await;
                 Some(Arc::new(
-                    mic_feed.ask(cap_recording::feeds::microphone::Lock).await?,
+                    mic_feed
+                        .ask(scrinx_recording::feeds::microphone::Lock)
+                        .await?,
                 ))
             } else {
                 warn!("No microphone device found");
@@ -116,18 +118,22 @@ impl RecordingTestRunner {
         };
 
         let camera_lock = if let Some(ref _camera_config) = self.config.camera {
-            if let Some(camera_info) = cap_camera::list_cameras().next() {
+            if let Some(camera_info) = scrinx_camera::list_cameras().next() {
                 let camera_feed = CameraFeed::spawn(CameraFeed::default());
                 camera_feed
-                    .ask(cap_recording::feeds::camera::SetInput {
+                    .ask(scrinx_recording::feeds::camera::SetInput {
                         settings: None,
-                        id: cap_recording::feeds::camera::DeviceOrModelID::from_info(&camera_info),
+                        id: scrinx_recording::feeds::camera::DeviceOrModelID::from_info(
+                            &camera_info,
+                        ),
                     })
                     .await?
                     .await?;
                 tokio::time::sleep(Duration::from_millis(100)).await;
                 Some(Arc::new(
-                    camera_feed.ask(cap_recording::feeds::camera::Lock).await?,
+                    camera_feed
+                        .ask(scrinx_recording::feeds::camera::Lock)
+                        .await?,
                 ))
             } else {
                 warn!("No camera device found");

@@ -1,8 +1,4 @@
 use anyhow::Result;
-use cap_audio::{
-    AudioData, TranscriptionAudioSource, TranscriptionAudioTake, append_transcription_audio,
-};
-use cap_rendering::Video;
 use ffmpeg::{
     ChannelLayout, codec as avcodec,
     format::{self as avformat},
@@ -11,6 +7,10 @@ use ffmpeg::{
 use futures::StreamExt;
 #[cfg(not(all(target_os = "macos", target_arch = "x86_64")))]
 use parakeet_rs::{ParakeetTDT, TimestampMode, Transcriber};
+use scrinx_audio::{
+    AudioData, TranscriptionAudioSource, TranscriptionAudioTake, append_transcription_audio,
+};
+use scrinx_rendering::Video;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::collections::HashMap;
@@ -27,7 +27,7 @@ use tokio::sync::{Mutex, Notify};
 use tracing::instrument;
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
-pub use cap_project::{
+pub use scrinx_project::{
     CaptionSegment, CaptionSettings, CaptionWord, RecordingMeta, StudioRecordingMeta,
 };
 
@@ -328,25 +328,28 @@ async fn extract_audio_from_video(video_path: &str, output_path: &PathBuf) -> Re
                         .duration;
                         let offsets = segment.calculate_audio_offsets();
                         let mut sources = Vec::new();
-                        let mut push_source = |path: &cap_project::AudioMeta, offset_secs: f64| {
-                            let path = path.path.to_path(&base_path);
-                            if !path.exists() {
-                                return;
-                            }
-                            match AudioData::from_file(&path) {
-                                Ok(decoded) => {
-                                    any_audio = true;
-                                    sources.push(TranscriptionAudioSource {
-                                        samples: decoded.samples().to_vec(),
-                                        channels: decoded.channels() as usize,
-                                        offset_secs,
-                                    });
+                        let mut push_source =
+                            |path: &scrinx_project::AudioMeta, offset_secs: f64| {
+                                let path = path.path.to_path(&base_path);
+                                if !path.exists() {
+                                    return;
                                 }
-                                Err(error) => {
-                                    log::warn!("Failed to process audio source {path:?}: {error}")
+                                match AudioData::from_file(&path) {
+                                    Ok(decoded) => {
+                                        any_audio = true;
+                                        sources.push(TranscriptionAudioSource {
+                                            samples: decoded.samples().to_vec(),
+                                            channels: decoded.channels() as usize,
+                                            offset_secs,
+                                        });
+                                    }
+                                    Err(error) => {
+                                        log::warn!(
+                                            "Failed to process audio source {path:?}: {error}"
+                                        )
+                                    }
                                 }
-                            }
-                        };
+                            };
 
                         if let Some(system_audio) = &segment.system_audio {
                             push_source(system_audio, f64::from(offsets.system_audio));
@@ -718,7 +721,7 @@ fn lock_transcription_worker_slot() -> std::sync::MutexGuard<'static, ()> {
 }
 
 fn get_whisper_context_blocking(model_path: &str) -> Result<Arc<WhisperContext>, String> {
-    cap_utils::local_captions::ensure_whisper_cpu_support()?;
+    scrinx_utils::local_captions::ensure_whisper_cpu_support()?;
     let mut context_guard = WHISPER_CONTEXT.blocking_lock();
 
     if let Some(ref existing) = *context_guard
@@ -1214,7 +1217,7 @@ fn process_with_whisper(
 
     Ok(CaptionData {
         segments,
-        settings: Some(cap_project::CaptionSettings::default()),
+        settings: Some(scrinx_project::CaptionSettings::default()),
     })
 }
 
@@ -1263,7 +1266,7 @@ fn process_with_parakeet(
         model
     } else {
         tracing::info!("Loading Parakeet TDT model from: {model_dir}");
-        cap_camera_effects::initialize_onnx_runtime().map_err(|error| format!("{error:#}"))?;
+        scrinx_camera_effects::initialize_onnx_runtime().map_err(|error| format!("{error:#}"))?;
         let model = ParakeetTDT::from_pretrained(model_dir, None).map_err(|e| format!("{e}"))?;
         let loaded_model = Arc::new(std::sync::Mutex::new(model));
 
@@ -1338,7 +1341,7 @@ fn process_with_parakeet(
 
     Ok(CaptionData {
         segments,
-        settings: Some(cap_project::CaptionSettings::default()),
+        settings: Some(scrinx_project::CaptionSettings::default()),
     })
 }
 
@@ -1672,7 +1675,7 @@ pub async fn save_captions(
     Ok(())
 }
 
-pub fn parse_captions_json(json: &str) -> Result<cap_project::CaptionsData, String> {
+pub fn parse_captions_json(json: &str) -> Result<scrinx_project::CaptionsData, String> {
     match serde_json::from_str::<serde_json::Value>(json) {
         Ok(json_value) => {
             if let Some(segments_array) = json_value.get("segments").and_then(|v| v.as_array()) {
@@ -1693,7 +1696,7 @@ pub fn parse_captions_json(json: &str) -> Result<cap_project::CaptionsData, Stri
                                     word.get("start").and_then(|v| v.as_f64()),
                                     word.get("end").and_then(|v| v.as_f64()),
                                 ) {
-                                    words.push(cap_project::CaptionWord {
+                                    words.push(scrinx_project::CaptionWord {
                                         text: w_text.to_string(),
                                         start: w_start as f32,
                                         end: w_end as f32,
@@ -1701,7 +1704,7 @@ pub fn parse_captions_json(json: &str) -> Result<cap_project::CaptionsData, Stri
                                 }
                             }
                         }
-                        segments.push(cap_project::CaptionSegment {
+                        segments.push(scrinx_project::CaptionSegment {
                             id: id.to_string(),
                             start: start as f32,
                             end: end as f32,
@@ -1835,13 +1838,13 @@ pub fn parse_captions_json(json: &str) -> Result<cap_project::CaptionsData, Stri
                         .get("manualPosition")
                         .or_else(|| settings_obj.get("manual_position"))
                         .and_then(|value| {
-                            Some(cap_project::XY {
+                            Some(scrinx_project::XY {
                                 x: value.get("x")?.as_f64()? as f32,
                                 y: value.get("y")?.as_f64()? as f32,
                             })
                         });
 
-                    cap_project::CaptionSettings {
+                    scrinx_project::CaptionSettings {
                         enabled,
                         font,
                         size,
@@ -1866,10 +1869,10 @@ pub fn parse_captions_json(json: &str) -> Result<cap_project::CaptionsData, Stri
                         uppercase,
                     }
                 } else {
-                    cap_project::CaptionSettings::default()
+                    scrinx_project::CaptionSettings::default()
                 };
 
-                Ok(cap_project::CaptionsData {
+                Ok(scrinx_project::CaptionsData {
                     segments,
                     settings,
                     ..Default::default()

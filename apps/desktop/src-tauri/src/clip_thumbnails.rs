@@ -1,6 +1,6 @@
 use std::{path::Path, sync::LazyLock};
 
-use cap_project::{RecordingMetaInner, StudioRecordingMeta};
+use scrinx_project::{RecordingMetaInner, StudioRecordingMeta};
 use tokio::sync::Semaphore;
 
 use crate::editor_window::WindowEditorInstance;

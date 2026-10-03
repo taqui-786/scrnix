@@ -1,10 +1,10 @@
 use std::sync::Arc;
 use std::time::Instant;
 
-use cap_project::{ClipTransitionType, CursorEvents, ProjectConfiguration};
+use scrinx_project::{ClipTransitionType, CursorEvents, ProjectConfiguration};
 #[cfg(target_os = "macos")]
-use cap_rendering::SurfaceFrame;
-use cap_rendering::{
+use scrinx_rendering::SurfaceFrame;
+use scrinx_rendering::{
     DecodedSegmentFrames, FrameLayout, FrameRenderStageTimings, FrameRenderer, Nv12RenderedFrame,
     ProjectUniforms, RenderVideoConstants, RenderedFrame, RendererLayers, TransitionRenderInput,
 };

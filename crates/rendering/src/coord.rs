@@ -1,6 +1,6 @@
 use std::ops::{Add, Deref, Mul, Sub, SubAssign};
 
-use cap_project::{ProjectConfiguration, XY};
+use scrinx_project::{ProjectConfiguration, XY};
 
 use crate::{ProjectUniforms, RenderOptions, zoom::InterpolatedZoom};
 

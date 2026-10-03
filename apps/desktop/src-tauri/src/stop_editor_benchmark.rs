@@ -225,7 +225,7 @@ async fn measure(
         crate::recording::StartRecordingInputs {
             capture_target,
             capture_system_audio: config.system_audio,
-            mode: cap_recording::RecordingMode::Studio,
+            mode: scrinx_recording::RecordingMode::Studio,
             organization_id: None,
         },
     )
@@ -279,8 +279,8 @@ async fn measure(
 
 fn benchmark_capture_target(
     fixture_window: bool,
-) -> Result<cap_recording::screen_capture::ScreenCaptureTarget, String> {
-    use cap_recording::screen_capture::ScreenCaptureTarget;
+) -> Result<scrinx_recording::screen_capture::ScreenCaptureTarget, String> {
+    use scrinx_recording::screen_capture::ScreenCaptureTarget;
     if !fixture_window {
         return Ok(ScreenCaptureTarget::Display {
             id: scap_targets::Display::primary().id(),
@@ -385,11 +385,15 @@ fn arm_frame_capture(app: &tauri::AppHandle, project: Option<&Path>) -> Result<(
         .map_err(|_| "Frame capture was already armed".to_string())
 }
 
-pub fn capture_output(kind: CaptureKind, project: &Path, output: &cap_editor::EditorFrameOutput) {
+pub fn capture_output(
+    kind: CaptureKind,
+    project: &Path,
+    output: &scrinx_editor::EditorFrameOutput,
+) {
     let Some(capture) = FRAME_CAPTURE.get() else {
         return;
     };
-    let cap_editor::EditorFrameOutput::Rgba(frame) = output else {
+    let scrinx_editor::EditorFrameOutput::Rgba(frame) = output else {
         return;
     };
     capture

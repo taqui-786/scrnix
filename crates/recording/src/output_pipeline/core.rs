@@ -1,8 +1,6 @@
 use super::start_gate::{AudioAdmission, RecordingStartGate};
 use crate::sources::audio_mixer::AudioMixer;
 use anyhow::{Context, anyhow};
-use cap_media_info::{AudioInfo, VideoInfo};
-use cap_timestamp::{MasterClock, SourceClockOutcome, SourceClockState, Timestamp, Timestamps};
 use futures::{
     FutureExt, SinkExt, StreamExt, TryFutureExt,
     channel::{mpsc, oneshot},
@@ -10,6 +8,8 @@ use futures::{
     lock::Mutex,
     stream::FuturesUnordered,
 };
+use scrinx_media_info::{AudioInfo, VideoInfo};
+use scrinx_timestamp::{MasterClock, SourceClockOutcome, SourceClockState, Timestamp, Timestamps};
 use std::{
     any::Any,
     future,
@@ -50,7 +50,7 @@ fn remap_video_timestamp(
     master_clock: &MasterClock,
     timestamp: Timestamp,
     frame_duration_ns: u64,
-) -> cap_timestamp::SourceClockRemap {
+) -> scrinx_timestamp::SourceClockRemap {
     #[cfg(target_os = "linux")]
     {
         // Nominal cadence snapping accumulates lag for slower continuous sources,
@@ -443,7 +443,7 @@ fn new_health_channel() -> (HealthSender, HealthReceiver) {
 }
 
 pub fn emit_health(tx: &HealthSender, event: PipelineHealthEvent) {
-    use cap_utils::operation_diagnostics::{Field, health_event};
+    use scrinx_utils::operation_diagnostics::{Field, health_event};
     match &event {
         PipelineHealthEvent::FrameDropRateHigh { rate_pct, .. } => health_event(
             0,
@@ -533,7 +533,7 @@ pub const DISK_SPACE_POLL_INTERVAL: Duration = Duration::from_secs(2);
 
 pub struct DiskSpaceMonitor {
     last_poll: Option<Instant>,
-    last_status: cap_utils::disk_space::DiskSpaceStatus,
+    last_status: scrinx_utils::disk_space::DiskSpaceStatus,
     stopped: bool,
 }
 
@@ -541,7 +541,7 @@ impl DiskSpaceMonitor {
     pub fn new() -> Self {
         Self {
             last_poll: None,
-            last_status: cap_utils::disk_space::DiskSpaceStatus::Ok,
+            last_status: scrinx_utils::disk_space::DiskSpaceStatus::Ok,
             stopped: false,
         }
     }
@@ -563,7 +563,7 @@ impl DiskSpaceMonitor {
         }
         self.last_poll = Some(now);
 
-        let bytes = match cap_utils::disk_space::free_bytes_for_path(path) {
+        let bytes = match scrinx_utils::disk_space::free_bytes_for_path(path) {
             Ok(bytes) => bytes,
             Err(err) => {
                 trace!(error = %err, path = %path.display(), "DiskSpaceMonitor: free_bytes_for_path failed");
@@ -571,30 +571,30 @@ impl DiskSpaceMonitor {
             }
         };
 
-        let status = cap_utils::disk_space::DiskSpaceStatus::from_bytes(bytes);
+        let status = scrinx_utils::disk_space::DiskSpaceStatus::from_bytes(bytes);
         let changed = status != self.last_status;
         self.last_status = status;
 
         match status {
-            cap_utils::disk_space::DiskSpaceStatus::Ok => DiskSpacePollResult::Ok,
-            cap_utils::disk_space::DiskSpaceStatus::Low => {
+            scrinx_utils::disk_space::DiskSpaceStatus::Ok => DiskSpacePollResult::Ok,
+            scrinx_utils::disk_space::DiskSpaceStatus::Low => {
                 if changed {
                     warn!(
                         bytes_remaining = bytes,
-                        warn_threshold_bytes = cap_utils::disk_space::LOW_DISK_WARN_BYTES,
+                        warn_threshold_bytes = scrinx_utils::disk_space::LOW_DISK_WARN_BYTES,
                         path = %path.display(),
                         "Disk space low"
                     );
                     health.emit(PipelineHealthEvent::DiskSpaceLow {
                         bytes_remaining: bytes,
-                        warn_threshold_bytes: cap_utils::disk_space::LOW_DISK_WARN_BYTES,
+                        warn_threshold_bytes: scrinx_utils::disk_space::LOW_DISK_WARN_BYTES,
                     });
                 }
                 DiskSpacePollResult::Low {
                     bytes_remaining: bytes,
                 }
             }
-            cap_utils::disk_space::DiskSpaceStatus::Exhausted => {
+            scrinx_utils::disk_space::DiskSpaceStatus::Exhausted => {
                 if changed {
                     error!(
                         bytes_remaining = bytes,
@@ -4086,7 +4086,7 @@ async fn setup_audio_sources(
             let stop_flag = stop_flag.clone();
             move || {
                 #[cfg(windows)]
-                let _mmcss = cap_mediafoundation_utils::MmcssAudioHandle::register_audio();
+                let _mmcss = scrinx_mediafoundation_utils::MmcssAudioHandle::register_audio();
                 let result = audio_mixer.run(audio_tx, ready_tx, stop_flag);
                 if let Some(scope) = required_scope {
                     if let Err(error) = &result {
@@ -6793,12 +6793,12 @@ mod tests {
         }
 
         fn test_video_info() -> VideoInfo {
-            VideoInfo::from_raw(cap_media_info::RawVideoFormat::Bgra, 16, 16, 30)
+            VideoInfo::from_raw(scrinx_media_info::RawVideoFormat::Bgra, 16, 16, 30)
         }
 
         fn test_audio_info() -> AudioInfo {
             AudioInfo::new_raw(
-                cap_media_info::Sample::F32(cap_media_info::Type::Packed),
+                scrinx_media_info::Sample::F32(scrinx_media_info::Type::Packed),
                 48_000,
                 2,
             )
@@ -7014,7 +7014,7 @@ mod tests {
             let sent = Arc::new(std::sync::Mutex::new(Vec::new()));
             let pipeline = OutputPipeline::builder(temp_dir.path().join("static.mp4"))
                 .with_video::<ChannelVideoSource<StaticFrame>>(ChannelVideoSourceConfig::new(
-                    VideoInfo::from_raw(cap_media_info::RawVideoFormat::Bgra, 16, 16, 30),
+                    VideoInfo::from_raw(scrinx_media_info::RawVideoFormat::Bgra, 16, 16, 30),
                     receiver,
                 ))
                 .with_timestamps(clock)
@@ -7045,7 +7045,7 @@ mod tests {
             let sent = Arc::new(std::sync::Mutex::new(Vec::new()));
             let pipeline = OutputPipeline::builder(temp_dir.path().join("primed.mp4"))
                 .with_video::<ChannelVideoSource<StaticFrame>>(ChannelVideoSourceConfig::new(
-                    VideoInfo::from_raw(cap_media_info::RawVideoFormat::Bgra, 16, 16, 30),
+                    VideoInfo::from_raw(scrinx_media_info::RawVideoFormat::Bgra, 16, 16, 30),
                     receiver,
                 ))
                 .with_timestamps(Timestamps::now())
@@ -7098,7 +7098,7 @@ mod tests {
             let sent = Arc::new(std::sync::Mutex::new(Vec::new()));
             let pipeline = OutputPipeline::builder(temp_dir.path().join("static-primed.mp4"))
                 .with_video::<ChannelVideoSource<StaticFrame>>(ChannelVideoSourceConfig::new(
-                    VideoInfo::from_raw(cap_media_info::RawVideoFormat::Bgra, 16, 16, 30),
+                    VideoInfo::from_raw(scrinx_media_info::RawVideoFormat::Bgra, 16, 16, 30),
                     receiver,
                 ))
                 .with_timestamps(Timestamps::now())
@@ -7444,7 +7444,7 @@ mod tests {
 
     mod video_start_gate {
         use super::*;
-        use cap_media_info::AudioInfo;
+        use scrinx_media_info::AudioInfo;
 
         const TEST_SAMPLE_RATE: u32 = 48_000;
         const TEST_CHANNELS: usize = 2;
@@ -8919,7 +8919,7 @@ mod build_scope_tests {
         }
 
         fn video_info(&self) -> VideoInfo {
-            VideoInfo::from_raw(cap_media_info::RawVideoFormat::Bgra, 16, 16, 30)
+            VideoInfo::from_raw(scrinx_media_info::RawVideoFormat::Bgra, 16, 16, 30)
         }
 
         fn start(&mut self) -> BoxFuture<'_, anyhow::Result<()>> {
@@ -8977,7 +8977,7 @@ mod build_scope_tests {
 
         fn audio_info(&self) -> AudioInfo {
             AudioInfo::new_raw(
-                cap_media_info::Sample::F32(cap_media_info::Type::Packed),
+                scrinx_media_info::Sample::F32(scrinx_media_info::Type::Packed),
                 48_000,
                 2,
             )

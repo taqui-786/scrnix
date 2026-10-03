@@ -1,8 +1,8 @@
 use std::path::{Path, PathBuf};
 
-use cap_project::RecordingMeta;
 use clap::Args;
 use reqwest::{Client, Method};
+use scrinx_project::RecordingMeta;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tokio_util::io::ReaderStream;

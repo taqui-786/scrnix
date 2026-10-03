@@ -4,8 +4,8 @@ use crate::{
     output_pipeline::{SetupCtx, StallSendOutcome, VideoSource, send_with_stall_budget_futures},
 };
 use anyhow::anyhow;
-use cap_media_info::VideoInfo;
 use futures::{FutureExt, channel::mpsc, future::BoxFuture};
+use scrinx_media_info::VideoInfo;
 use std::sync::{
     Arc,
     atomic::{AtomicBool, AtomicU64, Ordering},

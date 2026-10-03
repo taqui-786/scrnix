@@ -13,7 +13,7 @@
 //! height so the chrome keeps its proportions at any recording size.
 
 use crate::composite_frame::CompositeVideoFrameUniforms;
-use cap_project::{FrameStyle, FrameTheme, XY};
+use scrinx_project::{FrameStyle, FrameTheme, XY};
 use std::sync::{Arc, OnceLock};
 
 /// Everything the frame layer needs to draw the chrome for one frame:

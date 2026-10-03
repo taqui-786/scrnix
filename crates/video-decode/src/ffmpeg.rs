@@ -48,7 +48,7 @@ fn query_d3d11_video_decoder_capabilities() -> HwDecoderCapabilities {
     };
 
     let result: Result<HwDecoderCapabilities, String> = (|| {
-        let selected = cap_d3d_adapter::select_capture_adapter(None)?;
+        let selected = scrinx_d3d_adapter::select_capture_adapter(None)?;
 
         let mut device = None;
         unsafe {
@@ -191,7 +191,7 @@ pub struct FFmpegDecoder {
 
 enum DecoderInput {
     File(avformat::context::Input),
-    Segmented(cap_enc_ffmpeg::SegmentedInput),
+    Segmented(scrinx_enc_ffmpeg::SegmentedInput),
 }
 
 impl DecoderInput {
@@ -219,7 +219,7 @@ impl DecoderInput {
 
 enum DecoderPackets<'a> {
     File(PacketIter<'a>),
-    Segmented(&'a mut cap_enc_ffmpeg::SegmentedInput),
+    Segmented(&'a mut scrinx_enc_ffmpeg::SegmentedInput),
 }
 
 impl Iterator for DecoderPackets<'_> {
@@ -244,7 +244,7 @@ impl Iterator for DecoderPackets<'_> {
 
 pub fn open_fragmented_input(
     dir_path: &std::path::Path,
-) -> Result<cap_enc_ffmpeg::SegmentedInput, String> {
+) -> Result<scrinx_enc_ffmpeg::SegmentedInput, String> {
     let init_segment = dir_path.join("init.mp4");
     if !init_segment.exists() {
         return Err(format!(
@@ -265,7 +265,7 @@ pub fn open_fragmented_input(
             dir_path.display()
         ));
     }
-    cap_enc_ffmpeg::SegmentedInput::open(
+    scrinx_enc_ffmpeg::SegmentedInput::open(
         std::iter::once(init_segment.as_path()).chain(fragments.iter().map(PathBuf::as_path)),
     )
     .map_err(|error| format!("open fragmented video / {error}"))
@@ -290,22 +290,22 @@ impl FFmpegDecoder {
     }
 
     pub fn new_relocatable<'a>(
-        source: &cap_enc_ffmpeg::RelocatableSource,
+        source: &scrinx_enc_ffmpeg::RelocatableSource,
         paths: impl IntoIterator<Item = &'a Path>,
         hw_device_type: Option<AVHWDeviceType>,
     ) -> Result<Self, String> {
-        let input = cap_enc_ffmpeg::SegmentedInput::open_relocatable(source, paths)
+        let input = scrinx_enc_ffmpeg::SegmentedInput::open_relocatable(source, paths)
             .map_err(|error| format!("open relocatable video / {error}"))?;
         Self::from_input(DecoderInput::Segmented(input), hw_device_type)
     }
 
     pub fn new_relocatable_interruptible<'a>(
-        source: &cap_enc_ffmpeg::RelocatableSource,
+        source: &scrinx_enc_ffmpeg::RelocatableSource,
         paths: impl IntoIterator<Item = &'a Path>,
         hw_device_type: Option<AVHWDeviceType>,
         interrupt: Arc<dyn Fn() -> bool + Send + Sync>,
     ) -> Result<Self, String> {
-        let input = cap_enc_ffmpeg::SegmentedInput::open_relocatable_interruptible(
+        let input = scrinx_enc_ffmpeg::SegmentedInput::open_relocatable_interruptible(
             source, paths, interrupt,
         )
         .map_err(|error| format!("open relocatable video / {error}"))?;
@@ -472,15 +472,15 @@ impl<'a> Iterator for FramesIter<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cap_enc_ffmpeg::segmented_stream::{SegmentedVideoEncoder, SegmentedVideoEncoderConfig};
+    use scrinx_enc_ffmpeg::segmented_stream::{SegmentedVideoEncoder, SegmentedVideoEncoderConfig};
     use std::{fs::File, time::Duration};
 
     fn encode_segments(directory: &std::path::Path) {
         ffmpeg::init().unwrap();
         let mut encoder = SegmentedVideoEncoder::init(
             directory.to_path_buf(),
-            cap_media_info::VideoInfo {
-                pixel_format: cap_media_info::Pixel::NV12,
+            scrinx_media_info::VideoInfo {
+                pixel_format: scrinx_media_info::Pixel::NV12,
                 width: 160,
                 height: 120,
                 time_base: ffmpeg::Rational(1, 1_000_000),
@@ -583,7 +583,7 @@ mod tests {
         let expected_start = reference.start_time();
         drop(reference);
 
-        let source = cap_enc_ffmpeg::RelocatableSource::new(original.clone()).unwrap();
+        let source = scrinx_enc_ffmpeg::RelocatableSource::new(original.clone()).unwrap();
         let mut candidate =
             FFmpegDecoder::new_relocatable(&source, paths.iter().map(PathBuf::as_path), None)
                 .unwrap();
@@ -624,7 +624,7 @@ mod tests {
         let directory = tempfile::tempdir().unwrap();
         let original = directory.path().join("original");
         std::fs::create_dir(&original).unwrap();
-        let source = cap_enc_ffmpeg::RelocatableSource::new(original.clone()).unwrap();
+        let source = scrinx_enc_ffmpeg::RelocatableSource::new(original.clone()).unwrap();
         let interrupt: Arc<dyn Fn() -> bool + Send + Sync> = Arc::new(|| true);
         let owner = Arc::downgrade(&interrupt);
         let error = FFmpegDecoder::new_relocatable_interruptible(
@@ -651,7 +651,7 @@ mod tests {
         let original = directory.path().join("original");
         std::fs::create_dir(&original).unwrap();
         std::fs::write(original.join("part.m4s"), b"not parsed before cancellation").unwrap();
-        let source = cap_enc_ffmpeg::RelocatableSource::new(original.clone()).unwrap();
+        let source = scrinx_enc_ffmpeg::RelocatableSource::new(original.clone()).unwrap();
         let cancelled = Arc::new(AtomicBool::new(false));
         let callback_cancelled = cancelled.clone();
         let interrupt: Arc<dyn Fn() -> bool + Send + Sync> =
@@ -689,7 +689,7 @@ mod tests {
             .collect::<Vec<_>>();
         paths.sort();
         paths.insert(0, PathBuf::from("init.mp4"));
-        let source = cap_enc_ffmpeg::RelocatableSource::new(original.clone()).unwrap();
+        let source = scrinx_enc_ffmpeg::RelocatableSource::new(original.clone()).unwrap();
         let cancelled = Arc::new(AtomicBool::new(false));
         let callback_cancelled = cancelled.clone();
         let interrupt: Arc<dyn Fn() -> bool + Send + Sync> =
@@ -723,7 +723,7 @@ mod tests {
         let original = directory.path().join("original");
         std::fs::create_dir(&original).unwrap();
         std::fs::write(original.join("broken.mp4"), b"invalid video input").unwrap();
-        let source = cap_enc_ffmpeg::RelocatableSource::new(original.clone()).unwrap();
+        let source = scrinx_enc_ffmpeg::RelocatableSource::new(original.clone()).unwrap();
         let interrupt: Arc<dyn Fn() -> bool + Send + Sync> = Arc::new(|| false);
         let owner = Arc::downgrade(&interrupt);
         assert!(
@@ -760,7 +760,7 @@ mod tests {
         wave.extend_from_slice(&data_length.to_le_bytes());
         wave.resize(wave.len() + data_length as usize, 0);
         std::fs::write(original.join("audio.wav"), &wave).unwrap();
-        let source = cap_enc_ffmpeg::RelocatableSource::new(original.clone()).unwrap();
+        let source = scrinx_enc_ffmpeg::RelocatableSource::new(original.clone()).unwrap();
         let interrupt: Arc<dyn Fn() -> bool + Send + Sync> = Arc::new(|| false);
         let owner = Arc::downgrade(&interrupt);
         let error = FFmpegDecoder::new_relocatable_interruptible(

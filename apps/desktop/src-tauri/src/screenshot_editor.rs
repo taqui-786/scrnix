@@ -2,18 +2,18 @@ use crate::PendingScreenshots;
 use crate::frame_ws::{WSFrame, create_watch_frame_ws};
 use crate::gpu_context;
 use crate::windows::{CapWindowId, ScreenshotEditorWindowIds};
-use cap_project::{
-    ProjectConfiguration, RecordingMeta, RecordingMetaInner, SingleSegment, StudioRecordingMeta,
-    VideoMeta,
-};
-use cap_rendering::{
-    DecodedFrame, DecodedSegmentFrames, FrameRenderer, ProjectUniforms, RenderVideoConstants,
-    RendererLayers, ZoomTransformTimeline,
-};
 use image::{
     GenericImageView, ImageEncoder, RgbImage, buffer::ConvertBuffer, codecs::png::PngEncoder,
 };
 use relative_path::RelativePathBuf;
+use scrinx_project::{
+    ProjectConfiguration, RecordingMeta, RecordingMetaInner, SingleSegment, StudioRecordingMeta,
+    VideoMeta,
+};
+use scrinx_rendering::{
+    DecodedFrame, DecodedSegmentFrames, FrameRenderer, ProjectUniforms, RenderVideoConstants,
+    RendererLayers, ZoomTransformTimeline,
+};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::io::Cursor;
@@ -349,7 +349,7 @@ impl ScreenshotEditorInstances {
 
         let (shared, background_cache) = if let Some(gpu) = gpu_context::get_shared_gpu().await {
             (
-                cap_rendering::SharedWgpuDevice {
+                scrinx_rendering::SharedWgpuDevice {
                     instance: (*gpu.instance).clone(),
                     adapter: (*gpu.adapter).clone(),
                     device: (*gpu.device).clone(),
@@ -359,8 +359,8 @@ impl ScreenshotEditorInstances {
                 gpu.background_cache.clone(),
             )
         } else {
-            let instance = cap_rendering::create_wgpu_instance().await;
-            let force_software_adapter = cap_rendering::force_software_wgpu_adapter();
+            let instance = scrinx_rendering::create_wgpu_instance().await;
+            let force_software_adapter = scrinx_rendering::force_software_wgpu_adapter();
             let hardware_adapter = if force_software_adapter {
                 None
             } else {
@@ -385,7 +385,7 @@ impl ScreenshotEditorInstances {
                     .map_err(|_| "No GPU adapter found".to_string())?,
             };
             let adapter_info = adapter.get_info();
-            let is_software_adapter = cap_rendering::is_software_wgpu_adapter(&adapter_info);
+            let is_software_adapter = scrinx_rendering::is_software_wgpu_adapter(&adapter_info);
 
             let (device, queue) = adapter
                 .request_device(&wgpu::DeviceDescriptor {
@@ -396,19 +396,19 @@ impl ScreenshotEditorInstances {
                 .await
                 .map_err(|e| e.to_string())?;
             (
-                cap_rendering::SharedWgpuDevice {
+                scrinx_rendering::SharedWgpuDevice {
                     instance,
                     adapter,
                     device,
                     queue,
                     is_software_adapter,
                 },
-                Arc::new(cap_rendering::BackgroundTextureCache::default()),
+                Arc::new(scrinx_rendering::BackgroundTextureCache::default()),
             )
         };
 
-        let options = cap_rendering::RenderOptions {
-            screen_size: cap_project::XY::new(width, height),
+        let options = scrinx_rendering::RenderOptions {
+            screen_size: scrinx_project::XY::new(width, height),
             camera_size: None,
             preserve_screen_alpha: true,
         };
@@ -478,7 +478,7 @@ impl ScreenshotEditorInstances {
                     break;
                 }
                 let segment_frames = DecodedSegmentFrames {
-                    screen_size: cap_project::XY::new(
+                    screen_size: scrinx_project::XY::new(
                         decoded_frame.width(),
                         decoded_frame.height(),
                     ),
@@ -496,7 +496,7 @@ impl ScreenshotEditorInstances {
                 let (base_w, base_h) =
                     ProjectUniforms::get_base_size(&constants.options, &current_config);
 
-                let cursor_events = cap_project::CursorEvents::default();
+                let cursor_events = scrinx_project::CursorEvents::default();
                 let mut zoom_timeline = ZoomTransformTimeline::from_project(
                     &current_config,
                     &cursor_events,
@@ -510,7 +510,7 @@ impl ScreenshotEditorInstances {
                     &current_config,
                     0,
                     30,
-                    cap_project::XY::new(base_w, base_h),
+                    scrinx_project::XY::new(base_w, base_h),
                     &cursor_events,
                     &segment_frames,
                     0.0,
@@ -522,7 +522,7 @@ impl ScreenshotEditorInstances {
                     .render_immediate(
                         segment_frames,
                         uniforms,
-                        &cap_project::CursorEvents::default(),
+                        &scrinx_project::CursorEvents::default(),
                         true,
                         &mut layers,
                     )
@@ -937,11 +937,11 @@ pub async fn prewarm_screenshot_renderer() {
         return;
     };
 
-    let _ = tokio::task::spawn_blocking(cap_rendering::prewarm_fonts).await;
+    let _ = tokio::task::spawn_blocking(scrinx_rendering::prewarm_fonts).await;
 
     let started = Instant::now();
 
-    let shared = cap_rendering::SharedWgpuDevice {
+    let shared = scrinx_rendering::SharedWgpuDevice {
         instance: (*gpu.instance).clone(),
         adapter: (*gpu.adapter).clone(),
         device: (*gpu.device).clone(),
@@ -975,8 +975,8 @@ pub async fn prewarm_screenshot_renderer() {
         upload: None,
     };
 
-    let options = cap_rendering::RenderOptions {
-        screen_size: cap_project::XY::new(width, height),
+    let options = scrinx_rendering::RenderOptions {
+        screen_size: scrinx_project::XY::new(width, height),
         camera_size: None,
         preserve_screen_alpha: true,
     };
@@ -986,7 +986,7 @@ pub async fn prewarm_screenshot_renderer() {
         options,
         studio_meta,
         recording_meta,
-        Arc::new(cap_rendering::BackgroundTextureCache::default()),
+        Arc::new(scrinx_rendering::BackgroundTextureCache::default()),
     );
 
     let config = ProjectConfiguration::default();
@@ -998,7 +998,7 @@ pub async fn prewarm_screenshot_renderer() {
     );
 
     let segment_frames = DecodedSegmentFrames {
-        screen_size: cap_project::XY::new(width, height),
+        screen_size: scrinx_project::XY::new(width, height),
         screen_frame: Some(DecodedFrame::new(
             vec![255u8; (width * height * 4) as usize],
             width,
@@ -1011,7 +1011,7 @@ pub async fn prewarm_screenshot_renderer() {
     };
 
     let (base_w, base_h) = ProjectUniforms::get_base_size(&constants.options, &config);
-    let cursor_events = cap_project::CursorEvents::default();
+    let cursor_events = scrinx_project::CursorEvents::default();
     let mut zoom_timeline = ZoomTransformTimeline::new(
         &[],
         None,
@@ -1026,7 +1026,7 @@ pub async fn prewarm_screenshot_renderer() {
         &config,
         0,
         30,
-        cap_project::XY::new(base_w, base_h),
+        scrinx_project::XY::new(base_w, base_h),
         &cursor_events,
         &segment_frames,
         0.0,
@@ -1037,7 +1037,7 @@ pub async fn prewarm_screenshot_renderer() {
         .render_immediate(
             segment_frames,
             uniforms,
-            &cap_project::CursorEvents::default(),
+            &scrinx_project::CursorEvents::default(),
             true,
             &mut layers,
         )
@@ -1062,7 +1062,7 @@ pub async fn prewarm_screenshot_background(path: String) -> Result<(), String> {
         return Ok(());
     };
 
-    let Some(clean_path) = cap_rendering::clean_background_path(&path) else {
+    let Some(clean_path) = scrinx_rendering::clean_background_path(&path) else {
         return Ok(());
     };
 
@@ -1692,7 +1692,7 @@ pub async fn render_screenshot_png(instance: &ScreenshotEditorInstance) -> Resul
 
     let (shared, background_cache) = if let Some(gpu) = gpu_context::get_shared_gpu().await {
         (
-            cap_rendering::SharedWgpuDevice {
+            scrinx_rendering::SharedWgpuDevice {
                 instance: (*gpu.instance).clone(),
                 adapter: (*gpu.adapter).clone(),
                 device: (*gpu.device).clone(),
@@ -1702,8 +1702,8 @@ pub async fn render_screenshot_png(instance: &ScreenshotEditorInstance) -> Resul
             gpu.background_cache.clone(),
         )
     } else {
-        let instance = cap_rendering::create_wgpu_instance().await;
-        let force_software_adapter = cap_rendering::force_software_wgpu_adapter();
+        let instance = scrinx_rendering::create_wgpu_instance().await;
+        let force_software_adapter = scrinx_rendering::force_software_wgpu_adapter();
         let hardware_adapter = if force_software_adapter {
             None
         } else {
@@ -1728,7 +1728,7 @@ pub async fn render_screenshot_png(instance: &ScreenshotEditorInstance) -> Resul
                 .map_err(|_| "No GPU adapter found".to_string())?,
         };
         let adapter_info = adapter.get_info();
-        let is_software_adapter = cap_rendering::is_software_wgpu_adapter(&adapter_info);
+        let is_software_adapter = scrinx_rendering::is_software_wgpu_adapter(&adapter_info);
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor {
                 label: Some("cap-rendering-device"),
@@ -1738,19 +1738,19 @@ pub async fn render_screenshot_png(instance: &ScreenshotEditorInstance) -> Resul
             .await
             .map_err(|e| e.to_string())?;
         (
-            cap_rendering::SharedWgpuDevice {
+            scrinx_rendering::SharedWgpuDevice {
                 instance,
                 adapter,
                 device,
                 queue,
                 is_software_adapter,
             },
-            Arc::new(cap_rendering::BackgroundTextureCache::default()),
+            Arc::new(scrinx_rendering::BackgroundTextureCache::default()),
         )
     };
 
-    let options = cap_rendering::RenderOptions {
-        screen_size: cap_project::XY::new(width, height),
+    let options = scrinx_rendering::RenderOptions {
+        screen_size: scrinx_project::XY::new(width, height),
         camera_size: None,
         preserve_screen_alpha: true,
     };
@@ -1772,7 +1772,7 @@ pub async fn render_screenshot_png(instance: &ScreenshotEditorInstance) -> Resul
     let display_size = ProjectUniforms::display_size(
         &constants.options,
         &config,
-        cap_project::XY::new(base_width, base_height),
+        scrinx_project::XY::new(base_width, base_height),
     )
     .coord;
     let crop = ProjectUniforms::get_crop(&constants.options, &config);
@@ -1784,7 +1784,7 @@ pub async fn render_screenshot_png(instance: &ScreenshotEditorInstance) -> Resul
         1.0,
     );
 
-    let resolution_base = cap_project::XY::new(
+    let resolution_base = scrinx_project::XY::new(
         (((base_width as f64 * export_scale).ceil() as u32) + 3) & !3,
         (((base_height as f64 * export_scale).ceil() as u32) + 1) & !1,
     );
@@ -1804,7 +1804,7 @@ pub async fn render_screenshot_png(instance: &ScreenshotEditorInstance) -> Resul
     );
     let decoded_frame = DecodedFrame::new(data, width, height);
     let segment_frames = DecodedSegmentFrames {
-        screen_size: cap_project::XY::new(width, height),
+        screen_size: scrinx_project::XY::new(width, height),
         screen_frame: Some(DecodedFrame::new(
             decoded_frame.data().to_vec(),
             decoded_frame.width(),
@@ -1815,7 +1815,7 @@ pub async fn render_screenshot_png(instance: &ScreenshotEditorInstance) -> Resul
         recording_time: 0.0,
         segment_has_camera: false,
     };
-    let cursor_events = cap_project::CursorEvents::default();
+    let cursor_events = scrinx_project::CursorEvents::default();
     let mut zoom_timeline = ZoomTransformTimeline::from_project(
         &config,
         &cursor_events,
@@ -1838,7 +1838,7 @@ pub async fn render_screenshot_png(instance: &ScreenshotEditorInstance) -> Resul
         .render_immediate(
             segment_frames,
             uniforms,
-            &cap_project::CursorEvents::default(),
+            &scrinx_project::CursorEvents::default(),
             true,
             &mut layers,
         )

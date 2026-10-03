@@ -11,13 +11,13 @@ use ashpd::desktop::{
     PersistMode, Session,
     screencast::{CursorMode, Screencast, SourceType, Stream as PortalStream},
 };
-use cap_timestamp::Timestamp;
 use futures::{Stream, StreamExt, channel::mpsc};
 use image::RgbImage;
 use kameo::{Actor as _, actor::ActorRef};
 use libspa_sys as spa_sys;
 use pipewire as pw;
 use pw::{properties::properties, spa};
+use scrinx_timestamp::Timestamp;
 use std::{
     os::fd::OwnedFd,
     process::Command,
@@ -1753,7 +1753,7 @@ async fn create_system_audio_source_config() -> anyhow::Result<SystemAudioSource
             if let Some(route) = route.as_ref() {
                 apply_pactl_monitor_route(route)?;
             }
-            let routed_at = cap_timestamp::Timestamps::now();
+            let routed_at = scrinx_timestamp::Timestamps::now();
             let (sender, receiver) = flume::bounded(1);
             feed.ask(microphone::AddSender(sender.clone()))
                 .await
@@ -1794,7 +1794,7 @@ async fn create_system_audio_source_config() -> anyhow::Result<SystemAudioSource
 
 async fn wait_for_audio_after_route(
     timestamps: impl Stream<Item = Timestamp>,
-    routed_at: cap_timestamp::Timestamps,
+    routed_at: scrinx_timestamp::Timestamps,
 ) -> anyhow::Result<()> {
     futures::pin_mut!(timestamps);
     tokio::time::timeout(Duration::from_secs(3), async {
@@ -2863,8 +2863,8 @@ mod system_audio_tests {
         );
     }
     use crate::feeds::microphone::MicrophoneFeed;
-    use cap_timestamp::{Timestamp, Timestamps};
     use kameo::Actor as _;
+    use scrinx_timestamp::{Timestamp, Timestamps};
     use std::{
         sync::atomic::{AtomicBool, AtomicUsize, Ordering},
         time::{Duration, Instant},

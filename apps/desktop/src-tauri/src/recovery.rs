@@ -1,6 +1,6 @@
-use cap_project::StudioRecordingMeta;
-use cap_recording::recovery::{RecoveryError, RecoveryManager};
 use chrono::NaiveDate;
+use scrinx_project::StudioRecordingMeta;
+use scrinx_recording::recovery::{RecoveryError, RecoveryManager};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::path::{Path, PathBuf};
@@ -20,7 +20,7 @@ pub(crate) fn finalization_storage_error(path: &Path) -> String {
 
 fn ensure_finalization_storage_with(
     path: &Path,
-    inspect: impl FnOnce(&Path) -> std::io::Result<cap_utils::disk_space::RecordingStorage>,
+    inspect: impl FnOnce(&Path) -> std::io::Result<scrinx_utils::disk_space::RecordingStorage>,
 ) -> Result<(), String> {
     let storage = inspect(path)
         .map_err(|error| format!("Could not check available space for this recording: {error}"))?;
@@ -35,16 +35,16 @@ pub(crate) fn ensure_finalization_storage(
     display_path: &Path,
 ) -> Result<(), String> {
     ensure_finalization_storage_with(display_path, |_| {
-        cap_utils::disk_space::recording_storage(work_path)
+        scrinx_utils::disk_space::recording_storage(work_path)
     })
 }
 
-fn is_storage_full_remux_error(error: &cap_enc_ffmpeg::remux::RemuxError) -> bool {
+fn is_storage_full_remux_error(error: &scrinx_enc_ffmpeg::remux::RemuxError) -> bool {
     match error {
-        cap_enc_ffmpeg::remux::RemuxError::Io(error) => {
+        scrinx_enc_ffmpeg::remux::RemuxError::Io(error) => {
             error.kind() == std::io::ErrorKind::StorageFull
         }
-        cap_enc_ffmpeg::remux::RemuxError::Ffmpeg(ffmpeg::Error::Other { errno }) => {
+        scrinx_enc_ffmpeg::remux::RemuxError::Ffmpeg(ffmpeg::Error::Other { errno }) => {
             *errno == ffmpeg::error::ENOSPC
         }
         _ => false,

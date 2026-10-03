@@ -18,12 +18,12 @@ pub use start_gate::*;
 #[cfg(target_os = "linux")]
 #[derive(Clone)]
 pub struct NativeCameraFrame {
-    pub timestamp: cap_timestamp::Timestamp,
+    pub timestamp: scrinx_timestamp::Timestamp,
 }
 
 #[cfg(target_os = "linux")]
 impl VideoFrame for NativeCameraFrame {
-    fn timestamp(&self) -> cap_timestamp::Timestamp {
+    fn timestamp(&self) -> scrinx_timestamp::Timestamp {
         self.timestamp
     }
 }

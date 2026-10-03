@@ -67,21 +67,6 @@ mod windows;
 use audio::AppSounds;
 use auth::AuthStore;
 use camera::{CameraPreviewManager, CameraPreviewSender, CameraPreviewState};
-use cap_editor::{EditorInstance, EditorState};
-use cap_project::{
-    InstantRecordingMeta, ProjectConfiguration, RecordingMeta, RecordingMetaInner, SharingMeta,
-    StudioRecordingMeta, StudioRecordingStatus, UploadMeta, VideoUploadInfo, XY, ZoomSegment,
-};
-use cap_recording::{
-    RecordingMode,
-    feeds::{
-        self,
-        camera::{CameraFeed, DeviceOrModelID},
-        microphone::{self, MicrophoneFeed},
-    },
-    sources::screen_capture::ScreenCaptureTarget,
-};
-use cap_rendering::ProjectRecordingsMeta;
 use clipboard_rs::Clipboard;
 #[cfg(not(target_os = "linux"))]
 use clipboard_rs::ClipboardContext;
@@ -102,6 +87,21 @@ use screenshot_editor::{
     render_screenshot_for_export, render_screenshot_png, render_screenshot_project_for_export,
     update_screenshot_config,
 };
+use scrinx_editor::{EditorInstance, EditorState};
+use scrinx_project::{
+    InstantRecordingMeta, ProjectConfiguration, RecordingMeta, RecordingMetaInner, SharingMeta,
+    StudioRecordingMeta, StudioRecordingStatus, UploadMeta, VideoUploadInfo, XY, ZoomSegment,
+};
+use scrinx_recording::{
+    RecordingMode,
+    feeds::{
+        self,
+        camera::{CameraFeed, DeviceOrModelID},
+        microphone::{self, MicrophoneFeed},
+    },
+    sources::screen_capture::ScreenCaptureTarget,
+};
+use scrinx_rendering::ProjectRecordingsMeta;
 
 mod gpu_context;
 pub use gpu_context::{PendingScreenshot, PendingScreenshots};
@@ -180,7 +180,7 @@ struct FinalizationAttempt {
     result: watch::Sender<FinalizationResult>,
     preparing_generation: Option<u64>,
     preparing_presentation:
-        watch::Sender<Option<Result<Arc<cap_project::ProjectConfiguration>, String>>>,
+        watch::Sender<Option<Result<Arc<scrinx_project::ProjectConfiguration>, String>>>,
     preparing: watch::Sender<preparing_finalization::PreparingFinalizationState>,
 }
 
@@ -1471,7 +1471,7 @@ pub struct App {
     #[deprecated = "can be removed when native camera preview is ready"]
     camera_ws_port: u16,
     #[deprecated = "can be removed when native camera preview is ready"]
-    camera_ws_sender: flume::Sender<cap_recording::FFmpegVideoFrame>,
+    camera_ws_sender: flume::Sender<scrinx_recording::FFmpegVideoFrame>,
     #[cfg(target_os = "linux")]
     pub camera_processing: linux_instant_camera::ProcessingFactory,
     camera_preview: CameraPreviewManager,
@@ -1562,14 +1562,14 @@ fn emit_camera_preview_clear(app_handle: &AppHandle) {
 
 async fn add_camera_preview_ws_sender(
     camera_feed: &ActorRef<CameraFeed>,
-    sender: flume::Sender<cap_recording::FFmpegVideoFrame>,
+    sender: flume::Sender<scrinx_recording::FFmpegVideoFrame>,
 ) {
     add_camera_preview_sender(camera_feed, sender, "WebSocket").await;
 }
 
 async fn add_camera_preview_sender(
     camera_feed: &ActorRef<CameraFeed>,
-    sender: flume::Sender<cap_recording::FFmpegVideoFrame>,
+    sender: flume::Sender<scrinx_recording::FFmpegVideoFrame>,
     label: &str,
 ) {
     let result = camera_feed.ask(feeds::camera::AddSender(sender)).await;
@@ -1580,7 +1580,7 @@ async fn add_camera_preview_sender(
 
 async fn remove_camera_preview_sender(
     camera_feed: &ActorRef<CameraFeed>,
-    sender: flume::Sender<cap_recording::FFmpegVideoFrame>,
+    sender: flume::Sender<scrinx_recording::FFmpegVideoFrame>,
     label: &str,
 ) {
     let result = camera_feed.ask(feeds::camera::RemoveSender(sender)).await;
@@ -1591,7 +1591,7 @@ async fn remove_camera_preview_sender(
 
 async fn sync_camera_preview_sender(
     camera_feed: &ActorRef<CameraFeed>,
-    camera_ws_sender: flume::Sender<cap_recording::FFmpegVideoFrame>,
+    camera_ws_sender: flume::Sender<scrinx_recording::FFmpegVideoFrame>,
     camera_preview_sender: Option<CameraPreviewSender>,
     use_ws_preview: bool,
 ) {
@@ -2354,8 +2354,8 @@ async fn upload_logs(app_handle: AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 #[specta::specta]
-fn get_system_diagnostics() -> cap_recording::diagnostics::SystemDiagnostics {
-    cap_recording::diagnostics::collect_diagnostics()
+fn get_system_diagnostics() -> scrinx_recording::diagnostics::SystemDiagnostics {
+    scrinx_recording::diagnostics::collect_diagnostics()
 }
 
 #[tauri::command]
@@ -3046,7 +3046,7 @@ fn spawn_device_watchers(app_handle: AppHandle) {
 
 #[derive(Serialize, Type, tauri_specta::Event, Debug, Clone)]
 pub struct DevicesUpdated {
-    cameras: Vec<cap_camera::CameraInfo>,
+    cameras: Vec<scrinx_camera::CameraInfo>,
     microphones: Vec<String>,
     permissions: permissions::OSPermissionsCheck,
 }
@@ -3056,7 +3056,7 @@ pub struct DevicesUpdated {
 async fn get_devices_snapshot() -> DevicesUpdated {
     let permissions = permissions::do_permissions_check(false);
     let cameras = if permissions.camera.permitted() {
-        cap_camera::list_cameras().collect()
+        scrinx_camera::list_cameras().collect()
     } else {
         Vec::new()
     };
@@ -3104,7 +3104,7 @@ fn spawn_devices_snapshot_emitter(app_handle: AppHandle) {
                 || app_is_exiting(&app_handle),
                 permissions.camera.permitted(),
                 permissions.microphone.permitted(),
-                || cap_camera::list_cameras().collect::<Vec<_>>(),
+                || scrinx_camera::list_cameras().collect::<Vec<_>>(),
                 MicrophoneFeed::list_names,
             ) else {
                 break;
@@ -3948,7 +3948,7 @@ fn spawn_camera_watcher(app_handle: AppHandle) {
 }
 
 pub(crate) fn is_camera_available(id: &DeviceOrModelID) -> bool {
-    let cameras: Vec<_> = cap_camera::list_cameras().collect();
+    let cameras: Vec<_> = scrinx_camera::list_cameras().collect();
     debug!(
         "is_camera_available: looking for {:?} in {} cameras",
         id,
@@ -4676,8 +4676,8 @@ pub(crate) struct FrameLayoutEvent {
     output_height: u32,
 }
 
-impl From<cap_editor::FrameLayout> for FrameLayoutEvent {
-    fn from(layout: cap_editor::FrameLayout) -> Self {
+impl From<scrinx_editor::FrameLayout> for FrameLayoutEvent {
+    fn from(layout: scrinx_editor::FrameLayout) -> Self {
         Self {
             display: layout.display,
             camera: layout.camera,
@@ -4772,7 +4772,7 @@ struct SerializedEditorInstance {
     /// Notch geometry the overlay uses when the project sets no manual
     /// placement: this recording's own measurements where the recorder took
     /// them, else a stock MacBook notch for the editor to start from.
-    notch_base: cap_project::DisplayNotch,
+    notch_base: scrinx_project::DisplayNotch,
 }
 
 #[tauri::command]
@@ -4815,7 +4815,7 @@ async fn create_editor_instance(window: Window) -> Result<SerializedEditorInstan
             .render_constants
             .meta
             .display_notch()
-            .unwrap_or(cap_project::DEFAULT_MACBOOK_NOTCH),
+            .unwrap_or(scrinx_project::DEFAULT_MACBOOK_NOTCH),
     })
 }
 
@@ -5093,12 +5093,12 @@ async fn generate_keyboard_segments(
     linger_duration_ms: f64,
     show_modifiers: bool,
     show_special_keys: bool,
-) -> Result<Vec<cap_project::KeyboardTrackSegment>, String> {
+) -> Result<Vec<scrinx_project::KeyboardTrackSegment>, String> {
     let project = editor_instance.project_config.1.borrow().clone();
     let Some(timeline) = project.timeline else {
         return Ok(Vec::new());
     };
-    let settings = cap_project::KeyboardSettings {
+    let settings = scrinx_project::KeyboardSettings {
         grouping_threshold_ms,
         linger_duration: (linger_duration_ms / 1000.0) as f32,
         show_modifiers,
@@ -5107,7 +5107,7 @@ async fn generate_keyboard_segments(
     };
     let meta = editor_instance.meta().clone();
     tokio::task::spawn_blocking(move || {
-        cap_project::generate_project_keyboard_segments(&meta, &timeline, &settings)
+        scrinx_project::generate_project_keyboard_segments(&meta, &timeline, &settings)
     })
     .await
     .map_err(|error| format!("Keyboard generation failed: {error}"))?
@@ -5131,7 +5131,7 @@ async fn list_audio_devices() -> Result<Vec<String>, ()> {
 #[specta::specta]
 #[instrument]
 async fn list_system_fonts() -> Vec<String> {
-    tokio::task::spawn_blocking(cap_rendering::system_font_families)
+    tokio::task::spawn_blocking(scrinx_rendering::system_font_families)
         .await
         .unwrap_or_default()
 }
@@ -5762,8 +5762,8 @@ fn list_recordings_inner(
 
 fn acquire_recording_delete_lock(
     path: &std::path::Path,
-) -> Result<cap_recording::upload_resume::UploadLock, String> {
-    cap_recording::upload_resume::UploadLock::acquire(path).map_err(|error| error.to_string())
+) -> Result<scrinx_recording::upload_resume::UploadLock, String> {
+    scrinx_recording::upload_resume::UploadLock::acquire(path).map_err(|error| error.to_string())
 }
 
 fn recording_delete_target(
@@ -5999,9 +5999,9 @@ async fn get_display_frame_for_cropping(
     editor_instance: WindowEditorInstance,
     fps: u32,
 ) -> Result<Vec<u8>, String> {
-    use cap_project::ClipOffsets;
-    use cap_rendering::{PixelFormat, cpu_yuv};
     use image::{ImageEncoder, codecs::jpeg::JpegEncoder};
+    use scrinx_project::ClipOffsets;
+    use scrinx_rendering::{PixelFormat, cpu_yuv};
     use std::io::Cursor;
     use std::time::Instant;
 
@@ -6240,14 +6240,14 @@ async fn show_window(app: AppHandle, window: ShowCapWindow) -> Result<(), String
 #[specta::specta]
 #[instrument]
 fn list_fails() -> Result<BTreeMap<String, bool>, ()> {
-    Ok(cap_fail::get_state())
+    Ok(scrinx_fail::get_state())
 }
 
 #[tauri::command(async)]
 #[specta::specta]
 #[instrument]
 fn set_fail(name: String, value: bool) {
-    cap_fail::set_fail(&name, value)
+    scrinx_fail::set_fail(&name, value)
 }
 
 async fn check_notification_permissions(app: AppHandle) {
@@ -6577,7 +6577,7 @@ fn configure_windows_graphics_recovery(
     previous_termination: Option<crash_sentinel::UnexpectedTermination>,
 ) {
     if should_engage_graphics_recovery(previous_termination) {
-        cap_rendering::set_force_software_wgpu_adapter(true);
+        scrinx_rendering::set_force_software_wgpu_adapter(true);
         crash_sentinel::mark_graphics_recovery();
         warn!(
             "Previous Scrinx session terminated during GPU initialisation; using Windows software graphics recovery mode for this launch"
@@ -6643,7 +6643,7 @@ fn configure_camera_blur_recovery(
     }
 
     if next.is_some() {
-        cap_camera_effects::set_blur_disabled(true);
+        scrinx_camera_effects::set_blur_disabled(true);
         crash_sentinel::mark_blur_recovery();
         if stored.is_none() {
             error!(
@@ -6662,14 +6662,14 @@ fn configure_camera_blur_recovery(
 
 #[tauri::command]
 #[specta::specta]
-fn animated_gradient_catalog() -> cap_project::AnimatedGradientCatalog {
-    cap_project::animated_gradient_catalog()
+fn animated_gradient_catalog() -> scrinx_project::AnimatedGradientCatalog {
+    scrinx_project::animated_gradient_catalog()
 }
 
 #[tauri::command]
 #[specta::specta]
-fn random_animated_gradient() -> cap_project::AnimatedGradientConfig {
-    cap_project::AnimatedGradientConfig::random()
+fn random_animated_gradient() -> scrinx_project::AnimatedGradientConfig {
+    scrinx_project::AnimatedGradientConfig::random()
 }
 
 #[cfg(any(debug_assertions, test))]
@@ -6915,27 +6915,27 @@ fn specta_builder() -> tauri_specta::Builder {
         ])
         .error_handling(tauri_specta::ErrorHandlingMode::Throw)
         .typ::<ProjectConfiguration>()
-        .typ::<cap_project::AnimatedGradientLibrary>()
+        .typ::<scrinx_project::AnimatedGradientLibrary>()
         .typ::<AuthStore>()
         .typ::<presets::PresetsStore>()
         .typ::<hotkeys::HotkeysStore>()
         .typ::<general_settings::GeneralSettingsStore>()
         .typ::<recording_settings::RecordingSettingsStore>()
-        .typ::<cap_flags::Flags>()
+        .typ::<scrinx_flags::Flags>()
         .typ::<crate::window_exclusion::WindowExclusion>()
-        .typ::<cap_automation::AutomationsStore>()
-        .typ::<cap_automation::AutomationRule>()
-        .typ::<cap_automation::Trigger>()
-        .typ::<cap_automation::Condition>()
-        .typ::<cap_automation::Action>()
-        .typ::<cap_automation::ExportProfile>()
-        .typ::<cap_automation::MatchMode>()
-        .typ::<cap_automation::CaptureTargetKind>()
-        .typ::<cap_automation::AutomationRecordingMode>()
-        .typ::<cap_automation::ClipboardSource>()
-        .typ::<cap_automation::ExportFormat>()
-        .typ::<cap_automation::AutomationExportCompression>()
-        .typ::<cap_automation::ExportDestination>()
+        .typ::<scrinx_automation::AutomationsStore>()
+        .typ::<scrinx_automation::AutomationRule>()
+        .typ::<scrinx_automation::Trigger>()
+        .typ::<scrinx_automation::Condition>()
+        .typ::<scrinx_automation::Action>()
+        .typ::<scrinx_automation::ExportProfile>()
+        .typ::<scrinx_automation::MatchMode>()
+        .typ::<scrinx_automation::CaptureTargetKind>()
+        .typ::<scrinx_automation::AutomationRecordingMode>()
+        .typ::<scrinx_automation::ClipboardSource>()
+        .typ::<scrinx_automation::ExportFormat>()
+        .typ::<scrinx_automation::AutomationExportCompression>()
+        .typ::<scrinx_automation::ExportDestination>()
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -6949,7 +6949,7 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: PathBuf) {
     // Keep the sentinel's blur marker in sync with live BlurProcessor instances
     // (camera preview and editor render alike), so a native blur crash is
     // attributable on the next launch.
-    cap_camera_effects::set_blur_session_observer(|active| {
+    scrinx_camera_effects::set_blur_session_observer(|active| {
         if active {
             crash_sentinel::enter_blur_session();
         } else {
@@ -7327,7 +7327,7 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: PathBuf) {
                     #[cfg(debug_assertions)]
                     picker_benchmark::run(app.clone());
                     gpu_context::prewarm_gpu();
-                    tokio::task::spawn_blocking(cap_rendering::prewarm_fonts);
+                    tokio::task::spawn_blocking(scrinx_rendering::prewarm_fonts);
                     tokio::spawn(screenshot_editor::prewarm_screenshot_renderer());
 
                     #[cfg(target_os = "macos")]
@@ -8390,7 +8390,7 @@ fn load_instant_resume_candidate(path: &std::path::Path) -> Result<Option<Record
 fn load_upload_resume_candidate(
     path: &std::path::Path,
     mark_crashed: bool,
-) -> Result<Option<(RecordingMeta, cap_recording::upload_resume::UploadLock)>, String> {
+) -> Result<Option<(RecordingMeta, scrinx_recording::upload_resume::UploadLock)>, String> {
     load_upload_resume_candidate_at(path, mark_crashed, SystemTime::now())
 }
 
@@ -8398,7 +8398,7 @@ fn load_upload_resume_candidate_at(
     path: &std::path::Path,
     mark_crashed: bool,
     now: SystemTime,
-) -> Result<Option<(RecordingMeta, cap_recording::upload_resume::UploadLock)>, String> {
+) -> Result<Option<(RecordingMeta, scrinx_recording::upload_resume::UploadLock)>, String> {
     if !mark_crashed && !upload::recovery_age::eligible(path, now) {
         return Ok(None);
     }
@@ -8525,7 +8525,7 @@ async fn resume_uploads(app: AppHandle, mark_crashed: bool) -> Result<(), String
 async fn create_editor_instance_impl(
     app: &AppHandle,
     path: PathBuf,
-    frame_cb: cap_editor::EditorFrameCallback,
+    frame_cb: scrinx_editor::EditorFrameCallback,
 ) -> Result<(Arc<EditorInstance>, tauri::EventId), String> {
     let app = app.clone();
 
@@ -8536,7 +8536,7 @@ async fn create_editor_instance_impl(
     let shared_device =
         gpu_context::get_shared_gpu()
             .await
-            .map(|shared| cap_rendering::SharedWgpuDevice {
+            .map(|shared| scrinx_rendering::SharedWgpuDevice {
                 instance: (*shared.instance).clone(),
                 adapter: (*shared.adapter).clone(),
                 device: (*shared.device).clone(),
@@ -8545,7 +8545,7 @@ async fn create_editor_instance_impl(
             });
 
     #[cfg(debug_assertions)]
-    let frame_cb: cap_editor::EditorFrameCallback =
+    let frame_cb: scrinx_editor::EditorFrameCallback =
         if stop_editor_benchmark::frame_capture_requested() {
             let capture_path = path.clone();
             let mut frame_cb = frame_cb;
@@ -8574,7 +8574,7 @@ async fn create_editor_instance_impl(
             },
             frame_cb,
             shared_device,
-            cap_editor::EditorFrameFormat::Rgba,
+            scrinx_editor::EditorFrameFormat::Rgba,
             audio_output,
             startup,
         )
@@ -8768,7 +8768,7 @@ async fn wait_for_recording_ready_inner(app: &AppHandle, path: &Path) -> Result<
         // unhealed files if this fails.
         let path = path.to_path_buf();
         match tokio::task::spawn_blocking(move || {
-            cap_recording::track_heal::heal_stretched_tracks(&path)
+            scrinx_recording::track_heal::heal_stretched_tracks(&path)
         })
         .await
         {
@@ -10445,7 +10445,7 @@ mod instant_resume_safety_tests {
                 pre_created_video: VideoUploadInfo {
                     id: "synthetic".into(),
                     link: "https://example.invalid/s/synthetic".into(),
-                    config: cap_project::S3UploadMeta {
+                    config: scrinx_project::S3UploadMeta {
                         id: "synthetic".into(),
                     },
                 },
@@ -10528,7 +10528,7 @@ mod instant_resume_safety_tests {
             "owned",
             InstantRecordingMeta::InProgress { recording: true },
         );
-        let lock = cap_recording::upload_resume::UploadLock::acquire(&path).unwrap();
+        let lock = scrinx_recording::upload_resume::UploadLock::acquire(&path).unwrap();
         let before = std::fs::read(path.join("recording-meta.json")).unwrap();
         assert!(load_upload_resume_candidate(&path, true).unwrap().is_none());
         assert_eq!(
@@ -10565,7 +10565,7 @@ mod instant_resume_safety_tests {
                 sample_rate: None,
             },
         );
-        let ownership = cap_recording::upload_resume::UploadLock::acquire(&path).unwrap();
+        let ownership = scrinx_recording::upload_resume::UploadLock::acquire(&path).unwrap();
         let original = std::fs::read(path.join("recording-meta.json")).unwrap();
         assert!(acquire_recording_delete_lock(&path).is_err());
         assert_eq!(

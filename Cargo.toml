@@ -103,10 +103,10 @@ debug = 1
 [profile.dev.package."*"]
 debug = 0
 
-[profile.dev.package.cap-camera-effects]
+[profile.dev.package.scrinx-camera-effects]
 opt-level = 2
 
-[profile.dev.package.cap-audio]
+[profile.dev.package.scrinx-audio]
 opt-level = 2
 
 # Optimize for smaller binary size

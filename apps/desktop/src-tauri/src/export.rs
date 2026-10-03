@@ -1,14 +1,14 @@
 use crate::editor_window::{OptionalWindowEditorInstance, WindowEditorInstance};
 use crate::{FramesRendered, get_video_metadata};
-use cap_export::{ExporterBase, make_cursor_only_project};
-use cap_project::{RecordingMeta, TimelineFrameMapping, XY};
-use cap_rendering::{
+use futures::FutureExt;
+use image::codecs::jpeg::JpegEncoder;
+use scrinx_export::{ExporterBase, make_cursor_only_project};
+use scrinx_project::{RecordingMeta, TimelineFrameMapping, XY};
+use scrinx_rendering::{
     FrameRenderer, ProjectRecordingsMeta, ProjectUniforms, RenderSegment, RenderVideoConstants,
     RendererLayers, TransitionRenderInput, ZoomTransformTimeline,
 };
-use cap_utils::export_resources::{DiskBudget, ExportResources, estimated_working_bytes};
-use futures::FutureExt;
-use image::codecs::jpeg::JpegEncoder;
+use scrinx_utils::export_resources::{DiskBudget, ExportResources, estimated_working_bytes};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::any::Any;
@@ -559,13 +559,13 @@ async fn run_out_of_process_export_attempt(
     mode: ExportWorkerMode,
     cancel_token: CancellationToken,
 ) -> Result<PathBuf, String> {
-    use cap_utils::operation_diagnostics::{Field, Operation};
+    use scrinx_utils::operation_diagnostics::{Field, Operation};
     let mut diagnostic = Operation::start(
         "export_worker",
         &[
             Field::identifier(
                 "resource",
-                cap_utils::operation_diagnostics::resource_id(project_path),
+                scrinx_utils::operation_diagnostics::resource_id(project_path),
             ),
             Field::number("requested_fps", settings.fps() as u64),
             Field::flag("software_safe", mode.is_software_safe()),
@@ -596,9 +596,9 @@ async fn run_out_of_process_export_attempt_inner(
     force_ffmpeg: bool,
     mode: ExportWorkerMode,
     cancel_token: CancellationToken,
-    diagnostic: &mut cap_utils::operation_diagnostics::Operation,
+    diagnostic: &mut scrinx_utils::operation_diagnostics::Operation,
 ) -> Result<PathBuf, String> {
-    use cap_utils::operation_diagnostics::Field;
+    use scrinx_utils::operation_diagnostics::Field;
     if cancel_token.is_cancelled() {
         return Err("Export cancelled".to_string());
     }
@@ -774,7 +774,7 @@ async fn collect_exporter_stderr_tail(stderr: tokio::process::ChildStderr) -> Ve
     loop {
         match lines.next_line().await {
             Ok(Some(line)) => {
-                if cap_utils::operation_diagnostics::relay_worker_record(&line) {
+                if scrinx_utils::operation_diagnostics::relay_worker_record(&line) {
                     continue;
                 }
                 if cfg!(debug_assertions) {
@@ -840,8 +840,8 @@ fn warn_if_exporter_stale(app_exe: &Path, exporter: &Path) {
             exporter = %exporter.display(),
             lag_secs = lag.as_secs(),
             "Export worker binary is older than the app; exports may not match \
-             the preview. Rebuild it (cargo build -p cap) and copy it over \
-             target/debug/cap-exporter."
+             the preview. Rebuild it (cargo build -p scrinx) and copy it over \
+             target/debug/scrinx-exporter."
         );
     }
 }
@@ -868,7 +868,7 @@ fn exporter_binary_candidates(root: &Path) -> Vec<PathBuf> {
                 .join("src-tauri")
                 .join("binaries")
                 .join(format!(
-                    "cap-exporter-{target_triple}{}",
+                    "scrinx-exporter-{target_triple}{}",
                     std::env::consts::EXE_SUFFIX
                 )),
         );
@@ -882,7 +882,7 @@ fn debug_exporter_binary_candidates(root: &Path) -> Vec<PathBuf> {
         root.join("target").join("debug").join(exporter_bin_name()),
         root.join("target")
             .join("debug")
-            .join(format!("cap{}", std::env::consts::EXE_SUFFIX)),
+            .join(format!("scrinx{}", std::env::consts::EXE_SUFFIX)),
     ];
 
     if let Some(target_triple) = current_target_triple() {
@@ -896,10 +896,10 @@ fn debug_exporter_binary_candidates(root: &Path) -> Vec<PathBuf> {
             root.join("target")
                 .join(target_triple)
                 .join("debug")
-                .join(format!("cap{}", std::env::consts::EXE_SUFFIX)),
+                .join(format!("scrinx{}", std::env::consts::EXE_SUFFIX)),
         );
         candidates.push(root.join("target").join("debug").join(format!(
-            "cap-exporter-{target_triple}{}",
+            "scrinx-exporter-{target_triple}{}",
             std::env::consts::EXE_SUFFIX
         )));
     }
@@ -914,7 +914,7 @@ fn adjacent_exporter_binary_candidates(dir: &Path) -> Vec<PathBuf> {
 
     if let Some(target_triple) = current_target_triple() {
         candidates.push(dir.join(format!(
-            "cap-exporter-{target_triple}{}",
+            "scrinx-exporter-{target_triple}{}",
             std::env::consts::EXE_SUFFIX
         )));
     }
@@ -923,7 +923,7 @@ fn adjacent_exporter_binary_candidates(dir: &Path) -> Vec<PathBuf> {
         candidates.push(dir.join(subdir).join(exporter_bin_name()));
         if let Some(target_triple) = current_target_triple() {
             candidates.push(dir.join(subdir).join(format!(
-                "cap-exporter-{target_triple}{}",
+                "scrinx-exporter-{target_triple}{}",
                 std::env::consts::EXE_SUFFIX
             )));
         }
@@ -956,9 +956,9 @@ fn current_target_triple() -> Option<&'static str> {
 
 fn exporter_bin_name() -> &'static str {
     if cfg!(windows) {
-        "cap-exporter.exe"
+        "scrinx-exporter.exe"
     } else {
-        "cap-exporter"
+        "scrinx-exporter"
     }
 }
 
@@ -1004,9 +1004,9 @@ async fn wait_for_export_preview_idle_or_cancel(
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, Type)]
 #[serde(tag = "format")]
 pub enum ExportSettings {
-    Mp4(cap_export::mp4::Mp4ExportSettings),
-    Gif(cap_export::gif::GifExportSettings),
-    Mov(cap_export::mov::MovExportSettings),
+    Mp4(scrinx_export::mp4::Mp4ExportSettings),
+    Gif(scrinx_export::gif::GifExportSettings),
+    Mov(scrinx_export::mov::MovExportSettings),
 }
 
 impl ExportSettings {
@@ -1034,13 +1034,13 @@ impl ExportSettings {
 }
 
 fn export_project_config(
-    project_config: cap_project::ProjectConfiguration,
+    project_config: scrinx_project::ProjectConfiguration,
     cursor_only: bool,
-) -> cap_project::ProjectConfiguration {
+) -> scrinx_project::ProjectConfiguration {
     if cursor_only {
         make_cursor_only_project(project_config)
     } else {
-        cap_export::prepare_project_for_export(project_config)
+        scrinx_export::prepare_project_for_export(project_config)
     }
 }
 
@@ -1747,9 +1747,9 @@ pub fn cancel_export_estimates(editor: WindowEditorInstance) {
 pub async fn get_export_estimates(
     path: PathBuf,
     settings: ExportSettings,
-    on_estimate: tauri::ipc::Channel<cap_export::estimates::ExportEstimates>,
+    on_estimate: tauri::ipc::Channel<scrinx_export::estimates::ExportEstimates>,
     editor: WindowEditorInstance,
-) -> Result<cap_export::estimates::ExportEstimates, String> {
+) -> Result<scrinx_export::estimates::ExportEstimates, String> {
     if path != editor.project_path {
         return Err("Export estimate does not match the open project".into());
     }
@@ -1764,11 +1764,11 @@ pub async fn get_export_estimates(
     let result = async {
         let project = load_export_preview_config(path.clone(), settings.cursor_only()).await?;
         let settings = match settings {
-            ExportSettings::Mp4(settings) => cap_export::settings::ExportSettings::Mp4(settings),
-            ExportSettings::Gif(settings) => cap_export::settings::ExportSettings::Gif(settings),
-            ExportSettings::Mov(settings) => cap_export::settings::ExportSettings::Mov(settings),
+            ExportSettings::Mp4(settings) => scrinx_export::settings::ExportSettings::Mp4(settings),
+            ExportSettings::Gif(settings) => scrinx_export::settings::ExportSettings::Gif(settings),
+            ExportSettings::Mov(settings) => scrinx_export::settings::ExportSettings::Mov(settings),
         };
-        cap_export::estimates::estimate_export(
+        scrinx_export::estimates::estimate_export(
             (**editor).clone(),
             project,
             settings,
@@ -1882,13 +1882,13 @@ fn estimate_cursor_only_size_mb(total_pixels: f64, total_frames: f64) -> f64 {
 }
 
 fn export_estimate_duration(
-    project_config: &cap_project::ProjectConfiguration,
+    project_config: &scrinx_project::ProjectConfiguration,
     source_duration: f64,
 ) -> f64 {
     project_config
         .timeline
         .as_ref()
-        .map(cap_project::TimelineConfiguration::duration)
+        .map(scrinx_project::TimelineConfiguration::duration)
         .unwrap_or(source_duration)
 }
 
@@ -1936,13 +1936,13 @@ async fn generate_export_preview_inner(
     settings: ExportPreviewSettings,
 ) -> Result<ExportPreviewResult, String> {
     use base64::{Engine, engine::general_purpose::STANDARD};
-    use cap_editor::create_segments;
+    use scrinx_editor::create_segments;
     use std::time::Instant;
 
     let recording_meta = RecordingMeta::load_for_project(&project_path)
         .map_err(|e| format!("Failed to load recording meta: {e}"))?;
 
-    let cap_project::RecordingMetaInner::Studio(studio_meta) = &recording_meta.inner else {
+    let scrinx_project::RecordingMetaInner::Studio(studio_meta) = &recording_meta.inner else {
         return Err("Cannot preview non-studio recordings".to_string());
     };
 
@@ -2223,9 +2223,9 @@ mod tests {
     async fn export_preview_reads_saved_caption_choice_after_stale_live_preview_update() {
         for export_with_subtitles in [false, true] {
             let dir = tempdir().unwrap();
-            let mut saved = cap_project::ProjectConfiguration {
-                captions: Some(cap_project::CaptionsData {
-                    settings: cap_project::CaptionSettings {
+            let mut saved = scrinx_project::ProjectConfiguration {
+                captions: Some(scrinx_project::CaptionsData {
+                    settings: scrinx_project::CaptionSettings {
                         enabled: true,
                         export_with_subtitles,
                         ..Default::default()
@@ -2260,7 +2260,7 @@ mod tests {
                     .settings
                     .enabled
             );
-            let persisted = cap_project::ProjectConfiguration::load(dir.path()).unwrap();
+            let persisted = scrinx_project::ProjectConfiguration::load(dir.path()).unwrap();
             assert!(persisted.captions.as_ref().unwrap().settings.enabled);
         }
     }
@@ -2287,19 +2287,20 @@ mod tests {
         }))
         .unwrap();
         meta.project_path = directory.path().to_path_buf();
-        let config: cap_project::ProjectConfiguration = serde_json::from_value(serde_json::json!({
-            "timeline": {
-                "segments":[
-                    {"start":0.0,"end":5.0,"timescale":1.0},
-                    {"start":6.0,"end":10.0,"timescale":1.0}
-                ], "zoomSegments":[]
-            },
-            "captions": {
-                "sourceTimed":true, "settings":{},
-                "segments":[{"id":"word","text":"retained","start":8.0,"end":8.5,"words":[]}]
-            }
-        }))
-        .unwrap();
+        let config: scrinx_project::ProjectConfiguration =
+            serde_json::from_value(serde_json::json!({
+                "timeline": {
+                    "segments":[
+                        {"start":0.0,"end":5.0,"timescale":1.0},
+                        {"start":6.0,"end":10.0,"timescale":1.0}
+                    ], "zoomSegments":[]
+                },
+                "captions": {
+                    "sourceTimed":true, "settings":{},
+                    "segments":[{"id":"word","text":"retained","start":8.0,"end":8.5,"words":[]}]
+                }
+            }))
+            .unwrap();
         config.write(directory.path()).unwrap();
         let mut preview = load_export_preview_config(directory.path().to_path_buf(), false)
             .await
@@ -2331,9 +2332,9 @@ mod tests {
         for enabled in [false, true] {
             for export in [false, true] {
                 for cursor_only in [false, true] {
-                    let editor = cap_project::ProjectConfiguration {
-                        captions: Some(cap_project::CaptionsData {
-                            settings: cap_project::CaptionSettings {
+                    let editor = scrinx_project::ProjectConfiguration {
+                        captions: Some(scrinx_project::CaptionsData {
+                            settings: scrinx_project::CaptionSettings {
                                 enabled,
                                 export_with_subtitles: export,
                                 ..Default::default()
@@ -2361,7 +2362,7 @@ mod tests {
     #[test]
     fn export_estimates_use_source_duration_without_a_timeline() {
         assert_eq!(
-            export_estimate_duration(&cap_project::ProjectConfiguration::default(), 361.0),
+            export_estimate_duration(&scrinx_project::ProjectConfiguration::default(), 361.0),
             361.0
         );
     }
@@ -2400,15 +2401,15 @@ mod tests {
 
     #[test]
     fn export_settings_exposes_force_ffmpeg_for_mp4_only() {
-        let mp4_settings = ExportSettings::Mp4(cap_export::mp4::Mp4ExportSettings {
+        let mp4_settings = ExportSettings::Mp4(scrinx_export::mp4::Mp4ExportSettings {
             fps: 30,
             resolution_base: XY { x: 1280, y: 720 },
-            compression: cap_export::mp4::ExportCompression::Web,
+            compression: scrinx_export::mp4::ExportCompression::Web,
             custom_bpp: None,
             force_ffmpeg_decoder: true,
             optimize_filesize: false,
         });
-        let gif_settings = ExportSettings::Gif(cap_export::gif::GifExportSettings {
+        let gif_settings = ExportSettings::Gif(scrinx_export::gif::GifExportSettings {
             fps: 15,
             resolution_base: XY { x: 1280, y: 720 },
             quality: None,
@@ -2436,7 +2437,7 @@ mod tests {
         )
         .unwrap();
 
-        let gif_settings = ExportSettings::Gif(cap_export::gif::GifExportSettings {
+        let gif_settings = ExportSettings::Gif(scrinx_export::gif::GifExportSettings {
             fps: 15,
             resolution_base: XY { x: 1280, y: 720 },
             quality: None,
@@ -2449,7 +2450,7 @@ mod tests {
     fn exports_do_not_force_ffmpeg_without_explicit_setting() {
         let dir = tempdir().unwrap();
 
-        let gif_settings = ExportSettings::Gif(cap_export::gif::GifExportSettings {
+        let gif_settings = ExportSettings::Gif(scrinx_export::gif::GifExportSettings {
             fps: 15,
             resolution_base: XY { x: 1280, y: 720 },
             quality: None,
@@ -2498,9 +2499,9 @@ pub async fn generate_export_preview_fast(
 async fn load_export_preview_config(
     project_path: PathBuf,
     cursor_only: bool,
-) -> Result<cap_project::ProjectConfiguration, String> {
+) -> Result<scrinx_project::ProjectConfiguration, String> {
     tokio::task::spawn_blocking(move || {
-        cap_project::ProjectConfiguration::load(&project_path)
+        scrinx_project::ProjectConfiguration::load(&project_path)
             .map(|config| export_project_config(config, cursor_only))
             .map_err(|error| {
                 format!("Failed to read saved project config for export preview: {error}")
@@ -2512,11 +2513,11 @@ async fn load_export_preview_config(
 
 fn synchronize_preview_timing(
     meta: &RecordingMeta,
-    project: &mut cap_project::ProjectConfiguration,
+    project: &mut scrinx_project::ProjectConfiguration,
     display_durations: &[f64],
 ) {
-    cap_project::synchronize_legacy_keyboard(meta, project);
-    cap_project::synchronize_captions(project, display_durations);
+    scrinx_project::synchronize_legacy_keyboard(meta, project);
+    scrinx_project::synchronize_captions(project, display_durations);
 }
 
 fn export_preview_media<T>(medias: &[T], recording_clip: u32) -> Result<&T, String> {

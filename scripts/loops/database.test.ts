@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
-import { User } from "@cap/web-domain";
+import { User } from "@scrinx/web-domain";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql, { type Connection, type RowDataPacket } from "mysql2/promise";

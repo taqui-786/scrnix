@@ -1,9 +1,9 @@
 use anyhow::bail;
-use cap_audio::{AudioData, SyncAnalyzer};
-use cap_project::{RecordingMeta, RecordingMetaInner, StudioRecordingMeta};
-use cap_rendering::decoder::spawn_decoder;
 use chrono::{Local, Utc};
 use clap::{Parser, Subcommand};
+use scrinx_audio::{AudioData, SyncAnalyzer};
+use scrinx_project::{RecordingMeta, RecordingMetaInner, StudioRecordingMeta};
+use scrinx_rendering::decoder::spawn_decoder;
 use std::{
     fs,
     path::{Path, PathBuf},

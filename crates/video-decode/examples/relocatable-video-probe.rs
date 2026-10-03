@@ -1,5 +1,5 @@
-use cap_enc_ffmpeg::RelocatableSource;
-use cap_video_decode::FFmpegDecoder;
+use scrinx_enc_ffmpeg::RelocatableSource;
+use scrinx_video_decode::FFmpegDecoder;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::{

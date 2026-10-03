@@ -45,9 +45,9 @@
 		"createUpdaterArtifacts": false,
 		"targets": "all",
 		"externalBin": [
-			"binaries/cap-muxer",
-			"binaries/cap-exporter",
-			"binaries/cap-cli"
+			"binaries/scrinx-muxer",
+			"binaries/scrinx-exporter",
+			"binaries/scrinx-cli"
 		],
 		"icon": [
 			"icons/32x32.png",

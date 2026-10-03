@@ -5,17 +5,17 @@ use std::{
     time::{Duration, Instant},
 };
 
-use cap_desktop_lib::frame_ws::{WSFrame, WSFrameFormat, create_watch_frame_ws};
-use cap_editor::{
+use scrinx_desktop_lib::frame_ws::{WSFrame, WSFrameFormat, create_watch_frame_ws};
+use scrinx_editor::{
     EditorFrameOutput, FrameLayout, Playback, PlaybackRenderOutputFormat, PlaybackSkipReason,
     PlaybackTelemetry, PlaybackTelemetryEvent, Renderer, finish_renderer_layers_creation,
     start_renderer_layers_creation,
 };
-use cap_project::{
+use scrinx_project::{
     ProjectConfiguration, RecordingMeta, RecordingMetaInner, StudioRecordingMeta,
     TimelineConfiguration, TimelineSegment, XY,
 };
-use cap_rendering::{GpuOutputFormat, ProjectRecordingsMeta, RenderVideoConstants, Video};
+use scrinx_rendering::{GpuOutputFormat, ProjectRecordingsMeta, RenderVideoConstants, Video};
 use tokio::sync::{mpsc, watch};
 
 #[derive(Default)]
@@ -250,16 +250,19 @@ async fn main() {
     let layers_rx = start_renderer_layers_creation(&render_constants, &project);
     let force_ffmpeg_for_editor = cfg!(target_os = "windows")
         || std::env::var_os("CAP_EDITOR_FORCE_FFMPEG_DECODER").is_some();
-    let segment_medias =
-        match cap_editor::create_segments(&recording_meta, meta.as_ref(), force_ffmpeg_for_editor)
-            .await
-        {
-            Ok(segments) => Arc::new(segments),
-            Err(e) => {
-                eprintln!("Failed to create segments: {e}");
-                std::process::exit(1);
-            }
-        };
+    let segment_medias = match scrinx_editor::create_segments(
+        &recording_meta,
+        meta.as_ref(),
+        force_ffmpeg_for_editor,
+    )
+    .await
+    {
+        Ok(segments) => Arc::new(segments),
+        Err(e) => {
+            eprintln!("Failed to create segments: {e}");
+            std::process::exit(1);
+        }
+    };
     let layers_rx = finish_renderer_layers_creation(layers_rx).await;
 
     let (telemetry, mut telemetry_rx) = PlaybackTelemetry::channel();
@@ -328,14 +331,14 @@ async fn main() {
     };
 
     let (_project_tx, project_rx) = watch::channel(project);
-    let audio_output = Arc::new(cap_editor::AudioOutput::new());
+    let audio_output = Arc::new(scrinx_editor::AudioOutput::new());
     let playback = Playback {
         renderer: renderer.clone(),
         render_constants,
         start_frame_number: 0,
         project: project_rx,
         segment_medias,
-        music: cap_editor::MusicTracks::new(),
+        music: scrinx_editor::MusicTracks::new(),
         audio_output,
         telemetry: Some(telemetry),
     };

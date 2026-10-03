@@ -443,19 +443,19 @@ unsafe fn force_glass_view_always_active(glass_view: cocoa::base::id) -> bool {
         if responds_to_set_state {
             // NSVisualEffectStateActive == 1
             let _: () = msg_send![glass_view, setState: 1isize];
-            tracing::info!(target: "cap_desktop_lib::liquid_glass", "NSGlassEffectView responds to setState:");
+            tracing::info!(target: "scrinx_desktop_lib::liquid_glass", "NSGlassEffectView responds to setState:");
         }
 
         let responds_to_set_active: bool =
             msg_send![glass_view, respondsToSelector: sel!(setActive:)];
         if responds_to_set_active {
             let _: () = msg_send![glass_view, setActive: true];
-            tracing::info!(target: "cap_desktop_lib::liquid_glass", "NSGlassEffectView responds to setActive:");
+            tracing::info!(target: "scrinx_desktop_lib::liquid_glass", "NSGlassEffectView responds to setActive:");
         }
 
         if !responds_to_set_state && !responds_to_set_active {
             tracing::debug!(
-                target: "cap_desktop_lib::liquid_glass",
+                target: "scrinx_desktop_lib::liquid_glass",
                 "NSGlassEffectView responds to neither setState: nor setActive: — \
                  cannot pin material to always-active; falling back to vibrancy"
             );
@@ -648,7 +648,7 @@ pub async fn teardown_all_liquid_glass(app: &tauri::AppHandle) -> Result<(), Str
         .await
         .map_err(|_| "liquid glass teardown task was cancelled".to_string())?;
     tracing::info!(
-        target: "cap_desktop_lib::liquid_glass",
+        target: "scrinx_desktop_lib::liquid_glass",
         windows = count,
         "Tore down liquid glass before exit"
     );

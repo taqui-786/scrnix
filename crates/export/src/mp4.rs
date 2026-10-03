@@ -1,13 +1,15 @@
 use crate::{ExporterBase, Mp4ExporterBase};
-use cap_editor::{AudioRenderer, ExportAudioError, get_audio_segments, load_music_tracks_uncached};
-use cap_enc_ffmpeg::{AudioEncoder, aac::AACEncoder, h264::H264Encoder, mp4::*};
-use cap_media_info::{RawVideoFormat, VideoInfo};
-use cap_project::XY;
-use cap_rendering::{
-    GpuOutputFormat, Nv12RenderedFrame, ProjectUniforms, RenderSegment, SharedNv12Buffer,
-};
 use futures::FutureExt;
 use image::ImageBuffer;
+use scrinx_editor::{
+    AudioRenderer, ExportAudioError, get_audio_segments, load_music_tracks_uncached,
+};
+use scrinx_enc_ffmpeg::{AudioEncoder, aac::AACEncoder, h264::H264Encoder, mp4::*};
+use scrinx_media_info::{RawVideoFormat, VideoInfo};
+use scrinx_project::XY;
+use scrinx_rendering::{
+    GpuOutputFormat, Nv12RenderedFrame, ProjectUniforms, RenderSegment, SharedNv12Buffer,
+};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::{
@@ -168,13 +170,13 @@ struct ExportNv12Mode {
     stop_after_frames_sent: Option<u32>,
     record_first_queued_ms_since_pipeline: Option<Arc<AtomicU64>>,
     nv12_render_startup_breakdown_ms:
-        Option<Arc<Mutex<Option<cap_rendering::Nv12RenderStartupBreakdownMs>>>>,
+        Option<Arc<Mutex<Option<scrinx_rendering::Nv12RenderStartupBreakdownMs>>>>,
 }
 
 #[derive(Debug, serde::Serialize)]
 pub struct FirstFrameQueuedBenchmark {
     pub ms_to_first_frame_queued_since_export_pipeline_start: u64,
-    pub nv12_render_startup_breakdown_ms: Option<cap_rendering::Nv12RenderStartupBreakdownMs>,
+    pub nv12_render_startup_breakdown_ms: Option<scrinx_rendering::Nv12RenderStartupBreakdownMs>,
 }
 
 #[derive(Serialize, Deserialize, Type, Clone, Copy, Debug)]
@@ -210,7 +212,7 @@ impl Mp4ExportSettings {
         base: ExporterBase,
         on_progress: impl FnMut(u32) -> bool + Send + 'static,
     ) -> Result<PathBuf, String> {
-        use cap_utils::operation_diagnostics::{Field, observe};
+        use scrinx_utils::operation_diagnostics::{Field, observe};
         observe(
             "export_mp4",
             &[
@@ -219,7 +221,7 @@ impl Mp4ExportSettings {
                 Field::number("requested_height", self.resolution_base.y as u64),
                 Field::identifier(
                     "resource",
-                    cap_utils::operation_diagnostics::resource_id(&base.project_path),
+                    scrinx_utils::operation_diagnostics::resource_id(&base.project_path),
                 ),
                 Field::number(
                     "source_width",
@@ -698,7 +700,7 @@ impl Mp4ExportSettings {
         )
         .then(move |v| async move {
             let result = v.map_err(|error| match &error {
-                cap_rendering::RenderingError::ImageLoadError(message)
+                scrinx_rendering::RenderingError::ImageLoadError(message)
                     if render_result_cancellation.is_some() && message == "Export cancelled" =>
                 {
                     Mp4PipelineError::Interrupted
@@ -758,7 +760,7 @@ impl Mp4ExportSettings {
 enum ExportFramePayload {
     Cpu(SharedNv12Buffer),
     #[cfg(target_os = "macos")]
-    Surface(cap_rendering::Nv12Surface),
+    Surface(scrinx_rendering::Nv12Surface),
 }
 
 struct ExportFrame {
@@ -1047,7 +1049,7 @@ fn silent_audio_frame(samples: usize) -> ffmpeg::frame::Audio {
 #[cfg(target_os = "macos")]
 fn fill_nv12_frame_from_surface(
     frame: &mut ffmpeg::frame::Video,
-    surface: &cap_rendering::Nv12Surface,
+    surface: &scrinx_rendering::Nv12Surface,
     width: u32,
     height: u32,
     pts: i64,
@@ -1172,7 +1174,7 @@ fn save_screenshot_from_nv12(
     };
 
     let mut rgba = vec![0u8; (width * height * 4) as usize];
-    cap_rendering::cpu_yuv::nv12_to_rgba_simd(
+    scrinx_rendering::cpu_yuv::nv12_to_rgba_simd(
         y_data, uv_data, width, height, y_stride, width, &mut rgba,
     );
 
@@ -1197,8 +1199,8 @@ fn save_screenshot_from_nv12(
     let _ = rgb_img.save(&screenshot_path);
 }
 
-use cap_project::{ProjectConfiguration, RecordingMeta, StudioRecordingMeta};
-use cap_rendering::{ProjectRecordingsMeta, RenderVideoConstants};
+use scrinx_project::{ProjectConfiguration, RecordingMeta, StudioRecordingMeta};
+use scrinx_rendering::{ProjectRecordingsMeta, RenderVideoConstants};
 
 const FRAME_RECEIVE_INITIAL_TIMEOUT_SECS: u64 = 120;
 const FRAME_RECEIVE_STEADY_TIMEOUT_SECS: u64 = 90;
@@ -1215,20 +1217,22 @@ async fn export_render_to_channel(
     fps: u32,
     resolution_base: XY<u32>,
     recordings: &ProjectRecordingsMeta,
-    frame_windows: Option<cap_rendering::FrameWindows>,
+    frame_windows: Option<scrinx_rendering::FrameWindows>,
     stop_after_frames_sent: Option<u32>,
-    startup_breakdown_ms: Option<Arc<Mutex<Option<cap_rendering::Nv12RenderStartupBreakdownMs>>>>,
+    startup_breakdown_ms: Option<
+        Arc<Mutex<Option<scrinx_rendering::Nv12RenderStartupBreakdownMs>>>,
+    >,
     stop_on_encoder_drop: bool,
     mut on_progress: impl FnMut(u32) -> bool + Send + 'static,
     project_path: PathBuf,
-) -> Result<(), cap_rendering::RenderingError> {
+) -> Result<(), scrinx_rendering::RenderingError> {
     let (tx_image_data, mut video_rx) = tokio::sync::mpsc::channel::<(Nv12RenderedFrame, u32)>(8);
 
     let screenshot_project_path = frame_windows.is_none().then_some(project_path);
     let sampling = frame_windows.is_some();
 
     let render_result = {
-        let render_future = Box::pin(cap_rendering::render_video_to_channel_nv12(
+        let render_future = Box::pin(scrinx_rendering::render_video_to_channel_nv12(
             constants,
             project,
             tx_image_data,
@@ -1269,7 +1273,7 @@ async fn export_render_to_channel(
                         consecutive_timeouts += 1;
 
                         if consecutive_timeouts >= MAX_CONSECUTIVE_FRAME_TIMEOUTS {
-                            return Err(cap_rendering::RenderingError::ImageLoadError(format!(
+                            return Err(scrinx_rendering::RenderingError::ImageLoadError(format!(
                                 "Export timed out {MAX_CONSECUTIVE_FRAME_TIMEOUTS} times consecutively after {timeout_secs}s each waiting for frame {frame_count}"
                             )));
                         }
@@ -1287,7 +1291,7 @@ async fn export_render_to_channel(
                 };
 
                 if !(on_progress)(frame_count) {
-                    return Err(cap_rendering::RenderingError::ImageLoadError(
+                    return Err(scrinx_rendering::RenderingError::ImageLoadError(
                         "Export cancelled".to_string(),
                     ));
                 }
@@ -1312,7 +1316,7 @@ async fn export_render_to_channel(
                 if sender.send(export_frame).is_err() {
                     warn!("Encoder dropped, stopping render forwarding");
                     if stop_on_encoder_drop {
-                        return Err(cap_rendering::RenderingError::ImageLoadError(
+                        return Err(scrinx_rendering::RenderingError::ImageLoadError(
                             "Export cancelled".to_string(),
                         ));
                     }
@@ -1338,7 +1342,7 @@ async fn export_render_to_channel(
                 });
             }
 
-            Ok::<_, cap_rendering::RenderingError>(())
+            Ok::<_, scrinx_rendering::RenderingError>(())
         };
 
         tokio::try_join!(render_future, forward_future)
@@ -1672,7 +1676,7 @@ mod tests {
 
     #[test]
     fn nv12_from_rendered_frame_passthrough_for_nv12_format() {
-        use cap_rendering::{GpuOutputFormat, Nv12RenderedFrame};
+        use scrinx_rendering::{GpuOutputFormat, Nv12RenderedFrame};
 
         let data = vec![1u8, 2, 3, 4, 5, 6];
         let frame = Nv12RenderedFrame {

@@ -511,9 +511,9 @@ async function listMedia(dir) {
 async function snapshotDesktopLogs() {
 	const date = new Date().toISOString().slice(0, 10);
 	const paths = desktopLogDirs.flatMap((desktopLogDir) => [
-		path.join(desktopLogDir, `cap-desktop.log.${date}`),
-		path.join(desktopLogDir, `cap-desktop-errors.log.${date}`),
-		path.join(desktopLogDir, "cap-desktop-panics.log"),
+		path.join(desktopLogDir, `scrinx-desktop.log.${date}`),
+		path.join(desktopLogDir, `scrinx-desktop-errors.log.${date}`),
+		path.join(desktopLogDir, "scrinx-desktop-panics.log"),
 	]);
 	const snapshot = new Map();
 	for (const filePath of paths) {
@@ -650,7 +650,7 @@ async function signDesktopAppIfNeeded() {
 
 async function openDeepLink(name, action) {
 	const value = JSON.stringify(action);
-	const url = `cap-desktop://action?value=${encodeURIComponent(value)}`;
+	const url = `scrinx-desktop://action?value=${encodeURIComponent(value)}`;
 	if (desktopExecPath) {
 		await runCommand(name, desktopExecPath, [url]);
 		return;

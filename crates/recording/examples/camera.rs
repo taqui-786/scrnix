@@ -1,17 +1,17 @@
-use cap_recording::{
-    CameraFeed,
-    feeds::camera::{self, DeviceOrModelID},
-};
 use ffmpeg::format::Pixel;
 use image::{ColorType, codecs::jpeg};
 use kameo::Actor;
+use scrinx_recording::{
+    CameraFeed,
+    feeds::camera::{self, DeviceOrModelID},
+};
 use std::fmt::Display;
 
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    let cameras = cap_camera::list_cameras().map(CameraSelection).collect();
+    let cameras = scrinx_camera::list_cameras().map(CameraSelection).collect();
     let device = inquire::Select::new("Select a device", cameras)
         .prompt()
         .unwrap();
@@ -60,7 +60,7 @@ async fn main() {
         .unwrap();
 }
 
-struct CameraSelection(cap_camera::CameraInfo);
+struct CameraSelection(scrinx_camera::CameraInfo);
 
 impl Display for CameraSelection {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

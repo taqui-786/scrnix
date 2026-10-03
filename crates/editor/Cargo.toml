@@ -1,5 +1,5 @@
 [package]
-name = "cap-editor"
+name = "scrinx-editor"
 version = "0.1.0"
 edition = "2024"
 
@@ -23,12 +23,12 @@ name = "editor-startup-benchmark"
 path = "examples/editor-startup-benchmark.rs"
 
 [dependencies]
-cap-utils = { path = "../utils" }
-cap-media = { path = "../media" }
-cap-project = { path = "../project" }
-cap-rendering = { path = "../rendering" }
-cap-audio = { path = "../audio" }
-cap-media-info = { path = "../media-info" }
+scrinx-utils = { path = "../utils" }
+scrinx-media = { path = "../media" }
+scrinx-project = { path = "../project" }
+scrinx-rendering = { path = "../rendering" }
+scrinx-audio = { path = "../audio" }
+scrinx-media-info = { path = "../media-info" }
 
 tokio = { workspace = true, features = ["macros", "process", "fs"] }
 cpal.workspace = true
@@ -53,5 +53,5 @@ workspace-hack = { version = "0.1", path = "../workspace-hack" }
 windows = { workspace = true, features = ["Win32_Media"] }
 
 [dev-dependencies]
-cap-audio = { path = "../audio", features = ["test-support"] }
-cap-enc-ffmpeg = { path = "../enc-ffmpeg" }
+scrinx-audio = { path = "../audio", features = ["test-support"] }
+scrinx-enc-ffmpeg = { path = "../enc-ffmpeg" }

@@ -1,7 +1,7 @@
 use super::*;
 use crate::{AudioRenderer, SegmentAudioTimingRepair, audio_segment_from_decoded};
-use cap_audio::{AudioChunk, DecodedAudio, ProgressiveAudio, ProgressiveAudioTestProducer};
-use cap_project::{
+use scrinx_audio::{AudioChunk, DecodedAudio, ProgressiveAudio, ProgressiveAudioTestProducer};
+use scrinx_project::{
     ClipConfiguration, ProjectConfiguration, TimelineConfiguration, TimelineSegment,
 };
 
@@ -62,7 +62,7 @@ fn append(
 
 fn info<T: FromSampleBytes>(rate: u32, channels: u16) -> AudioInfo {
     AudioInfo::new_raw(
-        cap_media_info::ffmpeg_sample_format_for(T::FORMAT).unwrap(),
+        scrinx_media_info::ffmpeg_sample_format_for(T::FORMAT).unwrap(),
         rate,
         channels,
     )

@@ -1,5 +1,5 @@
-use cap_audio::DecodedAudio;
-use cap_project::{AudioGapSummary, AudioMeta, RecordingMeta, StudioRecordingMeta};
+use scrinx_audio::DecodedAudio;
+use scrinx_project::{AudioGapSummary, AudioMeta, RecordingMeta, StudioRecordingMeta};
 use std::{
     path::{Path, PathBuf},
     sync::Arc,
@@ -130,7 +130,7 @@ impl CompletedAudioHandoff {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
-    use cap_project::{
+    use scrinx_project::{
         MultipleSegment, MultipleSegments, RecordingMetaInner, StudioRecordingStatus, VideoMeta,
     };
     use std::io::Write;
@@ -158,7 +158,7 @@ pub(crate) mod tests {
         }
         file.flush().unwrap();
         Arc::new(DecodedAudio::from(Arc::new(
-            cap_audio::AudioData::from_file(file.path()).unwrap(),
+            scrinx_audio::AudioData::from_file(file.path()).unwrap(),
         )))
     }
 

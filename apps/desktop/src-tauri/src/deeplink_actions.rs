@@ -1,4 +1,4 @@
-use cap_recording::{
+use scrinx_recording::{
     RecordingMode, feeds::camera::DeviceOrModelID, sources::screen_capture::ScreenCaptureTarget,
 };
 use serde::{Deserialize, Serialize};
@@ -214,12 +214,12 @@ impl DeepLinkAction {
                 crate::set_mic_input(app.clone(), state.clone(), mic_label).await?;
 
                 let capture_target: ScreenCaptureTarget = match capture_mode {
-                    CaptureMode::Screen(name) => cap_recording::screen_capture::list_displays()
+                    CaptureMode::Screen(name) => scrinx_recording::screen_capture::list_displays()
                         .into_iter()
                         .find(|(s, _)| s.name == name)
                         .map(|(s, _)| ScreenCaptureTarget::Display { id: s.id })
                         .ok_or(format!("No screen with name \"{}\"", &name))?,
-                    CaptureMode::Window(name) => cap_recording::screen_capture::list_windows()
+                    CaptureMode::Window(name) => scrinx_recording::screen_capture::list_windows()
                         .into_iter()
                         .find(|(w, _)| w.name == name)
                         .map(|(w, _)| ScreenCaptureTarget::Window { id: w.id })
@@ -229,7 +229,7 @@ impl DeepLinkAction {
                         if area.width <= 0.0 || area.height <= 0.0 {
                             return Err("Area width and height must be positive".to_string());
                         }
-                        let screen = cap_recording::screen_capture::list_displays()
+                        let screen = scrinx_recording::screen_capture::list_displays()
                             .into_iter()
                             .find(|(display, _)| display.name == area.screen)
                             .map(|(display, _)| display.id)
@@ -346,7 +346,7 @@ mod tests {
 
     #[test]
     fn parses_stop_recording_action_url() {
-        let url = Url::parse("cap-desktop://action?value=%22stop_recording%22").unwrap();
+        let url = Url::parse("scrinx-desktop://action?value=%22stop_recording%22").unwrap();
 
         assert_eq!(
             DeepLinkAction::try_from(&url),
@@ -363,7 +363,7 @@ mod tests {
             }
         })
         .to_string();
-        let url = Url::parse_with_params("cap-desktop://action", &[("value", value)]).unwrap();
+        let url = Url::parse_with_params("scrinx-desktop://action", &[("value", value)]).unwrap();
 
         assert_eq!(
             DeepLinkAction::try_from(&url),
@@ -387,7 +387,7 @@ mod tests {
             }
         })
         .to_string();
-        let url = Url::parse_with_params("cap-desktop://action", &[("value", value)]).unwrap();
+        let url = Url::parse_with_params("scrinx-desktop://action", &[("value", value)]).unwrap();
 
         assert_eq!(
             DeepLinkAction::try_from(&url),
@@ -396,7 +396,7 @@ mod tests {
                     size: 400.0,
                     shape: crate::camera::CameraPreviewShape::Full,
                     mirrored: true,
-                    background_blur: cap_project::BackgroundBlurMode::Heavy,
+                    background_blur: scrinx_project::BackgroundBlurMode::Heavy,
                 }
             })
         );
@@ -405,8 +405,9 @@ mod tests {
     #[cfg(debug_assertions)]
     #[test]
     fn parses_pause_and_resume_action_urls() {
-        let pause_url = Url::parse("cap-desktop://action?value=%22pause_recording%22").unwrap();
-        let resume_url = Url::parse("cap-desktop://action?value=%22resume_recording%22").unwrap();
+        let pause_url = Url::parse("scrinx-desktop://action?value=%22pause_recording%22").unwrap();
+        let resume_url =
+            Url::parse("scrinx-desktop://action?value=%22resume_recording%22").unwrap();
 
         assert_eq!(
             DeepLinkAction::try_from(&pause_url),
@@ -439,7 +440,7 @@ mod tests {
             }
         })
         .to_string();
-        let url = Url::parse_with_params("cap-desktop://action", &[("value", value)]).unwrap();
+        let url = Url::parse_with_params("scrinx-desktop://action", &[("value", value)]).unwrap();
 
         assert_eq!(
             DeepLinkAction::try_from(&url),
@@ -472,7 +473,7 @@ mod tests {
             }
         })
         .to_string();
-        let url = Url::parse_with_params("cap-desktop://action", &[("value", value)]).unwrap();
+        let url = Url::parse_with_params("scrinx-desktop://action", &[("value", value)]).unwrap();
 
         assert_eq!(
             DeepLinkAction::try_from(&url),
@@ -489,7 +490,7 @@ mod tests {
     #[test]
     fn parses_start_recording_action_url() {
         let url = Url::parse(
-            "cap-desktop://action?value=%7B%22start_recording%22%3A%7B%22capture_mode%22%3A%7B%22screen%22%3A%22Odyssey%20G93SC%22%7D%2C%22camera%22%3Anull%2C%22mic_label%22%3A%22Shure%20MV7%2B%22%2C%22capture_system_audio%22%3Atrue%2C%22mode%22%3A%22studio%22%7D%7D",
+            "scrinx-desktop://action?value=%7B%22start_recording%22%3A%7B%22capture_mode%22%3A%7B%22screen%22%3A%22Odyssey%20G93SC%22%7D%2C%22camera%22%3Anull%2C%22mic_label%22%3A%22Shure%20MV7%2B%22%2C%22capture_system_audio%22%3Atrue%2C%22mode%22%3A%22studio%22%7D%7D",
         )
         .unwrap();
 
@@ -526,7 +527,7 @@ mod tests {
             }
         })
         .to_string();
-        let url = Url::parse_with_params("cap-desktop://action", &[("value", value)]).unwrap();
+        let url = Url::parse_with_params("scrinx-desktop://action", &[("value", value)]).unwrap();
 
         let Ok(DeepLinkAction::StartRecording {
             camera,
@@ -548,7 +549,7 @@ mod tests {
 
     #[test]
     fn rejects_non_action_host() {
-        let url = Url::parse("cap-desktop://login?value=%22stop_recording%22").unwrap();
+        let url = Url::parse("scrinx-desktop://login?value=%22stop_recording%22").unwrap();
 
         assert_eq!(
             DeepLinkAction::try_from(&url),

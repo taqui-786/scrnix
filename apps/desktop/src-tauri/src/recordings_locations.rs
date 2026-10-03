@@ -298,24 +298,24 @@ fn project_is_in_use(project: &Path, in_use: &HashSet<PathBuf>) -> bool {
 
     // Belt and braces: a recording that is mid-write has InProgress status in
     // its meta even if we failed to resolve it from app state.
-    match cap_project::RecordingMeta::load_for_project(project) {
+    match scrinx_project::RecordingMeta::load_for_project(project) {
         Ok(meta) => match &meta.inner {
-            cap_project::RecordingMetaInner::Studio(studio) => {
-                if let cap_project::StudioRecordingMeta::MultipleSegments { inner, .. } =
+            scrinx_project::RecordingMetaInner::Studio(studio) => {
+                if let scrinx_project::StudioRecordingMeta::MultipleSegments { inner, .. } =
                     studio.as_ref()
                 {
                     matches!(
                         inner.status,
-                        Some(cap_project::StudioRecordingStatus::InProgress)
+                        Some(scrinx_project::StudioRecordingStatus::InProgress)
                     )
                 } else {
                     false
                 }
             }
-            cap_project::RecordingMetaInner::Instant(instant) => {
+            scrinx_project::RecordingMetaInner::Instant(instant) => {
                 matches!(
                     instant,
-                    cap_project::InstantRecordingMeta::InProgress { .. }
+                    scrinx_project::InstantRecordingMeta::InProgress { .. }
                 )
             }
         },
@@ -346,7 +346,7 @@ pub fn move_project_dir(src: &Path, dest_dir: &Path) -> Result<PathBuf, String> 
         return Err("Destination folder is inside this recording".to_string());
     }
 
-    let unique = cap_utils::ensure_unique_filename(name, dest_dir)?;
+    let unique = scrinx_utils::ensure_unique_filename(name, dest_dir)?;
     let target = dest_dir.join(&unique);
 
     match std::fs::rename(src, &target) {

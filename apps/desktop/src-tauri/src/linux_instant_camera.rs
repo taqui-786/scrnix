@@ -19,7 +19,7 @@ use crate::camera::CameraPreviewShape;
 struct SelectionGuard {
     inputs: Arc<Mutex<crate::RequestedInputs>>,
     revision: u64,
-    selected: cap_recording::feeds::camera::DeviceOrModelID,
+    selected: scrinx_recording::feeds::camera::DeviceOrModelID,
 }
 
 impl SelectionGuard {
@@ -227,11 +227,11 @@ pub async fn submit_camera_presentation(
 #[cfg(target_os = "linux")]
 pub struct PreparedPresentation {
     owner: PresentationOwner,
-    actor: kameo::actor::ActorRef<cap_recording::feeds::camera::CameraFeed>,
+    actor: kameo::actor::ActorRef<scrinx_recording::feeds::camera::CameraFeed>,
     input: CameraPresentationInput,
-    pub presentation: cap_recording::instant_recording::LinuxCameraPresentation,
+    pub presentation: scrinx_recording::instant_recording::LinuxCameraPresentation,
     pub reference_size: (u32, u32),
-    pub processing: cap_recording::instant_recording::LinuxCameraProcessing,
+    pub processing: scrinx_recording::instant_recording::LinuxCameraProcessing,
 }
 
 #[cfg(target_os = "linux")]
@@ -337,16 +337,15 @@ pub async fn request_presentation(
 #[cfg(target_os = "linux")]
 fn processing(
     state: &CameraPreviewState,
-) -> cap_recording::instant_recording::LinuxCameraProcessing {
-    use cap_recording::instant_recording::{LinuxCameraBlur, LinuxCameraProcessing};
+) -> scrinx_recording::instant_recording::LinuxCameraProcessing {
+    use scrinx_recording::instant_recording::{LinuxCameraBlur, LinuxCameraProcessing};
     LinuxCameraProcessing {
         mirrored: state.mirrored,
         blur: match state.background_blur {
-            cap_project::BackgroundBlurMode::Off | cap_project::BackgroundBlurMode::Remove => {
-                LinuxCameraBlur::Off
-            }
-            cap_project::BackgroundBlurMode::Light => LinuxCameraBlur::Light,
-            cap_project::BackgroundBlurMode::Heavy => LinuxCameraBlur::Heavy,
+            scrinx_project::BackgroundBlurMode::Off
+            | scrinx_project::BackgroundBlurMode::Remove => LinuxCameraBlur::Off,
+            scrinx_project::BackgroundBlurMode::Light => LinuxCameraBlur::Light,
+            scrinx_project::BackgroundBlurMode::Heavy => LinuxCameraBlur::Heavy,
         },
     }
 }
@@ -358,12 +357,12 @@ fn presentation_from_input(
     capture: PhysicalRect,
 ) -> Result<
     (
-        cap_recording::instant_recording::LinuxCameraPresentation,
-        cap_recording::instant_recording::LinuxCameraProcessing,
+        scrinx_recording::instant_recording::LinuxCameraPresentation,
+        scrinx_recording::instant_recording::LinuxCameraProcessing,
     ),
     String,
 > {
-    use cap_recording::instant_recording::{
+    use scrinx_recording::instant_recording::{
         LinuxCameraEffect, LinuxCameraPresentation, LinuxCameraRect, LinuxCameraShape,
     };
     if ![
@@ -449,7 +448,7 @@ fn presentation_from_input(
     presentation
         .validate(capture.width, capture.height)
         .map_err(|error| error.to_string())?;
-    if input.state.background_blur != cap_project::BackgroundBlurMode::Off {
+    if input.state.background_blur != scrinx_project::BackgroundBlurMode::Off {
         presentation.effect = LinuxCameraEffect::BackgroundBlur;
     }
     Ok((presentation, processing(&input.state)))
@@ -458,7 +457,8 @@ fn presentation_from_input(
 #[cfg(target_os = "linux")]
 mod producer {
     use super::*;
-    use cap_recording::{
+    use kameo::actor::ActorRef;
+    use scrinx_recording::{
         FFmpegVideoFrame,
         feeds::camera::{self, CameraFeed, CameraFeedLock},
         instant_recording::{
@@ -467,8 +467,7 @@ mod producer {
             LinuxProcessedCameraSource,
         },
     };
-    use cap_timestamp::Timestamp;
-    use kameo::actor::ActorRef;
+    use scrinx_timestamp::Timestamp;
     use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
     pub struct Reservation(Arc<AtomicBool>);
@@ -616,7 +615,7 @@ mod producer {
         pub generation: u64,
         pub processing: LinuxCameraProcessing,
         pub dimensions: (u32, u32),
-        pub blur: Option<cap_camera_effects::BlurOutputStatus>,
+        pub blur: Option<scrinx_camera_effects::BlurOutputStatus>,
     }
 
     pub(crate) struct RecordingWork {
@@ -717,9 +716,9 @@ mod producer {
             (LinuxCameraBlur::Off, None) => None,
             (LinuxCameraBlur::Light | LinuxCameraBlur::Heavy, Some(status)) => {
                 let mode = if expected.blur == LinuxCameraBlur::Light {
-                    cap_camera_effects::BlurMode::Light
+                    scrinx_camera_effects::BlurMode::Light
                 } else {
-                    cap_camera_effects::BlurMode::Heavy
+                    scrinx_camera_effects::BlurMode::Heavy
                 };
                 match status.applied_at(now, LINUX_CAMERA_MAX_MASK_AGE) {
                     Ok(applied)
@@ -734,7 +733,7 @@ mod producer {
                             completed_at: applied.mask.inference_completed_at,
                         })
                     }
-                    Err(cap_camera_effects::BlurOutputUnavailable::Pending) => return Ok(None),
+                    Err(scrinx_camera_effects::BlurOutputUnavailable::Pending) => return Ok(None),
                     other => {
                         return Err(format!("Requested camera blur was not applied: {other:?}"));
                     }
@@ -784,8 +783,8 @@ pub(crate) use producer::{FrameReceipt, RecordingWork, channel as processing_cha
 #[cfg(all(test, target_os = "linux"))]
 mod tests {
     use super::*;
-    use cap_recording::instant_recording::{LinuxCameraBlur, LinuxCameraProcessing};
-    use cap_timestamp::Timestamp;
+    use scrinx_recording::instant_recording::{LinuxCameraBlur, LinuxCameraProcessing};
+    use scrinx_timestamp::Timestamp;
 
     fn input() -> CameraPresentationInput {
         CameraPresentationInput {
@@ -883,7 +882,7 @@ mod tests {
         input.radius = 24.0;
         input.state.shape = CameraPreviewShape::Full;
         input.state.mirrored = true;
-        input.state.background_blur = cap_project::BackgroundBlurMode::Heavy;
+        input.state.background_blur = scrinx_project::BackgroundBlurMode::Heavy;
         let (presentation, processing) = presentation_from_input(
             &input,
             PhysicalRect {
@@ -902,7 +901,7 @@ mod tests {
         .unwrap();
         assert_eq!(
             presentation.shape,
-            cap_recording::instant_recording::LinuxCameraShape::RoundedRectangle {
+            scrinx_recording::instant_recording::LinuxCameraShape::RoundedRectangle {
                 radius_pixels: 24
             }
         );
@@ -994,7 +993,7 @@ mod tests {
 
     #[test]
     fn pending_failed_wrong_mode_and_stale_masks_never_become_recorded_raw_frames() {
-        use cap_camera_effects::{
+        use scrinx_camera_effects::{
             BlurFailure, BlurMaskReceipt, BlurMaskStatus, BlurMode, BlurOutputStatus,
         };
         let now = Instant::now();
@@ -1057,7 +1056,7 @@ mod tests {
         let inputs = Arc::new(Mutex::new(crate::RequestedInputs {
             microphone: crate::RequestedInput::new(None),
             camera: crate::RequestedInput::new(Some(
-                cap_recording::feeds::camera::DeviceOrModelID::DeviceID("camera-a".into()),
+                scrinx_recording::feeds::camera::DeviceOrModelID::DeviceID("camera-a".into()),
             )),
         }));
         let (_, state) = tokio::sync::watch::channel(CameraPreviewState::default());
@@ -1076,7 +1075,7 @@ mod tests {
             selection: SelectionGuard {
                 inputs,
                 revision: 0,
-                selected: cap_recording::feeds::camera::DeviceOrModelID::DeviceID(
+                selected: scrinx_recording::feeds::camera::DeviceOrModelID::DeviceID(
                     "camera-a".into(),
                 ),
             },
@@ -1101,14 +1100,14 @@ mod tests {
     fn camera_request_revision_guard_does_not_rewrite_input_intent() {
         let state = crate::RequestedInputsState::new(
             None,
-            Some(cap_recording::feeds::camera::DeviceOrModelID::DeviceID(
+            Some(scrinx_recording::feeds::camera::DeviceOrModelID::DeviceID(
                 "camera-a".into(),
             )),
         );
         let guard = SelectionGuard {
             inputs: state.inner.clone(),
             revision: 0,
-            selected: cap_recording::feeds::camera::DeviceOrModelID::DeviceID("camera-a".into()),
+            selected: scrinx_recording::feeds::camera::DeviceOrModelID::DeviceID("camera-a".into()),
         };
         assert!(guard.current());
         let revision = state.inner.lock().unwrap().camera.begin(None);

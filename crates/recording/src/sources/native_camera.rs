@@ -3,8 +3,8 @@ use crate::{
     output_pipeline::{NativeCameraFrame, SetupCtx, VideoSource},
 };
 use anyhow::anyhow;
-use cap_media_info::VideoInfo;
 use futures::{FutureExt, channel::mpsc, future::BoxFuture};
+use scrinx_media_info::VideoInfo;
 use std::sync::{
     Arc,
     atomic::{AtomicBool, Ordering},

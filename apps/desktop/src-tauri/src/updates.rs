@@ -107,7 +107,7 @@ fn updater_target() -> Result<String, String> {
 
     #[cfg(target_os = "linux")]
     {
-        cap_utils::linux_package::updater_target(arch)
+        scrinx_utils::linux_package::updater_target(arch)
     }
     #[cfg(not(target_os = "linux"))]
     {

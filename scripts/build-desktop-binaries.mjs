@@ -46,19 +46,19 @@ async function main() {
 
 	for (const sidecar of [
 		{
-			packageName: "cap-muxer",
-			sourceBinary: "cap-muxer",
-			destBinaries: ["cap-muxer"],
+			packageName: "scrinx-muxer",
+			sourceBinary: "scrinx-muxer",
+			destBinaries: ["scrinx-muxer"],
 			watchPaths: [
-				path.join(repoRoot, "crates", "cap-muxer"),
-				path.join(repoRoot, "crates", "cap-muxer-protocol"),
+				path.join(repoRoot, "crates", "scrinx-muxer"),
+				path.join(repoRoot, "crates", "scrinx-muxer-protocol"),
 				path.join(repoRoot, "Cargo.lock"),
 			],
 		},
 		{
-			packageName: "cap",
-			sourceBinary: "cap",
-			destBinaries: ["cap-cli", "cap-exporter"],
+			packageName: "scrinx",
+			sourceBinary: "scrinx",
+			destBinaries: ["scrinx-cli", "scrinx-exporter"],
 			watchPaths: [
 				path.join(repoRoot, "apps", "cli"),
 				path.join(repoRoot, "crates", "cli-install"),

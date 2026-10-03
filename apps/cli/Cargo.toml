@@ -1,22 +1,22 @@
 [package]
-name = "cap"
+name = "scrinx"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
 clap = { version = "4.5.23", features = ["derive"] }
 clap_complete = "4.5.38"
-cap-project = { path = "../../crates/project" }
-cap-recording = { path = "../../crates/recording" }
-cap-editor = { path = "../../crates/editor" }
-cap-export = { path = "../../crates/export" }
-cap-media-info = { path = "../../crates/media-info" }
-cap-timestamp = { path = "../../crates/timestamp" }
-cap-utils = { path = "../../crates/utils" }
+scrinx-project = { path = "../../crates/project" }
+scrinx-recording = { path = "../../crates/recording" }
+scrinx-editor = { path = "../../crates/editor" }
+scrinx-export = { path = "../../crates/export" }
+scrinx-media-info = { path = "../../crates/media-info" }
+scrinx-timestamp = { path = "../../crates/timestamp" }
+scrinx-utils = { path = "../../crates/utils" }
 relative-path = "1.9.3"
-cap-automation = { path = "../../crates/automation" }
-cap-camera = { path = "../../crates/camera" }
-cap-cli-install = { path = "../../crates/cli-install" }
+scrinx-automation = { path = "../../crates/automation" }
+scrinx-camera = { path = "../../crates/camera" }
+scrinx-cli-install = { path = "../../crates/cli-install" }
 scap-targets = { path = "../../crates/scap-targets" }
 serde = { workspace = true }
 serde_json = "1.0.133"

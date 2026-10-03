@@ -39,5 +39,5 @@ build_sidecar() {
     done
 }
 
-build_sidecar "cap-muxer" "cap-muxer" "cap-muxer"
-build_sidecar "cap" "cap" "cap-cli" "cap-exporter"
+build_sidecar "scrinx-muxer" "scrinx-muxer" "scrinx-muxer"
+build_sidecar "scrinx" "scrinx" "scrinx-cli" "scrinx-exporter"

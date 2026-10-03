@@ -1,6 +1,6 @@
-use cap_recording::feeds::microphone::MicrophoneSamples;
 use cpal::{SampleFormat, StreamInstant};
 use keyed_priority_queue::KeyedPriorityQueue;
+use scrinx_recording::feeds::microphone::MicrophoneSamples;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::collections::VecDeque;

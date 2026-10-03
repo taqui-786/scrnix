@@ -1,5 +1,5 @@
-use cap_camera::{CapturedFrame, NativeFrameFormat};
 use ffmpeg::{Packet, format::Pixel, frame::Video as FFVideo};
+use scrinx_camera::{CapturedFrame, NativeFrameFormat};
 use std::cell::RefCell;
 
 use crate::CapturedFrameExt;

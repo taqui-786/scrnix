@@ -1,5 +1,5 @@
-use cap_cursor_capture::RawCursorPosition;
 use scap_targets::Display;
+use scrinx_cursor_capture::RawCursorPosition;
 
 fn main() {
     loop {

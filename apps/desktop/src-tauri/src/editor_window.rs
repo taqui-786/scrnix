@@ -13,7 +13,7 @@ use tauri::{AppHandle, Emitter, Listener, Manager, Runtime, Window, ipc::Command
 use tokio::sync::{RwLock, watch};
 use tokio_util::sync::CancellationToken;
 
-use cap_rendering::GpuOutputFormat;
+use scrinx_rendering::GpuOutputFormat;
 use tauri_specta::Event;
 
 use crate::{
@@ -28,7 +28,7 @@ use crate::{
 fn make_frame_callback(
     app: AppHandle,
     frame_tx: watch::Sender<Option<Arc<WSFrame>>>,
-) -> cap_editor::EditorFrameCallback {
+) -> scrinx_editor::EditorFrameCallback {
     Box::new(move |output, layout| {
         let Some(ws_frame) = frame_for_websocket(output) else {
             return;
@@ -42,9 +42,9 @@ fn make_frame_callback(
     })
 }
 
-pub(crate) fn frame_for_websocket(output: cap_editor::EditorFrameOutput) -> Option<WSFrame> {
+pub(crate) fn frame_for_websocket(output: scrinx_editor::EditorFrameOutput) -> Option<WSFrame> {
     let frame = match output {
-        cap_editor::EditorFrameOutput::Nv12(frame) => {
+        scrinx_editor::EditorFrameOutput::Nv12(frame) => {
             let ws_format = match frame.format {
                 GpuOutputFormat::Nv12 => WSFrameFormat::Nv12 { full_range: false },
                 GpuOutputFormat::Rgba => WSFrameFormat::Rgba,
@@ -60,7 +60,7 @@ pub(crate) fn frame_for_websocket(output: cap_editor::EditorFrameOutput) -> Opti
                 created_at: Instant::now(),
             }
         }
-        cap_editor::EditorFrameOutput::Rgba(frame) => WSFrame {
+        scrinx_editor::EditorFrameOutput::Rgba(frame) => WSFrame {
             data: frame.data.into(),
             width: frame.width,
             height: frame.height,
@@ -71,15 +71,15 @@ pub(crate) fn frame_for_websocket(output: cap_editor::EditorFrameOutput) -> Opti
             created_at: Instant::now(),
         },
         #[cfg(target_os = "macos")]
-        cap_editor::EditorFrameOutput::Surface(_) => return None,
+        scrinx_editor::EditorFrameOutput::Surface(_) => return None,
     };
     Some(frame.into_packed())
 }
 
 pub struct EditorInstance {
-    inner: Arc<cap_editor::EditorInstance>,
+    inner: Arc<scrinx_editor::EditorInstance>,
     pub instance_id: uuid::Uuid,
-    handoff_playback: tokio::sync::Mutex<Option<(uuid::Uuid, cap_editor::PlaybackHandle)>>,
+    handoff_playback: tokio::sync::Mutex<Option<(uuid::Uuid, scrinx_editor::PlaybackHandle)>>,
     disposed: std::sync::atomic::AtomicBool,
     pub ws_port: u16,
     pub ws_shutdown_token: CancellationToken,
@@ -195,7 +195,7 @@ async fn recreate_preparing_instance(
                 let _ = crate::EditorStateChanged::new(state).emit(&state_app);
             },
             make_frame_callback(app.clone(), frame_tx),
-            cap_editor::EditorFrameFormat::Rgba,
+            scrinx_editor::EditorFrameFormat::Rgba,
         )
         .await?;
     let render_frame_event_id = crate::RenderFrameEvent::listen_any(&app, {
@@ -461,7 +461,7 @@ impl EditorInstance {
         expected: &str,
         frame_number: u32,
         fps: u32,
-        resolution: cap_project::XY<u32>,
+        resolution: scrinx_project::XY<u32>,
     ) -> Result<String, String> {
         let mut handoff = self.handoff_playback.lock().await;
         self.validate_handoff(expected)?;
@@ -518,7 +518,7 @@ impl Drop for EditorInstance {
 }
 
 impl Deref for EditorInstance {
-    type Target = Arc<cap_editor::EditorInstance>;
+    type Target = Arc<scrinx_editor::EditorInstance>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner

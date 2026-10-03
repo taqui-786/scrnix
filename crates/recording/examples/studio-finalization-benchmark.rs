@@ -1,7 +1,7 @@
 use std::{path::PathBuf, time::Instant};
 
-use cap_project::{RecordingMeta, StudioRecordingStatus};
-use cap_recording::recovery::RecoveryManager;
+use scrinx_project::{RecordingMeta, StudioRecordingStatus};
+use scrinx_recording::recovery::RecoveryManager;
 
 fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
@@ -32,7 +32,7 @@ fn main() -> anyhow::Result<()> {
             .is_some_and(|meta| matches!(meta.status(), StudioRecordingStatus::Complete)),
         "Finalized metadata is not complete"
     );
-    let project = cap_project::ProjectConfiguration::load(&path)?;
+    let project = scrinx_project::ProjectConfiguration::load(&path)?;
     project.validate().map_err(anyhow::Error::msg)?;
     println!(
         "{}",

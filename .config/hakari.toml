@@ -31,11 +31,11 @@ platforms = [
 # exact-versions = true
 
 # --- cap release-build tuning ---
-# cap-muxer is ~55 crates; letting it depend on the hack would drag the whole
-# unified tree into every `cargo build -p cap-muxer`. Any drift it causes is
+# scrinx-muxer is ~55 crates; letting it depend on the hack would drag the whole
+# unified tree into every `cargo build -p scrinx-muxer`. Any drift it causes is
 # bounded by its own tiny graph.
 [traversal-excludes]
-workspace-members = ["cap-muxer", "cap-muxer-protocol"]
+workspace-members = ["scrinx-muxer", "scrinx-muxer-protocol"]
 
 # hakari unifies dev-dependencies as well, so left alone it pins tauri with its
 # `test` feature and tokio `test-util` into every release binary. Only crates

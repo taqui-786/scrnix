@@ -189,7 +189,7 @@ test("only retries exact timestamp diagnostics with a terminal Tauri signing err
 			"failed to bundle project: failed to sign app\n",
 			"/Users/runner/work/Cap/Cap/target/x86_64-apple-darwin/release/bundle/macos/Cap.app: The specified item could not be found in the keychain.\nfailed to bundle project: failed to sign app\n",
 		),
-		`${intelTimestampFailure}error: could not compile cap-desktop\n`,
+		`${intelTimestampFailure}error: could not compile scrinx-desktop\n`,
 		"warning: A timestamp was expected but was not found.\nError failed to bundle project: failed to sign app\n",
 	]) {
 		assert.equal(isTimestampSigningFailure(output), false, output);
@@ -280,7 +280,7 @@ test("a retry cannot reuse the previous attempt's timestamp diagnostic", async (
 
 test("compiler, certificate, notarization and signal failures are terminal", async () => {
 	for (const result of [
-		{ code: 1, output: "error: could not compile cap-desktop\n" },
+		{ code: 1, output: "error: could not compile scrinx-desktop\n" },
 		{
 			code: 1,
 			output:

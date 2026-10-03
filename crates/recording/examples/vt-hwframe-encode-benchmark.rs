@@ -27,11 +27,11 @@ mod macos {
     use std::path::{Path, PathBuf};
     use std::time::{Duration, Instant};
 
-    use cap_enc_ffmpeg::h264::H264Preset;
-    use cap_enc_ffmpeg::remux::concatenate_m4s_segments_with_init;
-    use cap_enc_ffmpeg::segmented_stream::{SegmentedVideoEncoder, SegmentedVideoEncoderConfig};
-    use cap_media_info::VideoInfo;
     use cidre::{arc, cf, cv};
+    use scrinx_enc_ffmpeg::h264::H264Preset;
+    use scrinx_enc_ffmpeg::remux::concatenate_m4s_segments_with_init;
+    use scrinx_enc_ffmpeg::segmented_stream::{SegmentedVideoEncoder, SegmentedVideoEncoderConfig};
+    use scrinx_media_info::VideoInfo;
 
     const WARMUP: usize = 30;
     const FRAMES: usize = 300;
@@ -386,7 +386,7 @@ mod macos {
         for (width, height, fps) in configs {
             let label = format!("{width}x{height}@{fps}");
             let info = VideoInfo::from_raw(
-                cap_media_info::RawVideoFormat::Nv12,
+                scrinx_media_info::RawVideoFormat::Nv12,
                 width as u32,
                 height as u32,
                 fps,

@@ -10,7 +10,8 @@ use std::{
 };
 
 const SHIM_PREFIX: &[u8] = b"#!/bin/sh\nexec '";
-const SHIM_SUFFIX: &[u8] = b"' --cap-cli \"$@\"\n";
+const SHIM_SUFFIX: &[u8] = b"' --scrinx-cli \"$@\"\n";
+const LEGACY_SHIM_SUFFIX: &[u8] = b"' --cap-cli \"$@\"\n";
 
 pub fn current_path() -> Option<PathBuf> {
     #[cfg(target_os = "linux")]
@@ -49,9 +50,10 @@ fn shim_contents(target: &Path) -> Result<Vec<u8>, String> {
 }
 
 pub fn shim_target(contents: &[u8]) -> Option<PathBuf> {
-    let mut encoded = contents
-        .strip_prefix(SHIM_PREFIX)?
-        .strip_suffix(SHIM_SUFFIX)?;
+    let unprefix = contents.strip_prefix(SHIM_PREFIX)?;
+    let mut encoded = unprefix
+        .strip_suffix(SHIM_SUFFIX)
+        .or_else(|| unprefix.strip_suffix(LEGACY_SHIM_SUFFIX))?;
     let mut decoded = Vec::with_capacity(encoded.len());
     while let Some((&byte, remaining)) = encoded.split_first() {
         if byte == b'\'' {
@@ -98,21 +100,29 @@ pub fn dispatch_cli() -> Result<(), String> {
     use std::os::unix::process::CommandExt;
 
     let mut arguments = std::env::args_os().skip(1);
-    if arguments.next().as_deref() != Some(std::ffi::OsStr::new("--cap-cli")) {
+    let first = arguments.next();
+    if first.as_deref() != Some(std::ffi::OsStr::new("--scrinx-cli"))
+        && first.as_deref() != Some(std::ffi::OsStr::new("--cap-cli"))
+    {
         return Ok(());
     }
     if current_path().is_none() {
-        return Err("The --cap-cli launcher is only available inside a Cap AppImage".into());
+        return Err("The CLI launcher is only available inside a Scrinx AppImage".into());
     }
     let executable = std::env::current_exe().map_err(|error| error.to_string())?;
     let directory = executable
         .parent()
         .ok_or_else(|| "Could not locate the AppImage executable directory".to_string())?;
     let original_directory = std::env::var_os("OWD").map(PathBuf::from);
-    let error = cli_command(&directory.join("cap-cli"), original_directory.as_deref())?
+    let cli_path = if directory.join("scrinx-cli").exists() {
+        directory.join("scrinx-cli")
+    } else {
+        directory.join("cap-cli")
+    };
+    let error = cli_command(&cli_path, original_directory.as_deref())?
         .args(arguments)
         .exec();
-    Err(format!("Could not launch the bundled Cap CLI: {error}"))
+    Err(format!("Could not launch the bundled Scrinx CLI: {error}"))
 }
 
 #[cfg(test)]
@@ -177,7 +187,7 @@ mod tests {
         assert_eq!(output.status.code(), Some(23));
         assert_eq!(
             output.stdout,
-            b"--cap-cli\n--version\ntwo words\n$(literal)\n"
+            b"--scrinx-cli\n--version\ntwo words\n$(literal)\n"
         );
         fs::write(&image, b"#!/bin/sh\nprintf replacement\n").unwrap();
         let output = std::process::Command::new(&shim).output().unwrap();

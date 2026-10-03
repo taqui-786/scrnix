@@ -4,9 +4,9 @@ use crate::{
     recording_settings::{RecordingSettingsStore, RecordingTargetMode},
     windows::ShowCapWindow,
 };
-use cap_recording::RecordingMode;
+use scrinx_recording::RecordingMode;
 
-use cap_project::{RecordingMeta, RecordingMetaInner};
+use scrinx_project::{RecordingMeta, RecordingMetaInner};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::{
     path::PathBuf,
@@ -927,8 +927,8 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
                 Ok(TrayItem::TakeScreenshot) => {
                     let app = app.clone();
                     tokio::spawn(async move {
-                        use cap_recording::screen_capture::ScreenCaptureTarget;
                         use scap_targets::Display;
+                        use scrinx_recording::screen_capture::ScreenCaptureTarget;
 
                         let display =
                             Display::get_containing_cursor().unwrap_or_else(Display::primary);
@@ -1250,12 +1250,13 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
 }
 
 #[cfg(target_os = "linux")]
-pub(crate) fn clean_stop_icon() -> Result<cap_utils::linux_recording_stop::StopTrayIcon, String> {
+pub(crate) fn clean_stop_icon() -> Result<scrinx_utils::linux_recording_stop::StopTrayIcon, String>
+{
     let image = image::load_from_memory(include_bytes!("../icons/tray-stop-icon.png"))
         .map_err(|error| error.to_string())?
         .resize_exact(32, 32, image::imageops::FilterType::Triangle)
         .into_rgba8();
-    cap_utils::linux_recording_stop::StopTrayIcon::from_rgba(32, 32, image.as_raw())
+    scrinx_utils::linux_recording_stop::StopTrayIcon::from_rgba(32, 32, image.as_raw())
 }
 
 #[cfg(test)]

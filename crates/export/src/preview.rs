@@ -1,16 +1,16 @@
 use std::path::PathBuf;
 
 use base64::{Engine, engine::general_purpose::STANDARD};
-use cap_editor::EditorInstance;
-use cap_project::{CursorEvents, ProjectConfiguration, RecordingMeta, TimelineFrameMapping, XY};
-use cap_rendering::{
-    FrameRenderer, ProjectUniforms, RecordingSegmentDecoders, RenderVideoConstants, RenderedFrame,
-    RendererLayers, TransitionRenderInput, ZoomTransformTimeline,
-};
 use image::{
     Rgba,
     codecs::jpeg::JpegEncoder,
     flat::{FlatSamples, SampleLayout},
+};
+use scrinx_editor::EditorInstance;
+use scrinx_project::{CursorEvents, ProjectConfiguration, RecordingMeta, TimelineFrameMapping, XY};
+use scrinx_rendering::{
+    FrameRenderer, ProjectUniforms, RecordingSegmentDecoders, RenderVideoConstants, RenderedFrame,
+    RendererLayers, TransitionRenderInput, ZoomTransformTimeline,
 };
 use serde::{Deserialize, Serialize};
 
@@ -112,7 +112,7 @@ async fn render_preview_with_base(
     frame_time: f64,
     settings: ExportPreviewSettings,
 ) -> Result<ExportPreviewResult, ExportError> {
-    let total_duration = cap_rendering::get_duration(
+    let total_duration = scrinx_rendering::get_duration(
         &exporter_base.recordings,
         &exporter_base.recording_meta,
         &exporter_base.studio_meta,
@@ -154,8 +154,8 @@ pub async fn render_preview_with_editor(
         project_config = make_cursor_only_project(project_config);
     }
     synthesize_default_timeline(&mut project_config, &editor.recordings);
-    cap_project::synchronize_legacy_keyboard(recording_meta, &mut project_config);
-    cap_project::synchronize_captions(
+    scrinx_project::synchronize_legacy_keyboard(recording_meta, &mut project_config);
+    scrinx_project::synchronize_captions(
         &mut project_config,
         &editor
             .recordings
@@ -164,7 +164,7 @@ pub async fn render_preview_with_editor(
             .map(|segment| segment.display.duration)
             .collect::<Vec<_>>(),
     );
-    let total_duration = cap_rendering::get_duration(
+    let total_duration = scrinx_rendering::get_duration(
         &editor.recordings,
         recording_meta,
         studio_meta,
@@ -566,8 +566,8 @@ mod subtitle_preview_tests {
         let path = temp.path().join("project-config.json");
         for export in [false, true] {
             let current = ProjectConfiguration {
-                captions: Some(cap_project::CaptionsData {
-                    settings: cap_project::CaptionSettings {
+                captions: Some(scrinx_project::CaptionsData {
+                    settings: scrinx_project::CaptionSettings {
                         enabled: true,
                         export_with_subtitles: export,
                         ..Default::default()
@@ -612,8 +612,8 @@ mod subtitle_preview_tests {
     #[test]
     fn current_config_export_preview_preserves_cursor_only_override() {
         let current = ProjectConfiguration {
-            captions: Some(cap_project::CaptionsData {
-                settings: cap_project::CaptionSettings {
+            captions: Some(scrinx_project::CaptionsData {
+                settings: scrinx_project::CaptionSettings {
                     enabled: true,
                     export_with_subtitles: true,
                     ..Default::default()

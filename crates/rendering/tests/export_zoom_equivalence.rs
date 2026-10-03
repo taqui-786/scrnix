@@ -1,5 +1,5 @@
-use cap_project::{CursorClickEvent, CursorEvents, CursorMoveEvent, ProjectConfiguration, XY};
-use cap_rendering::ZoomTransformTimeline;
+use scrinx_project::{CursorClickEvent, CursorEvents, CursorMoveEvent, ProjectConfiguration, XY};
+use scrinx_rendering::ZoomTransformTimeline;
 
 fn project() -> ProjectConfiguration {
     ProjectConfiguration {

@@ -1,10 +1,10 @@
 use crate::{AudioRenderer, SegmentMedia};
-use cap_audio::{
+use scrinx_audio::{
     AudioData, AudioRendererTrack, AudioSampleSource, AudioStream, AudioStreamError, ChunkRead,
     StereoMode, VOICE_PREROLL_SAMPLES, VOICE_PROFILE_SAMPLES, VOICE_WINDOW_PADDING_SAMPLES,
     VoiceAudio, VoiceEnhancer, VoiceProfile, VoiceSource,
 };
-use cap_project::{ClipOffsets, ProjectConfiguration, RecordingMeta, StudioRecordingMeta};
+use scrinx_project::{ClipOffsets, ProjectConfiguration, RecordingMeta, StudioRecordingMeta};
 use std::{
     collections::HashMap,
     fmt,
@@ -554,16 +554,16 @@ impl ExportAudioSources {
                         StereoMode::Stereo
                     } else {
                         match project.audio.mic_stereo_mode {
-                            cap_project::StereoMode::Stereo => StereoMode::Stereo,
-                            cap_project::StereoMode::MonoL => StereoMode::MonoL,
-                            cap_project::StereoMode::MonoR => StereoMode::MonoR,
+                            scrinx_project::StereoMode::Stereo => StereoMode::Stereo,
+                            scrinx_project::StereoMode::MonoL => StereoMode::MonoL,
+                            scrinx_project::StereoMode::MonoR => StereoMode::MonoR,
                         }
                     },
                     offset: track.offset(&offsets),
                 }
             })
             .collect::<Vec<_>>();
-        Ok(cap_audio::render_audio(
+        Ok(scrinx_audio::render_audio(
             &tracks,
             cursor,
             samples.min(max_samples - cursor),
@@ -586,7 +586,7 @@ struct ExportAudioTrack {
     enhancer: Option<VoiceEnhancer>,
     enhanced: Option<VoiceAudio>,
     voice_profile: Option<VoiceProfile>,
-    isolation: cap_project::VoiceIsolation,
+    isolation: scrinx_project::VoiceIsolation,
 }
 
 impl ExportAudioTrack {
@@ -617,7 +617,7 @@ impl ExportAudioTrack {
             enhancer: None,
             enhanced: None,
             voice_profile: None,
-            isolation: cap_project::VoiceIsolation::default(),
+            isolation: scrinx_project::VoiceIsolation::default(),
         })
     }
 
@@ -710,8 +710,8 @@ impl AudioSampleSource for ExportAudioView<'_> {
 mod tests {
     use super::*;
     use crate::audio::{AudioSegment, AudioSegmentTrack};
-    use cap_audio::AudioData;
-    use cap_project::{
+    use scrinx_audio::AudioData;
+    use scrinx_project::{
         ClipConfiguration, ClipSpeedAudioMode, ClipTransition, ClipTransitionType,
         TimelineConfiguration, TimelineSegment,
     };
@@ -1125,9 +1125,9 @@ mod tests {
                         data[0].clone(),
                         |config| config.mic_volume_db,
                         |config| match config.mic_stereo_mode {
-                            cap_project::StereoMode::Stereo => StereoMode::Stereo,
-                            cap_project::StereoMode::MonoL => StereoMode::MonoL,
-                            cap_project::StereoMode::MonoR => StereoMode::MonoR,
+                            scrinx_project::StereoMode::Stereo => StereoMode::Stereo,
+                            scrinx_project::StereoMode::MonoL => StereoMode::MonoL,
+                            scrinx_project::StereoMode::MonoR => StereoMode::MonoR,
                         },
                         |offset| offset.mic,
                     )
@@ -1146,9 +1146,9 @@ mod tests {
                         data[2].clone(),
                         |config| config.mic_volume_db,
                         |config| match config.mic_stereo_mode {
-                            cap_project::StereoMode::Stereo => StereoMode::Stereo,
-                            cap_project::StereoMode::MonoL => StereoMode::MonoL,
-                            cap_project::StereoMode::MonoR => StereoMode::MonoR,
+                            scrinx_project::StereoMode::Stereo => StereoMode::Stereo,
+                            scrinx_project::StereoMode::MonoL => StereoMode::MonoL,
+                            scrinx_project::StereoMode::MonoR => StereoMode::MonoR,
                         },
                         |offset| offset.mic,
                     )
@@ -1352,9 +1352,9 @@ mod tests {
         let paths = vec![path; 3];
         let data = vec![audio.clone(); 3];
         for isolation in [
-            cap_project::VoiceIsolation::Light,
-            cap_project::VoiceIsolation::Balanced,
-            cap_project::VoiceIsolation::Strong,
+            scrinx_project::VoiceIsolation::Light,
+            scrinx_project::VoiceIsolation::Balanced,
+            scrinx_project::VoiceIsolation::Strong,
         ] {
             let (mut preview, mut export) = fixture(&paths, &data);
             let mut project = ProjectConfiguration::default();
@@ -1506,8 +1506,8 @@ mod tests {
                         Some(ClipSpeedAudioMode::Mute)
                 }
                 5 => project.audio.mute = true,
-                6 => project.audio.mic_stereo_mode = cap_project::StereoMode::MonoL,
-                7 => project.audio.mic_stereo_mode = cap_project::StereoMode::MonoR,
+                6 => project.audio.mic_stereo_mode = scrinx_project::StereoMode::MonoL,
+                7 => project.audio.mic_stereo_mode = scrinx_project::StereoMode::MonoR,
                 8 => project.audio.mic_volume_db = f32::NAN,
                 9 => project.audio.mic_volume_db = f32::INFINITY,
                 10 => project.audio.system_volume_db = f32::NEG_INFINITY,
@@ -1531,7 +1531,7 @@ mod tests {
                 }
                 18 => {
                     project.audio.improve = true;
-                    project.audio.mic_stereo_mode = cap_project::StereoMode::MonoR;
+                    project.audio.mic_stereo_mode = scrinx_project::StereoMode::MonoR;
                 }
                 19 => {
                     project.audio.improve = true;
@@ -1549,9 +1549,9 @@ mod tests {
                 20 | 21 => {
                     project.audio.improve = true;
                     project.audio.isolation = if variant == 20 {
-                        cap_project::VoiceIsolation::Light
+                        scrinx_project::VoiceIsolation::Light
                     } else {
-                        cap_project::VoiceIsolation::Strong
+                        scrinx_project::VoiceIsolation::Strong
                     };
                 }
                 22..=25 => {

@@ -16,8 +16,8 @@ use matrix::{CompatMatrixRunner, MatrixRunner};
 use results::{ResultsSummary, TestResults};
 
 #[derive(Parser)]
-#[command(name = "cap-test")]
-#[command(about = "Unified testing harness for Cap", long_about = None)]
+#[command(name = "scrinx-test")]
+#[command(about = "Unified testing harness for Scrinx", long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -331,7 +331,7 @@ fn resolve_recording_path(explicit: Option<PathBuf>) -> Result<PathBuf> {
 
     let candidates = [
         PathBuf::from("performance-fixtures/reference-recording.cap"),
-        PathBuf::from("crates/cap-test/fixtures/reference-recording.cap"),
+        PathBuf::from("crates/scrinx-test/fixtures/reference-recording.cap"),
     ];
 
     for candidate in candidates {

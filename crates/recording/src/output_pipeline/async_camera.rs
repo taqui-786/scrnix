@@ -3,11 +3,11 @@ use crate::{
     output_pipeline::{AudioFrame, AudioMuxer, Muxer, VideoMuxer},
 };
 use anyhow::{Context, anyhow};
-use cap_enc_ffmpeg::{aac::AACEncoder, h264::*};
-use cap_frame_converter::{
+use scrinx_enc_ffmpeg::{aac::AACEncoder, h264::*};
+use scrinx_frame_converter::{
     AsyncConverterPool, ConversionConfig, ConvertError, ConverterPoolConfig, DropStrategy,
 };
-use cap_media_info::{AudioInfo, VideoInfo};
+use scrinx_media_info::{AudioInfo, VideoInfo};
 use std::{
     path::PathBuf,
     sync::{

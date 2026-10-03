@@ -1,4 +1,4 @@
-use cap_recording::oop_muxer::{
+use scrinx_recording::oop_muxer::{
     AudioStreamInit, MuxerSubprocess, MuxerSubprocessConfig, RespawningMuxerSubprocess,
     VideoStreamInit, resolve_muxer_binary,
 };
@@ -25,7 +25,7 @@ fn setup_muxer_binary() -> PathBuf {
     for candidate in [target_debug, target_release] {
         if candidate.exists() {
             MUXER_BINARY.call_once(|| unsafe {
-                std::env::set_var(cap_recording::oop_muxer::ENV_BIN_PATH, &candidate);
+                std::env::set_var(scrinx_recording::oop_muxer::ENV_BIN_PATH, &candidate);
             });
             return candidate;
         }
@@ -142,7 +142,7 @@ fn discarded_packets_before_first_video_keyframe_leave_a_clean_empty_output() {
 
 #[test]
 fn subprocess_exits_after_finish_or_abort_without_waiting_for_stdin_eof() {
-    use cap_muxer_protocol::{Frame, InitVideo, StartParams, write_frame};
+    use scrinx_muxer_protocol::{Frame, InitVideo, StartParams, write_frame};
     use std::io::Write;
     use std::process::{Command, Stdio};
     use std::time::{Duration, Instant};
@@ -220,7 +220,7 @@ fn subprocess_exits_after_finish_or_abort_without_waiting_for_stdin_eof() {
 #[cfg(unix)]
 #[test]
 fn finish_preserves_packets_when_a_slow_muxer_takes_more_than_five_seconds() {
-    use cap_muxer_protocol::{Frame, read_frame};
+    use scrinx_muxer_protocol::{Frame, read_frame};
     use std::io::Cursor;
     use std::os::unix::fs::PermissionsExt;
     use std::time::{Duration, Instant};
@@ -264,7 +264,7 @@ fn subprocess_survives_kill_and_parent_reports_crashed() {
     let fake_extradata = vec![0x01, 0x64, 0x00, 0x33, 0xFF, 0xE1, 0x00, 0x17];
     let config = minimal_video_config(&output_dir, fake_extradata);
 
-    use cap_recording::PipelineHealthEvent;
+    use scrinx_recording::PipelineHealthEvent;
     let (health_tx, mut health_rx) = tokio::sync::mpsc::channel::<PipelineHealthEvent>(16);
 
     let mut subprocess =
@@ -311,12 +311,12 @@ fn resolve_muxer_binary_respects_env_override() {
     let fake = temp.path().join("fake-muxer");
     std::fs::write(&fake, b"").unwrap();
     unsafe {
-        std::env::set_var(cap_recording::oop_muxer::ENV_BIN_PATH, &fake);
+        std::env::set_var(scrinx_recording::oop_muxer::ENV_BIN_PATH, &fake);
     }
     let resolved = resolve_muxer_binary().expect("resolve with override");
     assert_eq!(resolved, fake);
     unsafe {
-        std::env::remove_var(cap_recording::oop_muxer::ENV_BIN_PATH);
+        std::env::remove_var(scrinx_recording::oop_muxer::ENV_BIN_PATH);
     }
 }
 
@@ -324,14 +324,14 @@ fn resolve_muxer_binary_respects_env_override() {
 fn resolve_muxer_binary_fails_with_invalid_env() {
     unsafe {
         std::env::set_var(
-            cap_recording::oop_muxer::ENV_BIN_PATH,
+            scrinx_recording::oop_muxer::ENV_BIN_PATH,
             "/nonexistent/path/definitely-not-here-12345",
         );
     }
     let err = resolve_muxer_binary().unwrap_err();
     assert!(err.to_string().contains("missing path"));
     unsafe {
-        std::env::remove_var(cap_recording::oop_muxer::ENV_BIN_PATH);
+        std::env::remove_var(scrinx_recording::oop_muxer::ENV_BIN_PATH);
     }
 }
 
@@ -383,9 +383,9 @@ fn the_only_encoded_packet_is_flushed_before_empty_output_is_decided() {
 }
 
 fn assert_encoded_recording_survives_finish(frame_count: u64) {
-    use cap_enc_ffmpeg::h264::{H264EncoderBuilder, H264Preset};
-    use cap_enc_ffmpeg::h264_packet::EncodePacketError;
-    use cap_media_info::{Pixel, VideoInfo};
+    use scrinx_enc_ffmpeg::h264::{H264EncoderBuilder, H264Preset};
+    use scrinx_enc_ffmpeg::h264_packet::EncodePacketError;
+    use scrinx_media_info::{Pixel, VideoInfo};
 
     ffmpeg::init().ok();
 
@@ -440,7 +440,7 @@ fn assert_encoded_recording_survives_finish(frame_count: u64) {
 
     fn ship_packet(
         subprocess: &mut MuxerSubprocess,
-        pkt: cap_enc_ffmpeg::h264_packet::EncodedPacket,
+        pkt: scrinx_enc_ffmpeg::h264_packet::EncodedPacket,
     ) -> Result<(), EncodePacketError> {
         subprocess
             .write_video_packet(

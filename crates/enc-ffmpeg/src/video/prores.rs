@@ -1,12 +1,12 @@
 use std::{thread, time::Duration};
 
-use cap_media_info::{RawVideoFormat, VideoInfo};
 use ffmpeg::{
     Dictionary,
     codec::{context, encoder},
     color, format, frame,
     threading::Config,
 };
+use scrinx_media_info::{RawVideoFormat, VideoInfo};
 
 use crate::base::EncoderBase;
 

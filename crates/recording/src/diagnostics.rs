@@ -159,7 +159,7 @@ pub fn collect_displays() -> Vec<DisplayDiagnostics> {
 }
 
 pub fn collect_cameras() -> Vec<CameraDiagnostics> {
-    cap_camera::list_cameras()
+    scrinx_camera::list_cameras()
         .map(|camera| {
             let formats = camera
                 .formats()
@@ -431,13 +431,13 @@ pub struct RecentRecordingSegment {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mic_start_time: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub mic_gap_summary: Option<cap_project::AudioGapSummary>,
+    pub mic_gap_summary: Option<scrinx_project::AudioGapSummary>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub system_audio_device_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub system_audio_start_time: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub system_audio_gap_summary: Option<cap_project::AudioGapSummary>,
+    pub system_audio_gap_summary: Option<scrinx_project::AudioGapSummary>,
 }
 
 fn file_created_rfc3339(path: &Path) -> Option<String> {
@@ -447,10 +447,10 @@ fn file_created_rfc3339(path: &Path) -> Option<String> {
 }
 
 fn segment_from_studio(
-    display: &cap_project::VideoMeta,
-    camera: Option<&cap_project::VideoMeta>,
-    mic: Option<&cap_project::AudioMeta>,
-    system_audio: Option<&cap_project::AudioMeta>,
+    display: &scrinx_project::VideoMeta,
+    camera: Option<&scrinx_project::VideoMeta>,
+    mic: Option<&scrinx_project::AudioMeta>,
+    system_audio: Option<&scrinx_project::AudioMeta>,
 ) -> RecentRecordingSegment {
     RecentRecordingSegment {
         display_fps: display.fps,
@@ -469,7 +469,7 @@ fn segment_from_studio(
 }
 
 fn digest_recording(index: usize, path: &Path) -> RecentRecordingDigest {
-    use cap_project::{
+    use scrinx_project::{
         InstantRecordingMeta, RecordingMetaInner, StudioRecordingMeta, StudioRecordingStatus,
     };
 
@@ -482,7 +482,7 @@ fn digest_recording(index: usize, path: &Path) -> RecentRecordingDigest {
         error: None,
     };
 
-    let meta = match cap_project::RecordingMeta::load_for_project(path) {
+    let meta = match scrinx_project::RecordingMeta::load_for_project(path) {
         Ok(meta) => meta,
         Err(e) => {
             digest.error = Some(redact_home_paths(&e.to_string()));
@@ -911,7 +911,7 @@ mod windows_impl {
         })
     }
 
-    fn gpu_info_to_diag(info: &cap_frame_converter::GpuInfo) -> GpuInfoDiag {
+    fn gpu_info_to_diag(info: &scrinx_frame_converter::GpuInfo) -> GpuInfoDiag {
         GpuInfoDiag {
             vendor: info.vendor_name().to_string(),
             description: info.description.clone(),
@@ -924,11 +924,11 @@ mod windows_impl {
     }
 
     fn get_gpu_info() -> Option<GpuInfoDiag> {
-        cap_frame_converter::detect_primary_gpu().map(gpu_info_to_diag)
+        scrinx_frame_converter::detect_primary_gpu().map(gpu_info_to_diag)
     }
 
     fn get_all_gpus_info() -> Option<AllGpusInfo> {
-        let all_gpus = cap_frame_converter::get_all_gpus();
+        let all_gpus = scrinx_frame_converter::get_all_gpus();
 
         if all_gpus.is_empty() {
             return None;
@@ -936,7 +936,7 @@ mod windows_impl {
 
         let gpus: Vec<GpuInfoDiag> = all_gpus.iter().map(gpu_info_to_diag).collect();
 
-        let primary_gpu = cap_frame_converter::detect_primary_gpu();
+        let primary_gpu = scrinx_frame_converter::detect_primary_gpu();
         let primary_gpu_index = primary_gpu.and_then(|primary| {
             all_gpus
                 .iter()
@@ -947,10 +947,10 @@ mod windows_impl {
         let has_discrete = all_gpus.iter().any(|g| {
             matches!(
                 g.vendor,
-                cap_frame_converter::GpuVendor::Nvidia
-                    | cap_frame_converter::GpuVendor::Amd
-                    | cap_frame_converter::GpuVendor::Qualcomm
-                    | cap_frame_converter::GpuVendor::Arm
+                scrinx_frame_converter::GpuVendor::Nvidia
+                    | scrinx_frame_converter::GpuVendor::Amd
+                    | scrinx_frame_converter::GpuVendor::Qualcomm
+                    | scrinx_frame_converter::GpuVendor::Arm
             ) && !g.is_software_adapter
         });
 
@@ -1032,7 +1032,7 @@ mod windows_impl {
     }
 
     fn check_d3d11_video_processor() -> bool {
-        use cap_frame_converter::ConversionConfig;
+        use scrinx_frame_converter::ConversionConfig;
 
         let test_config = ConversionConfig::new(
             ffmpeg::format::Pixel::BGRA,
@@ -1043,7 +1043,7 @@ mod windows_impl {
             1080,
         );
 
-        match cap_frame_converter::D3D11Converter::new(test_config) {
+        match scrinx_frame_converter::D3D11Converter::new(test_config) {
             Ok(converter) => {
                 tracing::debug!(
                     "D3D11 video processor check passed: {} ({})",

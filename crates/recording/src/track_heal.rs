@@ -20,10 +20,12 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-use cap_enc_ffmpeg::remux::{
+use scrinx_enc_ffmpeg::remux::{
     get_media_duration, get_video_fps, probe_video_pts_ladder, rescale_video_timestamps,
 };
-use cap_project::{ProjectConfiguration, RecordingMeta, RecordingMetaInner, StudioRecordingMeta};
+use scrinx_project::{
+    ProjectConfiguration, RecordingMeta, RecordingMetaInner, StudioRecordingMeta,
+};
 use tracing::{info, warn};
 
 /// Runs every track repair for a studio recording, display first so the
@@ -966,7 +968,7 @@ mod tests {
             "2026-07-06T18:19:14.754110Z  INFO recording: start\n\
              not a timestamped line\n\
              2026-07-06T18:19:58.715980Z  INFO snapshot\n\
-             2026-07-06T18:20:47.563260Z  INFO cap_desktop_lib::recording: done\n",
+             2026-07-06T18:20:47.563260Z  INFO scrinx_desktop_lib::recording: done\n",
         )
         .unwrap();
         let span = recording_log_wall_span_secs(dir.path()).unwrap();
@@ -1037,7 +1039,7 @@ mod tests {
 
     #[test]
     fn config_rescale_scales_timeline_and_overlays_exactly() {
-        use cap_project::{
+        use scrinx_project::{
             ProjectConfiguration, TimelineConfiguration, TimelineSegment, ZoomMode, ZoomSegment,
         };
 
@@ -1094,7 +1096,7 @@ mod tests {
 
     #[test]
     fn config_rescale_scales_camera3d_segments_exactly() {
-        use cap_project::{
+        use scrinx_project::{
             Camera3DKeyframe, Camera3DSegment, Camera3DTracks, ProjectConfiguration,
             TimelineConfiguration, TimelineSegment,
         };
@@ -1172,7 +1174,7 @@ mod tests {
 
     #[test]
     fn config_rescale_leaves_overlays_alone_with_unhealed_clips() {
-        use cap_project::{
+        use scrinx_project::{
             ProjectConfiguration, TimelineConfiguration, TimelineSegment, ZoomMode, ZoomSegment,
         };
 

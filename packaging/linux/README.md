@@ -23,7 +23,7 @@ The finalizer signs the rebuilt bytes and replaces the artifact and its adjacent
 For an explicitly unsigned local test artifact:
 
 ```sh
-node scripts/finalize-linux-appimage.mjs --unsigned target/x86_64-unknown-linux-gnu/release/bundle/appimage/Cap_0.6.0_amd64.AppImage
+node scripts/finalize-linux-appimage.mjs --unsigned target/x86_64-unknown-linux-gnu/release/bundle/appimage/Scrinx_0.6.0_amd64.AppImage
 ```
 
 This removes any old signature. The host must provide its Wayland client and PipeWire libraries alongside its graphics drivers and audio plugins.
@@ -33,8 +33,8 @@ This removes any old signature. The host must provide its Wayland client and Pip
 Run the package builder as an ordinary user in an Arch environment with `makepkg` and `bsdtar`:
 
 ```sh
-bash scripts/build-linux-arch-package.sh Cap_0.6.0_amd64.deb ./arch-packages
-sudo pacman -U ./arch-packages/cap-bin-0.6.0-1-x86_64.pkg.tar.zst
+bash scripts/build-linux-arch-package.sh Scrinx_0.6.0_amd64.deb ./arch-packages
+sudo pacman -U ./arch-packages/scrinx-bin-0.6.0-1-x86_64.pkg.tar.zst
 ```
 
 The builder reuses the exact DEB payload, changes the package-format marker, and declares Arch dependencies. It does not strip or rebuild the executables. Release CI uses a pinned Arch container without network access during packaging.
@@ -43,7 +43,7 @@ On Omarchy, screen capture uses the installed Hyprland desktop portal and PipeWi
 
 ## CLI camera in Instant mode
 
-On Linux, `cap record start --mode instant --camera DEVICE` composites the camera directly into the recorded screen or window. The CLI uses an unmirrored square at the bottom right, sized to 30% of the shorter screen edge with a 2% margin. Camera images are center-cropped without stretching. If camera frames stop arriving, screen recording continues without a stale camera image.
+On Linux, `scrinx record start --mode instant --camera DEVICE` composites the camera directly into the recorded screen or window. The CLI uses an unmirrored square at the bottom right, sized to 30% of the shorter screen edge with a 2% margin. Camera images are center-cropped without stretching. If camera frames stop arriving, screen recording continues without a stale camera image.
 
 This CLI default does not change desktop camera-window settings or Studio's separate, editable camera track.
 

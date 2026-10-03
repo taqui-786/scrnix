@@ -7,10 +7,10 @@ describe("Tauri platform release configuration", () => {
 		const existing = createLinuxBundleConfig(["libavcodec.so.61"]);
 
 		const merged = deepMerge(existing, {
-			bundle: { externalBin: ["binaries/cap-muxer"] },
+			bundle: { externalBin: ["binaries/scrinx-muxer"] },
 		});
 
-		expect(merged.bundle.externalBin).toEqual(["binaries/cap-muxer"]);
+		expect(merged.bundle.externalBin).toEqual(["binaries/scrinx-muxer"]);
 		for (const format of ["deb", "rpm", "appimage"]) {
 			expect(merged.bundle.linux[format]).toEqual(
 				existing.bundle.linux[format],
@@ -22,14 +22,14 @@ describe("Tauri platform release configuration", () => {
 		const merged = deepMerge(
 			{
 				bundle: {
-					externalBin: ["binaries/cap-cli", "binaries/cap-muxer"],
+					externalBin: ["binaries/scrinx-cli", "binaries/scrinx-muxer"],
 					resources: { "ffmpeg/*.dll": "./" },
 				},
 			},
 			{ bundle: { windows: { wix: { version: "0.6.0" } } } },
 		);
 
-		expect(merged.bundle.externalBin).toContain("binaries/cap-muxer");
+		expect(merged.bundle.externalBin).toContain("binaries/scrinx-muxer");
 		expect(merged.bundle.resources).toEqual({ "ffmpeg/*.dll": "./" });
 		expect(merged.bundle.windows.wix.version).toBe("0.6.0");
 	});

@@ -72,9 +72,9 @@ export async function createTauriPlatformConfigs(
 ) {
 	const srcTauri = path.join(__dirname, "../src-tauri/");
 	const externalBin = [
-		"binaries/cap-muxer",
-		"binaries/cap-exporter",
-		"binaries/cap-cli",
+		"binaries/scrinx-muxer",
+		"binaries/scrinx-exporter",
+		"binaries/scrinx-cli",
 	];
 	let baseConfig = {};
 	let configFileName = null;

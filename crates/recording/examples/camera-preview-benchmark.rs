@@ -1,10 +1,10 @@
-use cap_recording::{
+use ffmpeg::{format::Pixel, software::scaling};
+use kameo::Actor;
+use scrinx_recording::{
     CameraFeed, FFmpegVideoFrame,
     feeds::camera::{self, DeviceOrModelID},
     memory_profiling::{CpuTracker, get_process_stats},
 };
-use ffmpeg::{format::Pixel, software::scaling};
-use kameo::Actor;
 use std::time::{Duration, Instant};
 
 struct PreviewMetrics {
@@ -313,7 +313,7 @@ fn simulate_ws_preview_optimized(frames: &[FFmpegVideoFrame], label: &str) -> Pr
 }
 
 async fn run_camera_capture(duration_secs: u64) -> Vec<FFmpegVideoFrame> {
-    let Some(camera_info) = cap_camera::list_cameras().next() else {
+    let Some(camera_info) = scrinx_camera::list_cameras().next() else {
         println!("No camera found");
         return Vec::new();
     };
@@ -379,7 +379,7 @@ async fn profile_live_preview(duration_secs: u64, output_width: u32) {
     let mut cpu = CpuTracker::new();
     cpu.sample();
 
-    let Some(camera_info) = cap_camera::list_cameras().next() else {
+    let Some(camera_info) = scrinx_camera::list_cameras().next() else {
         println!("No camera found");
         return;
     };

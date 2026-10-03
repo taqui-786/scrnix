@@ -1,5 +1,5 @@
 pub mod plugin {
-    use cap_flags::FLAGS;
+    use scrinx_flags::FLAGS;
     use tauri::{
         Runtime,
         plugin::{Builder, TauriPlugin},

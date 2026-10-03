@@ -8,10 +8,10 @@ use std::{
     time::{Duration, Instant},
 };
 
-use cap_editor::{EditorInstance, SegmentMedia};
-use cap_enc_ffmpeg::{EncodedPacket, EncodedPacketStats};
-use cap_project::ProjectConfiguration;
-use cap_rendering::FrameWindows;
+use scrinx_editor::{EditorInstance, SegmentMedia};
+use scrinx_enc_ffmpeg::{EncodedPacket, EncodedPacketStats};
+use scrinx_project::ProjectConfiguration;
+use scrinx_rendering::FrameWindows;
 use serde::Serialize;
 use specta::Type;
 
@@ -147,8 +147,8 @@ pub async fn estimate_export(
         project = make_cursor_only_project(project);
     }
     synthesize_default_timeline(&mut project, &editor.recordings);
-    cap_project::synchronize_legacy_keyboard(editor.meta(), &mut project);
-    cap_project::synchronize_captions(
+    scrinx_project::synchronize_legacy_keyboard(editor.meta(), &mut project);
+    scrinx_project::synchronize_captions(
         &mut project,
         &editor
             .recordings
@@ -228,7 +228,7 @@ pub async fn estimate_export(
     let setup_started = Instant::now();
     let render_constants = tokio::select! {
         _ = wait_for_stop(&editor, &cancel, deadline) => return Err("Export estimate cancelled or timed out".into()),
-        result = cap_rendering::RenderVideoConstants::new(
+        result = scrinx_rendering::RenderVideoConstants::new(
             &editor.recordings.segments,
             editor.meta().clone(),
             editor.meta().studio_meta().ok_or("Cannot estimate this recording")?.clone(),
@@ -236,7 +236,7 @@ pub async fn estimate_export(
     };
     let sample_medias = tokio::select! {
         _ = wait_for_stop(&editor, &cancel, deadline) => return Err("Export estimate cancelled or timed out".into()),
-        result = cap_editor::create_segments_without_audio(
+        result = scrinx_editor::create_segments_without_audio(
         editor.meta(),
         editor.meta().studio_meta().ok_or("Cannot estimate this recording")?,
         settings.force_ffmpeg_decoder(),
@@ -449,7 +449,7 @@ fn sample_plan(settings: ExportSettings) -> SamplePlan {
 fn keyframe_interval_frames(settings: ExportSettings) -> Option<u32> {
     match settings {
         ExportSettings::Mp4(settings) => Some(
-            (f64::from(cap_enc_ffmpeg::h264::DEFAULT_KEYFRAME_INTERVAL_SECS)
+            (f64::from(scrinx_enc_ffmpeg::h264::DEFAULT_KEYFRAME_INTERVAL_SECS)
                 * f64::from(settings.fps))
             .round()
             .max(1.0) as u32,
@@ -908,7 +908,7 @@ mod tests {
     fn sample_plans_span_a_gop_for_x264_and_stay_short_for_hardware_encoders() {
         let hardware = sample_plan(ExportSettings::Mp4(crate::mp4::Mp4ExportSettings {
             fps: 60,
-            resolution_base: cap_project::XY { x: 1920, y: 1080 },
+            resolution_base: scrinx_project::XY { x: 1920, y: 1080 },
             compression: crate::mp4::ExportCompression::Social,
             custom_bpp: None,
             force_ffmpeg_decoder: false,
@@ -919,7 +919,7 @@ mod tests {
         assert_eq!(hardware.keyframe_interval, Some(120));
         let x264 = sample_plan(ExportSettings::Mp4(crate::mp4::Mp4ExportSettings {
             fps: 30,
-            resolution_base: cap_project::XY { x: 1920, y: 1080 },
+            resolution_base: scrinx_project::XY { x: 1920, y: 1080 },
             compression: crate::mp4::ExportCompression::Social,
             custom_bpp: None,
             force_ffmpeg_decoder: false,

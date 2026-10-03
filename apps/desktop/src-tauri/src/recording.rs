@@ -1,20 +1,24 @@
 use anyhow::anyhow;
-use cap_fail::fail;
-use cap_media_info::ffmpeg_sample_format_for;
-use cap_project::CursorMoveEvent;
-use cap_project::cursor::SHORT_CURSOR_SHAPE_DEBOUNCE_MS;
-use cap_project::{
+use cpal::traits::DeviceTrait;
+use futures::{FutureExt, stream};
+use lazy_static::lazy_static;
+use regex::Regex;
+use scrinx_fail::fail;
+use scrinx_media_info::ffmpeg_sample_format_for;
+use scrinx_project::CursorMoveEvent;
+use scrinx_project::cursor::SHORT_CURSOR_SHAPE_DEBOUNCE_MS;
+use scrinx_project::{
     CameraShape, CursorClickEvent, GlideDirection, InstantRecordingMeta, MultipleSegments,
     Platform, ProjectConfiguration, RecordingMeta, RecordingMetaInner, SharingMeta,
     StudioRecordingMeta, StudioRecordingStatus, TimelineConfiguration, TimelineSegment, ZoomMode,
     ZoomSegment, cursor::CursorEvents,
 };
 #[cfg(target_os = "macos")]
-use cap_recording::SendableShareableContent;
-use cap_recording::feeds::camera::CameraFeedLock;
+use scrinx_recording::SendableShareableContent;
+use scrinx_recording::feeds::camera::CameraFeedLock;
 #[cfg(target_os = "macos")]
-use cap_recording::sources::screen_capture::SourceError;
-use cap_recording::{
+use scrinx_recording::sources::screen_capture::SourceError;
+use scrinx_recording::{
     RecordingMode,
     feeds::{camera, microphone},
     instant_recording,
@@ -26,12 +30,8 @@ use cap_recording::{
     },
     studio_recording,
 };
-use cap_rendering::ProjectRecordingsMeta;
-use cap_utils::{ensure_dir, moment_format_to_chrono, spawn_actor};
-use cpal::traits::DeviceTrait;
-use futures::{FutureExt, stream};
-use lazy_static::lazy_static;
-use regex::Regex;
+use scrinx_rendering::ProjectRecordingsMeta;
+use scrinx_utils::{ensure_dir, moment_format_to_chrono, spawn_actor};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::borrow::Cow;
@@ -89,7 +89,7 @@ fn local_video_upload_info(project_dir: &Path) -> VideoUploadInfo {
     VideoUploadInfo {
         id: id.clone(),
         link: format!("local:{}", project_dir.display()),
-        config: cap_project::S3UploadMeta { id },
+        config: scrinx_project::S3UploadMeta { id },
     }
 }
 
@@ -863,14 +863,14 @@ impl InProgressRecording {
         }
     }
 
-    pub fn done_fut(&self) -> cap_recording::DoneFut {
+    pub fn done_fut(&self) -> scrinx_recording::DoneFut {
         match self {
             Self::Instant { handle, .. } => handle.done_fut(),
             Self::Studio { handle, .. } => handle.done_fut(),
         }
     }
 
-    pub fn take_health_rx(&mut self) -> Option<cap_recording::HealthReceiver> {
+    pub fn take_health_rx(&mut self) -> Option<scrinx_recording::HealthReceiver> {
         match self {
             Self::Instant { handle, .. } => {
                 #[cfg(target_os = "linux")]
@@ -956,11 +956,11 @@ pub async fn list_capture_windows(window: tauri::Window) -> Vec<CaptureWindow> {
 
 #[tauri::command(async)]
 #[specta::specta]
-pub fn list_cameras() -> Vec<cap_camera::CameraInfo> {
+pub fn list_cameras() -> Vec<scrinx_camera::CameraInfo> {
     if !permissions::do_permissions_check(false).camera.permitted() {
         return vec![];
     }
-    cap_camera::list_cameras().collect()
+    scrinx_camera::list_cameras().collect()
 }
 
 #[derive(Debug, Clone, serde::Serialize, specta::Type)]
@@ -1048,7 +1048,7 @@ pub fn get_camera_formats(device_id: String) -> Option<CameraWithFormats> {
         return None;
     }
 
-    cap_camera::list_cameras()
+    scrinx_camera::list_cameras()
         .find(|c| c.device_id() == device_id)
         .map(|camera| {
             let formats: Vec<CameraFormatInfo> = camera
@@ -1194,18 +1194,18 @@ pub struct StartRecordingInputs {
 
 fn desktop_recording_defaults(
     general_settings: Option<&GeneralSettingsStore>,
-) -> cap_recording::RecordingDefaults {
+) -> scrinx_recording::RecordingDefaults {
     match general_settings {
-        Some(settings) => cap_recording::RecordingDefaults {
+        Some(settings) => scrinx_recording::RecordingDefaults {
             custom_cursor_capture: settings.custom_cursor_capture,
             capture_keyboard_events: settings.capture_keyboard_events,
             crash_recovery_recording: settings.crash_recovery_recording,
             max_fps: settings.max_fps,
             studio_recording_quality: settings.studio_recording_quality.into(),
             out_of_process_muxer: settings.out_of_process_muxer,
-            instant_mode_max_resolution: cap_recording::DEFAULT_INSTANT_MODE_MAX_RESOLUTION,
+            instant_mode_max_resolution: scrinx_recording::DEFAULT_INSTANT_MODE_MAX_RESOLUTION,
         },
-        None => cap_recording::RecordingDefaults::default(),
+        None => scrinx_recording::RecordingDefaults::default(),
     }
 }
 
@@ -1338,7 +1338,7 @@ async fn check_recording_start_storage<F>(
 where
     F: std::future::Future<Output = Result<bool, String>>,
 {
-    use cap_utils::disk_space::{DiskSpaceStatus, RecordingStorage};
+    use scrinx_utils::disk_space::{DiskSpaceStatus, RecordingStorage};
 
     let mut read = || {
         sample(directory).map_err(|error| {
@@ -1359,7 +1359,7 @@ where
         format!(
             "Not enough disk space to start recording ({:.2} GiB free). Free up space so more than {} MiB is available at {} and try again.",
             bytes as f64 / 1_073_741_824.0,
-            cap_utils::disk_space::RECORDING_DISK_RESERVE_BYTES / (1024 * 1024),
+            scrinx_utils::disk_space::RECORDING_DISK_RESERVE_BYTES / (1024 * 1024),
             directory.display(),
         )
     };
@@ -1403,7 +1403,7 @@ fn storage_preflight_control_result(
 #[cfg(test)]
 mod recording_storage_preflight_tests {
     use super::*;
-    use cap_utils::disk_space::{RECORDING_DISK_RESERVE_BYTES, RECORDING_DISK_WARN_BYTES};
+    use scrinx_utils::disk_space::{RECORDING_DISK_RESERVE_BYTES, RECORDING_DISK_WARN_BYTES};
     use std::cell::Cell;
 
     #[tokio::test]
@@ -2176,7 +2176,7 @@ async fn start_recording_prepared(
     let prompt_cancelled = &storage_prompt.cancelled;
     let storage_work = check_recording_start_storage(
         &recordings_base_dir,
-        cap_utils::disk_space::free_bytes_for_path,
+        scrinx_utils::disk_space::free_bytes_for_path,
         |bytes| async move {
             if prompt_cancelled.is_cancelled() {
                 return Err(RECORDING_START_CANCELLED.to_string());
@@ -2265,7 +2265,7 @@ async fn start_recording_prepared(
     drop(storage_events);
 
     let project_file_path = recordings_base_dir.join(&pending_try!(
-        cap_utils::ensure_unique_filename(&filename, &recordings_base_dir,),
+        scrinx_utils::ensure_unique_filename(&filename, &recordings_base_dir,),
         |e| e
     ));
     #[cfg(target_os = "linux")]
@@ -2304,16 +2304,16 @@ async fn start_recording_prepared(
 
     let (video_upload_info, instant_mode_max_resolution) = match inputs.mode {
         RecordingMode::Instant => {
-            let instant_mode_max_resolution = general_settings
-                .map_or(cap_recording::PRO_INSTANT_MODE_MAX_RESOLUTION, |settings| {
-                    settings.instant_mode_max_resolution
-                });
+            let instant_mode_max_resolution = general_settings.map_or(
+                scrinx_recording::PRO_INSTANT_MODE_MAX_RESOLUTION,
+                |settings| settings.instant_mode_max_resolution,
+            );
             (
                 Some(local_video_upload_info(&project_file_path)),
                 instant_mode_max_resolution,
             )
         }
-        RecordingMode::Studio => (None, cap_recording::PRO_INSTANT_MODE_MAX_RESOLUTION),
+        RecordingMode::Studio => (None, scrinx_recording::PRO_INSTANT_MODE_MAX_RESOLUTION),
         RecordingMode::Screenshot => {
             let error = "Use take_screenshot for screenshots".to_string();
             state_mtx.write().await.clear_pending_recording();
@@ -2397,7 +2397,7 @@ async fn start_recording_prepared(
                 .perform(&window);
         }
     }
-    let start_gate = cap_recording::RecordingStartGate::new();
+    let start_gate = scrinx_recording::RecordingStartGate::new();
     let start_cue = crate::audio::prime_recording_start_sound();
     let start_cancelled: Arc<std::sync::OnceLock<&'static str>> = Arc::default();
     crate::windows::apply_content_protection(&app, true);
@@ -3240,7 +3240,7 @@ async fn start_recording_prepared(
                         use crate::telemetry::{AnalyticsEvent, async_capture_event};
                         let mode_str = mode_label(*mode);
                         match &event {
-                            cap_recording::PipelineHealthEvent::DiskSpaceLow {
+                            scrinx_recording::PipelineHealthEvent::DiskSpaceLow {
                                 bytes_remaining,
                                 ..
                             } => async_capture_event(
@@ -3250,7 +3250,7 @@ async fn start_recording_prepared(
                                     bytes_remaining: *bytes_remaining,
                                 },
                             ),
-                            cap_recording::PipelineHealthEvent::DiskSpaceExhausted {
+                            scrinx_recording::PipelineHealthEvent::DiskSpaceExhausted {
                                 bytes_remaining,
                             } => async_capture_event(
                                 &app,
@@ -3259,7 +3259,7 @@ async fn start_recording_prepared(
                                     bytes_remaining: *bytes_remaining,
                                 },
                             ),
-                            cap_recording::PipelineHealthEvent::DeviceLost { subsystem } => {
+                            scrinx_recording::PipelineHealthEvent::DeviceLost { subsystem } => {
                                 async_capture_event(
                                     &app,
                                     AnalyticsEvent::RecordingDeviceLost {
@@ -3268,7 +3268,7 @@ async fn start_recording_prepared(
                                     },
                                 )
                             }
-                            cap_recording::PipelineHealthEvent::EncoderRebuilt {
+                            scrinx_recording::PipelineHealthEvent::EncoderRebuilt {
                                 backend,
                                 attempt,
                             } => async_capture_event(
@@ -3279,7 +3279,7 @@ async fn start_recording_prepared(
                                     attempt: *attempt,
                                 },
                             ),
-                            cap_recording::PipelineHealthEvent::SourceAudioReset {
+                            scrinx_recording::PipelineHealthEvent::SourceAudioReset {
                                 source,
                                 starvation_ms,
                             } => async_capture_event(
@@ -3290,7 +3290,7 @@ async fn start_recording_prepared(
                                     starvation_ms: *starvation_ms,
                                 },
                             ),
-                            cap_recording::PipelineHealthEvent::CaptureTargetLost { target } => {
+                            scrinx_recording::PipelineHealthEvent::CaptureTargetLost { target } => {
                                 async_capture_event(
                                     &app,
                                     AnalyticsEvent::RecordingCaptureTargetLost {
@@ -3299,7 +3299,7 @@ async fn start_recording_prepared(
                                     },
                                 )
                             }
-                            cap_recording::PipelineHealthEvent::RecoveryFragmentCorrupt {
+                            scrinx_recording::PipelineHealthEvent::RecoveryFragmentCorrupt {
                                 ..
                             } => {}
                             _ => {}
@@ -3307,58 +3307,59 @@ async fn start_recording_prepared(
                     }
 
                     let reason = match &event {
-                        cap_recording::PipelineHealthEvent::FrameDropRateHigh {
+                        scrinx_recording::PipelineHealthEvent::FrameDropRateHigh {
                             source,
                             rate_pct,
                         } => Some(format!("High frame drop rate on {source}: {rate_pct:.0}%")),
-                        cap_recording::PipelineHealthEvent::AudioGapDetected { gap_ms } => {
+                        scrinx_recording::PipelineHealthEvent::AudioGapDetected { gap_ms } => {
                             Some(format!("Audio gap detected: {gap_ms}ms"))
                         }
-                        cap_recording::PipelineHealthEvent::SourceRestarting => {
+                        scrinx_recording::PipelineHealthEvent::SourceRestarting => {
                             Some("Capture source restarting".to_string())
                         }
-                        cap_recording::PipelineHealthEvent::AudioDegradedToVideoOnly { reason } => {
-                            Some(format!("Audio lost: {reason}"))
-                        }
-                        cap_recording::PipelineHealthEvent::Stalled { source, waited_ms } => {
+                        scrinx_recording::PipelineHealthEvent::AudioDegradedToVideoOnly {
+                            reason,
+                        } => Some(format!("Audio lost: {reason}")),
+                        scrinx_recording::PipelineHealthEvent::Stalled { source, waited_ms } => {
                             Some(format!("Pipeline stalled on {source} ({waited_ms}ms)"))
                         }
-                        cap_recording::PipelineHealthEvent::MuxerCrashed { reason } => {
+                        scrinx_recording::PipelineHealthEvent::MuxerCrashed { reason } => {
                             Some(format!("Muxer crashed: {reason}"))
                         }
-                        cap_recording::PipelineHealthEvent::DiskSpaceLow {
+                        scrinx_recording::PipelineHealthEvent::DiskSpaceLow {
                             bytes_remaining,
                             ..
                         } => Some(format!(
                             "Low disk space: {:.2} GB remaining",
                             *bytes_remaining as f64 / 1_073_741_824.0
                         )),
-                        cap_recording::PipelineHealthEvent::DiskSpaceExhausted {
+                        scrinx_recording::PipelineHealthEvent::DiskSpaceExhausted {
                             bytes_remaining,
                         } => Some(format!(
                             "Disk full: {:.2} GB remaining",
                             *bytes_remaining as f64 / 1_073_741_824.0
                         )),
-                        cap_recording::PipelineHealthEvent::DeviceLost { subsystem } => {
+                        scrinx_recording::PipelineHealthEvent::DeviceLost { subsystem } => {
                             Some(format!("Graphics device lost: {subsystem}"))
                         }
-                        cap_recording::PipelineHealthEvent::EncoderRebuilt { backend, attempt } => {
-                            Some(format!("Encoder rebuilt: {backend} (attempt {attempt})"))
-                        }
-                        cap_recording::PipelineHealthEvent::SourceAudioReset {
+                        scrinx_recording::PipelineHealthEvent::EncoderRebuilt {
+                            backend,
+                            attempt,
+                        } => Some(format!("Encoder rebuilt: {backend} (attempt {attempt})")),
+                        scrinx_recording::PipelineHealthEvent::SourceAudioReset {
                             source,
                             starvation_ms,
                         } => Some(format!("Audio source reset: {source} ({starvation_ms}ms)")),
-                        cap_recording::PipelineHealthEvent::RecoveryFragmentCorrupt {
+                        scrinx_recording::PipelineHealthEvent::RecoveryFragmentCorrupt {
                             path,
                             reason,
                         } => Some(format!(
                             "Corrupt recovery fragment skipped: {path} ({reason})"
                         )),
-                        cap_recording::PipelineHealthEvent::CaptureTargetLost { target } => {
+                        scrinx_recording::PipelineHealthEvent::CaptureTargetLost { target } => {
                             Some(format!("Capture target lost: {target}"))
                         }
-                        cap_recording::PipelineHealthEvent::SourceRestarted => None,
+                        scrinx_recording::PipelineHealthEvent::SourceRestarted => None,
                     };
 
                     if let Some(reason) = reason {
@@ -3366,8 +3367,10 @@ async fn start_recording_prepared(
                             is_degraded = true;
                             RecordingEvent::Degraded { reason }.emit(&app).ok();
                         }
-                    } else if matches!(event, cap_recording::PipelineHealthEvent::SourceRestarted)
-                        && is_degraded
+                    } else if matches!(
+                        event,
+                        scrinx_recording::PipelineHealthEvent::SourceRestarted
+                    ) && is_degraded
                     {
                         is_degraded = false;
                         RecordingEvent::Recovered.emit(&app).ok();
@@ -5359,8 +5362,8 @@ pub async fn take_screenshot(
     use crate::NewScreenshotAdded;
     use crate::notifications;
     use crate::{PendingScreenshot, PendingScreenshots};
-    use cap_recording::screenshot::capture_screenshot;
     use image::ImageEncoder;
+    use scrinx_recording::screenshot::capture_screenshot;
     use std::time::Instant;
 
     let general_settings = GeneralSettingsStore::get(&app).ok().flatten();
@@ -5423,7 +5426,7 @@ pub async fn take_screenshot(
 
     let screenshots_base_dir = app.path().app_data_dir().unwrap().join("screenshots");
 
-    let project_file_path = screenshots_base_dir.join(&cap_utils::ensure_unique_filename(
+    let project_file_path = screenshots_base_dir.join(&scrinx_utils::ensure_unique_filename(
         &filename,
         &screenshots_base_dir,
     )?);
@@ -5449,27 +5452,27 @@ pub async fn take_screenshot(
 
     let relative_path = relative_path::RelativePathBuf::from(image_filename);
 
-    let video_meta = cap_project::VideoMeta {
+    let video_meta = scrinx_project::VideoMeta {
         path: relative_path,
         fps: 0,
         start_time: Some(0.0),
         device_id: None,
     };
 
-    let segment = cap_project::SingleSegment {
+    let segment = scrinx_project::SingleSegment {
         display: video_meta,
         camera: None,
         audio: None,
         cursor: None,
     };
 
-    let meta = cap_project::RecordingMeta {
+    let meta = scrinx_project::RecordingMeta {
         platform: Some(Platform::default()),
         project_path: project_file_path.clone(),
         pretty_name: project_name,
         sharing: None,
-        inner: cap_project::RecordingMetaInner::Studio(Box::new(
-            cap_project::StudioRecordingMeta::SingleSegment { segment },
+        inner: scrinx_project::RecordingMetaInner::Studio(Box::new(
+            scrinx_project::StudioRecordingMeta::SingleSegment { segment },
         )),
         upload: None,
     };
@@ -5477,8 +5480,8 @@ pub async fn take_screenshot(
     meta.save_for_project()
         .map_err(|e| format!("Failed to save recording meta: {e}"))?;
 
-    let mut screenshot_config = cap_project::ProjectConfiguration::default();
-    screenshot_config.background.source = cap_project::BackgroundSource::Color {
+    let mut screenshot_config = scrinx_project::ProjectConfiguration::default();
+    screenshot_config.background.source = scrinx_project::BackgroundSource::Color {
         value: [255, 255, 255],
         alpha: 0,
     };
@@ -6057,7 +6060,7 @@ async fn handle_recording_finish(
 
             let config = project_config_from_recording(
                 app,
-                &cap_recording::studio_recording::CompletedRecording {
+                &scrinx_recording::studio_recording::CompletedRecording {
                     project_path: recording.project_path,
                     meta: updated_studio_meta.clone(),
                     cursor_data: recording.cursor_data,
@@ -6093,7 +6096,7 @@ async fn handle_recording_finish(
                 return Ok(false);
             }
             if !recording.health.is_uploadable()
-                && let cap_recording::RecordingHealth::Damaged { ref reason } = recording.health
+                && let scrinx_recording::RecordingHealth::Damaged { ref reason } = recording.health
             {
                 error!(
                     reason,
@@ -6265,7 +6268,7 @@ async fn handle_recording_finish(
 async fn finalize_studio_recording(
     app: &AppHandle,
     project: Arc<crate::FinalizationProject>,
-    recording: cap_recording::studio_recording::CompletedRecording,
+    recording: scrinx_recording::studio_recording::CompletedRecording,
     default_preset: Option<ProjectConfiguration>,
     capture_target: Option<ScreenCaptureTarget>,
     preparing: crate::preparing_finalization::FinalizationPreparing,
@@ -6335,7 +6338,7 @@ async fn finalize_studio_recording(
 
     let config = project_config_from_recording(
         app,
-        &cap_recording::studio_recording::CompletedRecording {
+        &scrinx_recording::studio_recording::CompletedRecording {
             project_path: recording.project_path,
             meta: updated_studio_meta,
             cursor_data: recording.cursor_data,
@@ -6555,7 +6558,7 @@ fn project_config_from_recording(
             capture_target,
         );
     }
-    config.cursor.size = cap_project::CursorConfiguration::default().size;
+    config.cursor.size = scrinx_project::CursorConfiguration::default().size;
     apply_recording_presentation_defaults(
         app,
         &mut config,
@@ -6601,7 +6604,7 @@ fn project_config_from_recording(
         settings.macbook_notch_overlay.unwrap_or(false),
         completed_recording.meta.display_notch().is_some(),
     ) {
-        config.background.notch = Some(cap_project::NotchConfiguration {
+        config.background.notch = Some(scrinx_project::NotchConfiguration {
             enabled: true,
             ..Default::default()
         });
@@ -6635,7 +6638,7 @@ pub(crate) fn recording_timeline(
 #[derive(Clone)]
 struct StudioCameraSnapshot {
     state: crate::camera::CameraPreviewState,
-    placement: Option<cap_recording::camera_placement::RecordingCameraPlacement>,
+    placement: Option<scrinx_recording::camera_placement::RecordingCameraPlacement>,
 }
 
 impl StudioCameraSnapshot {
@@ -6660,7 +6663,7 @@ impl StudioCameraSnapshot {
 fn studio_camera_placement(
     app: &AppHandle,
     target: &ScreenCaptureTarget,
-) -> Option<cap_recording::camera_placement::RecordingCameraPlacement> {
+) -> Option<scrinx_recording::camera_placement::RecordingCameraPlacement> {
     if matches!(target, ScreenCaptureTarget::CameraOnly) {
         return None;
     }
@@ -6676,7 +6679,7 @@ fn studio_camera_placement(
     let units = scale;
     #[cfg(not(target_os = "macos"))]
     let units = 1.0;
-    cap_recording::camera_placement::recording_camera_placement(
+    scrinx_recording::camera_placement::recording_camera_placement(
         target,
         [
             f64::from(position.x) / units,
@@ -6706,7 +6709,7 @@ fn apply_recording_camera_preview_state(
         }
     }
 
-    config.camera.background_blur = cap_project::BackgroundBlurConfig {
+    config.camera.background_blur = scrinx_project::BackgroundBlurConfig {
         mode: camera_preview_state.background_blur,
     };
 }
@@ -6752,7 +6755,7 @@ fn apply_recording_presentation_defaults(
 
 fn apply_animated_gradient_default(
     config: &mut ProjectConfiguration,
-    library: Option<&cap_project::AnimatedGradientLibrary>,
+    library: Option<&scrinx_project::AnimatedGradientLibrary>,
     using_default_config: bool,
     capture_target: Option<&ScreenCaptureTarget>,
 ) {
@@ -6762,7 +6765,7 @@ fn apply_animated_gradient_default(
         && library.selected
         && let Some(gradient) = &library.last_used
     {
-        config.background.source = cap_project::BackgroundSource::AnimatedGradient {
+        config.background.source = scrinx_project::BackgroundSource::AnimatedGradient {
             config: gradient.normalized(),
         };
     }
@@ -6776,7 +6779,7 @@ fn apply_screen_recording_presentation_defaults(
     using_default_config: bool,
     default_wallpaper_path: Option<String>,
 ) {
-    use cap_project::{BackgroundSource, ScreenMovementSpring};
+    use scrinx_project::{BackgroundSource, ScreenMovementSpring};
 
     if matches!(capture_target, Some(ScreenCaptureTarget::CameraOnly)) {
         return;
@@ -7045,7 +7048,7 @@ async fn emit_recording_started_telemetry(app: &AppHandle, state_mtx: &MutableSt
     let target_fps = match recording_mode {
         RecordingMode::Studio => defaults.studio_max_fps(has_camera, None),
         RecordingMode::Instant | RecordingMode::Screenshot => {
-            cap_recording::DEFAULT_INSTANT_MODE_FPS
+            scrinx_recording::DEFAULT_INSTANT_MODE_FPS
         }
     };
 
@@ -7131,16 +7134,16 @@ mod tests {
 
     #[test]
     fn animated_gradient_default_is_remembered_without_overwriting_explicit_presets() {
-        let library = cap_project::AnimatedGradientLibrary {
+        let library = scrinx_project::AnimatedGradientLibrary {
             selected: true,
-            last_used: Some(cap_project::AnimatedGradientConfig::from_seed(42)),
+            last_used: Some(scrinx_project::AnimatedGradientConfig::from_seed(42)),
             ..Default::default()
         };
         let mut project = ProjectConfiguration::default();
         apply_animated_gradient_default(&mut project, Some(&library), false, None);
         assert!(matches!(
             project.background.source,
-            cap_project::BackgroundSource::Color { .. }
+            scrinx_project::BackgroundSource::Color { .. }
         ));
         apply_animated_gradient_default(&mut project, Some(&library), true, None);
         apply_screen_recording_presentation_defaults(
@@ -7149,7 +7152,8 @@ mod tests {
             true,
             Some("wallpaper.jpg".into()),
         );
-        let cap_project::BackgroundSource::AnimatedGradient { config } = project.background.source
+        let scrinx_project::BackgroundSource::AnimatedGradient { config } =
+            project.background.source
         else {
             panic!("Expected remembered gradient");
         };
@@ -7160,23 +7164,23 @@ mod tests {
     #[test]
     fn deselected_or_missing_animated_gradient_keeps_recording_defaults() {
         let mut project = ProjectConfiguration::default();
-        let library = cap_project::AnimatedGradientLibrary {
-            last_used: Some(cap_project::AnimatedGradientConfig::default()),
+        let library = scrinx_project::AnimatedGradientLibrary {
+            last_used: Some(scrinx_project::AnimatedGradientConfig::default()),
             ..Default::default()
         };
         apply_animated_gradient_default(&mut project, Some(&library), true, None);
         apply_animated_gradient_default(&mut project, None, true, None);
         assert!(matches!(
             project.background.source,
-            cap_project::BackgroundSource::Color { .. }
+            scrinx_project::BackgroundSource::Color { .. }
         ));
     }
 
     #[test]
     fn animated_gradient_default_preserves_camera_only_presentation() {
-        let library = cap_project::AnimatedGradientLibrary {
+        let library = scrinx_project::AnimatedGradientLibrary {
             selected: true,
-            last_used: Some(cap_project::AnimatedGradientConfig::default()),
+            last_used: Some(scrinx_project::AnimatedGradientConfig::default()),
             ..Default::default()
         };
         let mut project = ProjectConfiguration::default();
@@ -7471,7 +7475,7 @@ mod tests {
         assert_eq!(config.background.padding, 0.0);
         assert!(matches!(
             config.background.source,
-            cap_project::BackgroundSource::Color {
+            scrinx_project::BackgroundSource::Color {
                 value: [255, 255, 255],
                 alpha: 255,
             }
@@ -7496,7 +7500,7 @@ mod tests {
         assert_eq!(config.background.rounding, 7.5);
         assert!(matches!(
             config.background.source,
-            cap_project::BackgroundSource::Wallpaper { path: Some(path) } if path == "wallpaper.jpg"
+            scrinx_project::BackgroundSource::Wallpaper { path: Some(path) } if path == "wallpaper.jpg"
         ));
     }
 
@@ -7521,7 +7525,7 @@ mod tests {
     #[test]
     fn default_project_config_matches_screen_recording_presentation() {
         let config = default_project_config();
-        let spring = cap_project::ScreenMovementSpring::default();
+        let spring = scrinx_project::ScreenMovementSpring::default();
 
         assert_eq!(config.background.padding, 10.0);
         assert_eq!(
@@ -7886,8 +7890,8 @@ pub(crate) mod linux_instant {
     pub(crate) fn capture_rect(
         target: &ScreenCaptureTarget,
     ) -> Result<crate::linux_instant_camera::PhysicalRect, String> {
-        let (display, crop) =
-            cap_recording::target_to_display_and_crop(target).map_err(|error| error.to_string())?;
+        let (display, crop) = scrinx_recording::target_to_display_and_crop(target)
+            .map_err(|error| error.to_string())?;
         let position = display
             .raw_handle()
             .physical_position()
@@ -7947,7 +7951,7 @@ pub(crate) mod linux_instant {
         display: (f64, f64, f64, f64),
         crop: Option<(f64, f64, f64, f64)>,
     ) -> Result<crate::linux_instant_camera::PhysicalRect, String> {
-        let (x, y, width, height) = cap_recording::sources::screen_capture::x11_capture_rect(
+        let (x, y, width, height) = scrinx_recording::sources::screen_capture::x11_capture_rect(
             display.0, display.1, display.2, display.3, crop,
         )
         .map_err(|error| error.to_string())?;
@@ -8591,13 +8595,13 @@ pub(crate) mod linux_instant {
         let mut meta =
             RecordingMeta::load_for_project(directory).map_err(|error| error.to_string())?;
         meta.upload = Some(if segmented {
-            cap_project::UploadMeta::SegmentUpload {
+            scrinx_project::UploadMeta::SegmentUpload {
                 video_id: video.id.clone(),
                 pre_created_video: video.clone(),
                 recording_dir: directory.into(),
             }
         } else {
-            cap_project::UploadMeta::MultipartUpload {
+            scrinx_project::UploadMeta::MultipartUpload {
                 video_id: video.id.clone(),
                 pre_created_video: video.clone(),
                 recording_dir: directory.into(),
@@ -9347,7 +9351,7 @@ pub(crate) mod linux_instant {
                 inner: RecordingMetaInner::Instant(InstantRecordingMeta::InProgress {
                     recording: false,
                 }),
-                upload: Some(cap_project::UploadMeta::Complete),
+                upload: Some(scrinx_project::UploadMeta::Complete),
             }
             .save_for_project()
             .unwrap();
@@ -9782,11 +9786,13 @@ mod studio_joined_completion_tests {
                             quiescence: studio_recording::StudioQuiescence::Joined,
                             result: Ok(studio_recording::CompletedRecording {
                                 project_path: std::path::PathBuf::from("synthetic.cap"),
-                                meta: cap_project::StudioRecordingMeta::MultipleSegments {
-                                    inner: cap_project::MultipleSegments {
+                                meta: scrinx_project::StudioRecordingMeta::MultipleSegments {
+                                    inner: scrinx_project::MultipleSegments {
                                         segments: Vec::new(),
                                         cursors: Default::default(),
-                                        status: Some(cap_project::StudioRecordingStatus::Complete),
+                                        status: Some(
+                                            scrinx_project::StudioRecordingStatus::Complete,
+                                        ),
                                     },
                                 },
                                 cursor_data: Default::default(),
@@ -10055,8 +10061,8 @@ pub(crate) fn preparing_presentation_snapshot(
     if matches!(capture_target, None | Some(ScreenCaptureTarget::CameraOnly))
         || !matches!(
             config.background.source,
-            cap_project::BackgroundSource::Color { .. }
-                | cap_project::BackgroundSource::Gradient {
+            scrinx_project::BackgroundSource::Color { .. }
+                | scrinx_project::BackgroundSource::Gradient {
                     animated: None | Some(false),
                     ..
                 }
@@ -10065,7 +10071,7 @@ pub(crate) fn preparing_presentation_snapshot(
     {
         return Err("Presentation requires ordinary finalization".into());
     }
-    config.cursor.size = cap_project::CursorConfiguration::default().size;
+    config.cursor.size = scrinx_project::CursorConfiguration::default().size;
     apply_screen_recording_presentation_defaults(&mut config, capture_target, false, None);
     Ok(config)
 }
@@ -10080,18 +10086,19 @@ mod preparing_presentation_tests {
             id: "1".parse().unwrap(),
         };
         for blur in [
-            cap_project::BackgroundBlurMode::Off,
-            cap_project::BackgroundBlurMode::Remove,
+            scrinx_project::BackgroundBlurMode::Off,
+            scrinx_project::BackgroundBlurMode::Remove,
         ] {
             let snapshot = StudioCameraSnapshot {
                 state: crate::camera::CameraPreviewState {
                     background_blur: blur,
                     ..Default::default()
                 },
-                placement: cap_recording::camera_placement::RecordingCameraPlacement::from_bounds(
-                    [860.0, 20.0, 200.0, 200.0],
-                    [0.0, 0.0, 1920.0, 1080.0],
-                ),
+                placement:
+                    scrinx_recording::camera_placement::RecordingCameraPlacement::from_bounds(
+                        [860.0, 20.0, 200.0, 200.0],
+                        [0.0, 0.0, 1920.0, 1080.0],
+                    ),
             };
             let original = ProjectConfiguration::default();
             let mut preparing =
@@ -10138,7 +10145,7 @@ mod preparing_presentation_tests {
         config.background.rounding = 0.0;
         let projected = preparing_presentation_snapshot(Some(&config), Some(&target)).unwrap();
         let mut ordinary = config;
-        ordinary.cursor.size = cap_project::CursorConfiguration::default().size;
+        ordinary.cursor.size = scrinx_project::CursorConfiguration::default().size;
         apply_screen_recording_presentation_defaults(&mut ordinary, Some(&target), false, None);
         assert_eq!(
             serde_json::to_value(projected).unwrap(),
@@ -10150,7 +10157,7 @@ mod preparing_presentation_tests {
 #[cfg(test)]
 mod preparing_presentation_parity_tests {
     use super::*;
-    use cap_project::{BackgroundSource, ClipConfiguration, ClipOffsets, ScreenMovementSpring};
+    use scrinx_project::{BackgroundSource, ClipConfiguration, ClipOffsets, ScreenMovementSpring};
 
     fn value(config: &ProjectConfiguration) -> serde_json::Value {
         serde_json::to_value(config).unwrap()
@@ -10197,7 +10204,7 @@ mod preparing_presentation_parity_tests {
         segments: Vec<TimelineSegment>,
     ) -> ProjectConfiguration {
         let mut config = preset.clone();
-        config.cursor.size = cap_project::CursorConfiguration::default().size;
+        config.cursor.size = scrinx_project::CursorConfiguration::default().size;
         apply_screen_recording_presentation_defaults(&mut config, Some(target), false, None);
         apply_recording_camera_preview_state(
             &mut config,
@@ -10242,7 +10249,7 @@ mod preparing_presentation_parity_tests {
             );
             assert_eq!(
                 projected.cursor.size,
-                cap_project::CursorConfiguration::default().size
+                scrinx_project::CursorConfiguration::default().size
             );
             assert_eq!(
                 serde_json::to_value(projected.screen_movement_spring).unwrap(),
@@ -10335,7 +10342,7 @@ mod preparing_presentation_parity_tests {
         }
         preset.background.source = BackgroundSource::default();
         for enabled in [false, true] {
-            preset.background.notch = Some(cap_project::NotchConfiguration {
+            preset.background.notch = Some(scrinx_project::NotchConfiguration {
                 enabled,
                 ..Default::default()
             });
@@ -10393,9 +10400,9 @@ mod preparing_presentation_parity_tests {
             (CameraPreviewShape::Full, CameraShape::Source, 25.0),
         ] {
             for blur in [
-                cap_project::BackgroundBlurMode::Off,
-                cap_project::BackgroundBlurMode::Light,
-                cap_project::BackgroundBlurMode::Heavy,
+                scrinx_project::BackgroundBlurMode::Off,
+                scrinx_project::BackgroundBlurMode::Light,
+                scrinx_project::BackgroundBlurMode::Heavy,
             ] {
                 let mut config = preset();
                 config.camera.size = 41.0;

@@ -6,7 +6,7 @@ use std::{
 };
 
 use base64::prelude::*;
-use cap_recording::screen_capture::ScreenCaptureTarget;
+use scrinx_recording::screen_capture::ScreenCaptureTarget;
 
 use crate::exit_shutdown::{abort_join_handles, read_target_under_cursor};
 use crate::{

@@ -46,7 +46,7 @@ impl Phase {
 pub struct Snapshot {
     pub generation: u32,
     pub phase: Option<Phase>,
-    pub mode: Option<cap_recording::RecordingMode>,
+    pub mode: Option<scrinx_recording::RecordingMode>,
     pub shortcut: Option<String>,
     pub error: Option<String>,
 }
@@ -73,7 +73,7 @@ pub(crate) enum StopRoute {
 }
 
 struct Lease {
-    mode: cap_recording::RecordingMode,
+    mode: scrinx_recording::RecordingMode,
     generation: u32,
     phase: Phase,
     pressed: bool,
@@ -283,7 +283,7 @@ impl Inner {
             self.generation == generation
                 && lease.generation == generation
                 && lease.phase == Phase::Restoring
-                && lease.mode == cap_recording::RecordingMode::Studio
+                && lease.mode == scrinx_recording::RecordingMode::Studio
                 && !lease.wayland
         })?;
         let registered_shortcut = lease.registered_shortcut;
@@ -312,7 +312,7 @@ impl Inner {
             || self.lease.as_ref().is_none_or(|lease| {
                 lease.generation != cleanup.generation
                     || lease.phase != Phase::Restoring
-                    || lease.mode != cap_recording::RecordingMode::Studio
+                    || lease.mode != scrinx_recording::RecordingMode::Studio
                     || lease.wayland
                     || lease.registered_shortcut != cleanup.registered_shortcut
             })
@@ -333,7 +333,7 @@ impl Inner {
         let lease = self.lease.as_mut().filter(|lease| {
             lease.generation == generation
                 && lease.phase == Phase::Restoring
-                && lease.mode == cap_recording::RecordingMode::Studio
+                && lease.mode == scrinx_recording::RecordingMode::Studio
                 && !lease.wayland
         })?;
         if !self.restored.as_ref().is_some_and(|receipt| {
@@ -807,7 +807,7 @@ pub(crate) fn queue_owned_studio_stop(
     let mut inner = state.inner.lock().unwrap();
     if inner.lease.as_ref().is_none_or(|lease| {
         lease.generation != generation
-            || lease.mode != cap_recording::RecordingMode::Studio
+            || lease.mode != scrinx_recording::RecordingMode::Studio
             || lease.recording_dir.as_deref() != Some(directory)
             || !(lease.phase.can_stop() || lease.phase == Phase::Stopping)
     }) {
@@ -854,7 +854,7 @@ fn handle_stop_input(app: &AppHandle, pressed: bool, route: Option<(u32, StopRou
     #[cfg(target_os = "linux")]
     if pressed
         && inner.lease.as_ref().is_some_and(|lease| {
-            (lease.mode == cap_recording::RecordingMode::Instant || lease.wayland)
+            (lease.mode == scrinx_recording::RecordingMode::Instant || lease.wayland)
                 && lease.phase == Phase::Restoring
         })
         && inner
@@ -879,7 +879,7 @@ fn handle_stop_input(app: &AppHandle, pressed: bool, route: Option<(u32, StopRou
     let studio_stop = pressed
         .then(|| {
             inner.lease.as_ref().and_then(|lease| {
-                (lease.mode == cap_recording::RecordingMode::Studio
+                (lease.mode == scrinx_recording::RecordingMode::Studio
                     && (lease.phase.can_stop() || lease.phase == Phase::Stopping))
                     .then(|| {
                         lease
@@ -1300,7 +1300,7 @@ pub fn begin_restart(app: &AppHandle, dir: &std::path::Path) -> Result<Option<u3
 #[cfg(target_os = "linux")]
 fn native_id(window: &WebviewWindow) -> Result<u64, String> {
     use wgpu::rwh::{HasWindowHandle, RawWindowHandle};
-    if cap_recording::screenshot::uses_wayland_portal() {
+    if scrinx_recording::screenshot::uses_wayland_portal() {
         use gtk::prelude::*;
         return window
             .gtk_window()
@@ -1378,7 +1378,7 @@ pub(crate) fn instant_preflight_fixture(generation: u32) -> State {
         inner: Mutex::new(Inner {
             generation,
             lease: Some(Lease {
-                mode: cap_recording::RecordingMode::Instant,
+                mode: scrinx_recording::RecordingMode::Instant,
                 generation,
                 phase: Phase::AwaitingShortcut,
                 pressed: false,
@@ -1408,11 +1408,11 @@ pub(crate) fn deliver_preflight_shortcut(state: &State) {
 }
 
 fn capture_environment_is_x11(
-    mode: cap_recording::RecordingMode,
+    mode: scrinx_recording::RecordingMode,
     strict_x11: bool,
     uses_wayland_portal: bool,
 ) -> bool {
-    if mode == cap_recording::RecordingMode::Instant {
+    if mode == scrinx_recording::RecordingMode::Instant {
         !uses_wayland_portal
     } else {
         strict_x11
@@ -1420,13 +1420,13 @@ fn capture_environment_is_x11(
 }
 
 fn validate_capture_visibility(
-    mode: cap_recording::RecordingMode,
-    target: &cap_recording::screen_capture::ScreenCaptureTarget,
+    mode: scrinx_recording::RecordingMode,
+    target: &scrinx_recording::screen_capture::ScreenCaptureTarget,
     camera_requested: bool,
     uses_wayland_portal: bool,
     supported: bool,
 ) -> Result<bool, String> {
-    use cap_recording::{RecordingMode, screen_capture::ScreenCaptureTarget};
+    use scrinx_recording::{RecordingMode, screen_capture::ScreenCaptureTarget};
     let needs_visibility = match target {
         ScreenCaptureTarget::Display { .. } | ScreenCaptureTarget::Area { .. } => {
             matches!(mode, RecordingMode::Studio | RecordingMode::Instant)
@@ -1510,7 +1510,7 @@ pub(crate) struct InstantSeal {
     pub generation: u32,
     pub attempt: crate::recording::linux_instant::Attempt,
     pub requested: crate::RequestedInputs,
-    pub target: cap_recording::screen_capture::ScreenCaptureTarget,
+    pub target: scrinx_recording::screen_capture::ScreenCaptureTarget,
     pub capture: crate::linux_instant_camera::PhysicalRect,
     pub presentation: Option<crate::linux_instant_camera::PreparedPresentation>,
 }
@@ -1921,7 +1921,7 @@ fn release_inner(
             return;
         };
         if editor_took_foreground
-            && (lease.wayland || lease.mode == cap_recording::RecordingMode::Studio)
+            && (lease.wayland || lease.mode == scrinx_recording::RecordingMode::Studio)
         {
             for window in &mut lease.windows {
                 if window.label == CapWindowId::Main.label() {
@@ -1942,7 +1942,7 @@ fn release_inner(
         .as_ref()
         .is_some_and(|lease| {
             lease.generation == generation
-                && (lease.mode == cap_recording::RecordingMode::Instant || lease.wayland)
+                && (lease.mode == scrinx_recording::RecordingMode::Instant || lease.wayland)
         })
     {
         spawn_instant_restore(app.clone(), generation, restore_inputs);
@@ -1958,7 +1958,7 @@ fn release_inner(
         .as_ref()
         .is_some_and(|lease| {
             lease.generation == generation
-                && lease.mode == cap_recording::RecordingMode::Studio
+                && lease.mode == scrinx_recording::RecordingMode::Studio
                 && !lease.wayland
         })
     {
@@ -2371,7 +2371,7 @@ mod instant_activation_tests {
         Inner {
             generation: 7,
             lease: Some(Lease {
-                mode: cap_recording::RecordingMode::Instant,
+                mode: scrinx_recording::RecordingMode::Instant,
                 generation: 7,
                 phase: Phase::Restoring,
                 pressed: false,
@@ -2729,7 +2729,7 @@ pub(crate) fn wayland_stop_lost(app: &AppHandle, generation: u32, route: StopRou
         return;
     };
     let stop = lease.lose_stop_route(route);
-    let studio_stop = (lease.mode == cap_recording::RecordingMode::Studio
+    let studio_stop = (lease.mode == scrinx_recording::RecordingMode::Studio
         && (stop || lease.stop_requested && lease.phase == Phase::Stopping))
         .then(|| lease.recording_dir.clone())
         .flatten();
@@ -3081,8 +3081,8 @@ mod tests {
     #[test]
     fn wayland_blocks_all_floating_labels_while_capture_can_run() {
         for mode in [
-            cap_recording::RecordingMode::Studio,
-            cap_recording::RecordingMode::Instant,
+            scrinx_recording::RecordingMode::Studio,
+            scrinx_recording::RecordingMode::Instant,
         ] {
             for phase in [
                 Phase::Starting,
@@ -3387,8 +3387,8 @@ mod tests {
     #[test]
     fn x11_studio_completion_does_not_accept_instant_or_wayland_leases() {
         for (mode, wayland) in [
-            (cap_recording::RecordingMode::Instant, false),
-            (cap_recording::RecordingMode::Studio, true),
+            (scrinx_recording::RecordingMode::Instant, false),
+            (scrinx_recording::RecordingMode::Studio, true),
         ] {
             let state = x11_studio_restoring_fixture();
             {
@@ -3508,7 +3508,7 @@ mod tests {
             #[cfg(target_os = "linux")]
             x11_cleanup: None,
             lease: Some(Lease {
-                mode: cap_recording::RecordingMode::Studio,
+                mode: scrinx_recording::RecordingMode::Studio,
                 generation: 1,
                 phase: Phase::AwaitingShortcut,
                 pressed: false,
@@ -3667,7 +3667,7 @@ mod tests {
 
     #[test]
     fn instant_uses_capture_backend_without_loosening_studio_environment() {
-        use cap_recording::RecordingMode;
+        use scrinx_recording::RecordingMode;
         for strict_x11 in [false, true] {
             assert!(capture_environment_is_x11(
                 RecordingMode::Instant,
@@ -3706,7 +3706,7 @@ mod tests {
 
     #[test]
     fn monitor_visibility_requires_x11_for_both_recording_modes() {
-        use cap_recording::{RecordingMode, screen_capture::ScreenCaptureTarget};
+        use scrinx_recording::{RecordingMode, screen_capture::ScreenCaptureTarget};
         let display = ScreenCaptureTarget::Display {
             id: "1".parse().unwrap(),
         };
@@ -3747,7 +3747,7 @@ mod tests {
 
     #[test]
     fn window_camera_visibility_is_required_only_for_x11_instant() {
-        use cap_recording::{RecordingMode, screen_capture::ScreenCaptureTarget};
+        use scrinx_recording::{RecordingMode, screen_capture::ScreenCaptureTarget};
         let target = ScreenCaptureTarget::Window {
             id: "1".parse().unwrap(),
         };

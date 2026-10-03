@@ -1,4 +1,4 @@
-use cap_project::{ProjectConfiguration, TimelineConfiguration};
+use scrinx_project::{ProjectConfiguration, TimelineConfiguration};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use specta::Type;

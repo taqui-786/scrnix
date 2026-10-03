@@ -60,7 +60,7 @@ sha256sums=("$checksum")
 
 package() {
 	bsdtar -xOf "\$srcdir/scrinx.deb" "$data_member" | bsdtar -xf - -C "\$pkgdir"
-	for binary in scrinx cap-cli cap-exporter cap-muxer; do
+	for binary in scrinx scrinx-cli scrinx-exporter scrinx-muxer; do
 		test -x "\$pkgdir/usr/bin/\$binary"
 	done
 	printf 'arch\n' > "\$pkgdir/usr/lib/scrinx/package-format"

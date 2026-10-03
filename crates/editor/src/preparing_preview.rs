@@ -1,16 +1,16 @@
 use std::{collections::VecDeque, panic::AssertUnwindSafe, sync::Arc};
 
-use cap_project::{
+use futures::{FutureExt, future::BoxFuture, future::Shared};
+use scrinx_project::{
     BackgroundSource, CursorEvents, FrameStyle, ProjectConfiguration, RecordingMeta, XY,
 };
-use cap_rendering::decoder::ManagedVideoError;
-use cap_rendering::{
+use scrinx_rendering::decoder::ManagedVideoError;
+use scrinx_rendering::{
     FrameLayout, FrameRenderer, FrozenRecordedCursorAssets, ManagedRecordingSegmentDecoders,
     ManagedSegmentDecoderStatus, ManagedSegmentStopHandles, ManagedSegmentVideoError,
     ManagedSegmentVideoExit, ManagedSegmentVideoInput, ProjectUniforms, RenderOptions,
     RenderVideoConstants, RendererLayers, ZoomTransformTimeline,
 };
-use futures::{FutureExt, future::BoxFuture, future::Shared};
 use tokio::sync::watch;
 use tokio_util::sync::CancellationToken;
 
@@ -330,7 +330,7 @@ pub(crate) fn validate_input(input: &PreparingPreviewInput) -> Result<f64, Prepa
     let Some(meta) = input.recording_meta.studio_meta() else {
         return Err(invalid("Studio metadata is required"));
     };
-    let cap_project::StudioRecordingMeta::MultipleSegments { inner } = meta else {
+    let scrinx_project::StudioRecordingMeta::MultipleSegments { inner } = meta else {
         return Err(invalid("Indexed stopped segments are required"));
     };
     let count = input.segments.len();

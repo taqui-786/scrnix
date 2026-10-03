@@ -521,6 +521,16 @@ function InProgressRecordingInner() {
 		}
 	});
 
+	createEffect(() => {
+		if (ostype() !== "linux") return;
+		const variant = state().variant;
+		if (variant === "countdown" || variant === "initializing") {
+			void getCurrentWindow().show();
+		} else {
+			void getCurrentWindow().hide();
+		}
+	});
+
 	const stopRecording = createMutation(() => ({
 		mutationFn: async () => {
 			if (stopRequested()) return;
@@ -839,16 +849,15 @@ function InProgressRecordingInner() {
 		isInitializing() || (isCountdown() && countdownCurrent() === 0);
 
 	if (ostype() === "linux") {
-		if (
-			state().variant === "countdown" ||
-			state().variant === "initializing"
-		) {
+		if (state().variant === "countdown" || state().variant === "initializing") {
 			return (
 				<div class="pointer-events-none flex h-screen w-screen items-center justify-center bg-transparent select-none">
 					<div class="flex items-center gap-3 rounded-2xl bg-black/40 px-6 py-3 backdrop-blur-sm">
 						<span class="size-3 shrink-0 animate-pulse rounded-full bg-red-500" />
 						<span class="text-5xl font-bold tabular-nums text-white drop-shadow-lg">
-							<Show fallback="Starting">{isCountdown() && countdownCurrent()}</Show>
+							<Show fallback="Starting">
+								{isCountdown() && countdownCurrent()}
+							</Show>
 						</span>
 					</div>
 				</div>

@@ -7,7 +7,7 @@ use std::{
     sync::LazyLock,
 };
 
-use cap_cursor_info::CursorFamily;
+use scrinx_cursor_info::CursorFamily;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use specta::Type;

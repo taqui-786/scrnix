@@ -41,9 +41,9 @@ pub use output_pipeline::oop_muxer;
 pub use output_pipeline::*;
 pub use sources::screen_capture;
 
-use cap_media::MediaError;
 use feeds::microphone::MicrophoneFeedLock;
 use scap_targets::bounds::LogicalBounds;
+use scrinx_media::MediaError;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use thiserror::Error;

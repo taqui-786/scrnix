@@ -1,11 +1,11 @@
 use anyhow::{Context, Result};
-use cap_project::{ProjectConfiguration, RecordingMeta, StudioRecordingMeta, XY};
-use cap_rendering::{
+use clap::{Parser, ValueEnum};
+use image::{ImageBuffer, ImageFormat};
+use scrinx_project::{ProjectConfiguration, RecordingMeta, StudioRecordingMeta, XY};
+use scrinx_rendering::{
     ProjectRecordingsMeta, RecordingSegmentDecoders, RenderSegment, RenderVideoConstants,
     RenderedFrame, SegmentVideoPaths,
 };
-use clap::{Parser, ValueEnum};
-use image::{ImageBuffer, ImageFormat};
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::mpsc;
@@ -193,7 +193,7 @@ async fn main() -> Result<()> {
 
     // Start rendering in a separate task
     let render_task = tokio::task::spawn(async move {
-        cap_rendering::render_video_to_channel(
+        scrinx_rendering::render_video_to_channel(
             &render_constants,
             &project_config,
             tx,

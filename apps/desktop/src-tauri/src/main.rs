@@ -3,14 +3,14 @@
 
 use std::sync::Arc;
 
-use cap_desktop_lib::DynLoggingLayer;
+use scrinx_desktop_lib::DynLoggingLayer;
 use tracing_subscriber::{Layer, layer::SubscriberExt, util::SubscriberInitExt};
 
 const TOKIO_WORKER_THREAD_STACK_SIZE: usize = 16 * 1024 * 1024;
 
 fn main() {
     #[cfg(target_os = "linux")]
-    if let Some(threads) = cap_utils::linux_runtime::llvmpipe_thread_count() {
+    if let Some(threads) = scrinx_utils::linux_runtime::llvmpipe_thread_count() {
         // Mesa counts host CPUs inside containers; configure it before spawning threads or bundled children.
         unsafe {
             std::env::set_var("LP_NUM_THREADS", threads.to_string());
@@ -18,7 +18,7 @@ fn main() {
     }
 
     #[cfg(target_os = "linux")]
-    if let Some(config) = cap_utils::linux_package::appimage_alsa_config_path() {
+    if let Some(config) = scrinx_utils::linux_package::appimage_alsa_config_path() {
         // Configure ALSA before starting threads or handing off to a bundled child process.
         unsafe {
             std::env::set_var("ALSA_CONFIG_PATH", config);
@@ -26,14 +26,14 @@ fn main() {
     }
 
     #[cfg(target_os = "linux")]
-    if let Err(error) = cap_cli_install::appimage::dispatch_cli() {
+    if let Err(error) = scrinx_cli_install::appimage::dispatch_cli() {
         eprintln!("{error}");
         std::process::exit(1);
     }
 
     #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
     if std::env::var_os("ORT_DYLIB_PATH").is_none()
-        && let Some(path) = cap_camera_effects::onnx_runtime_library_path()
+        && let Some(path) = scrinx_camera_effects::onnx_runtime_library_path()
     {
         unsafe {
             std::env::set_var("ORT_DYLIB_PATH", path);
@@ -101,36 +101,36 @@ fn main() {
             .join("logs");
 
         #[cfg(debug_assertions)]
-        let path =
-            match cap_desktop_lib::initialize_stop_editor_benchmark(create_benchmark_log_directory)
-            {
-                Ok(directory) => directory.unwrap_or(path),
-                Err(error) => {
-                    eprintln!("Invalid Stop benchmark invocation: {error}");
-                    std::process::exit(2);
-                }
-            };
+        let path = match scrinx_desktop_lib::initialize_stop_editor_benchmark(
+            create_benchmark_log_directory,
+        ) {
+            Ok(directory) => directory.unwrap_or(path),
+            Err(error) => {
+                eprintln!("Invalid Stop benchmark invocation: {error}");
+                std::process::exit(2);
+            }
+        };
 
         path
     };
 
     let (info_file_writer, _info_logger_guard) =
-        match create_log_appender(&logs_dir, "cap-desktop.log") {
+        match create_log_appender(&logs_dir, "scrinx-desktop.log") {
             Some(appender) => {
                 let (writer, guard) = tracing_appender::non_blocking(
-                    cap_utils::diagnostic_writer::DiagnosticWriter::new(
+                    scrinx_utils::diagnostic_writer::DiagnosticWriter::new(
                         appender,
                         &logs_dir,
-                        "cap-desktop.log",
+                        "scrinx-desktop.log",
                     ),
                 );
                 let queue_errors = writer.error_counter();
-                cap_utils::operation_diagnostics::install_queue_loss_counter(move || {
+                scrinx_utils::operation_diagnostics::install_queue_loss_counter(move || {
                     queue_errors.dropped_lines()
                 });
                 let diagnostic_writer = writer.clone();
-                cap_utils::operation_diagnostics::install_sink(
-                    cap_utils::operation_diagnostics::AppInfo {
+                scrinx_utils::operation_diagnostics::install_sink(
+                    scrinx_utils::operation_diagnostics::AppInfo {
                         flavor: "tauri",
                         version: env!("CARGO_PKG_VERSION"),
                         source_revision: option_env!("CAP_BUILD_REVISION"),
@@ -147,7 +147,7 @@ fn main() {
             None => (None, None),
         };
 
-    let errors_file_appender = create_log_appender(&logs_dir, "cap-desktop-errors.log");
+    let errors_file_appender = create_log_appender(&logs_dir, "scrinx-desktop-errors.log");
 
     let (otel_layer, _tracer) = if cfg!(debug_assertions) {
         use opentelemetry::trace::TracerProvider;
@@ -164,13 +164,13 @@ fn main() {
             )
             .with_resource(
                 opentelemetry_sdk::Resource::builder()
-                    .with_service_name("cap-desktop")
+                    .with_service_name("scrinx-desktop")
                     .build(),
             )
             .build();
 
         let layer = tracing_opentelemetry::layer()
-            .with_tracer(tracer.tracer("cap-desktop"))
+            .with_tracer(tracer.tracer("scrinx-desktop"))
             .boxed();
 
         opentelemetry::global::set_tracer_provider(tracer.clone());
@@ -228,9 +228,9 @@ fn main() {
         .expect("Failed to build multi threaded tokio runtime")
         .block_on(async move {
             drop(tokio::spawn(
-                cap_utils::operation_diagnostics::run_checkpoints(),
+                scrinx_utils::operation_diagnostics::run_checkpoints(),
             ));
-            cap_desktop_lib::run(handle, logs_dir).await;
+            scrinx_desktop_lib::run(handle, logs_dir).await;
         });
 }
 
@@ -348,7 +348,7 @@ fn install_panic_hook(logs_dir: std::path::PathBuf) {
         );
 
         tracing::error!(
-            target: "cap_desktop_panic",
+            target: "scrinx_desktop_panic",
             location = %location,
             thread = %thread_name,
             message = %message,
@@ -356,7 +356,7 @@ fn install_panic_hook(logs_dir: std::path::PathBuf) {
             "panic"
         );
         eprintln!(
-            "[cap-desktop panic] thread '{thread_name}' at {location}: {message}\nbacktrace:\n{backtrace}"
+            "[scrinx-desktop panic] thread '{thread_name}' at {location}: {message}\nbacktrace:\n{backtrace}"
         );
         prev(info);
     }));
@@ -400,7 +400,7 @@ mod logging_tests {
                 .unwrap()
                 .as_nanos();
             let directory = std::env::temp_dir().join(format!(
-                "cap-desktop-logging-{}-{nonce}",
+                "scrinx-desktop-logging-{}-{nonce}",
                 std::process::id()
             ));
             std::fs::create_dir_all(&directory).unwrap();

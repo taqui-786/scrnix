@@ -1,8 +1,8 @@
-use cap_enc_ffmpeg::{mov::MOVFile, prores::ProResEncoder};
-use cap_media_info::{RawVideoFormat, VideoInfo};
-use cap_project::XY;
-use cap_rendering::{ProjectUniforms, RenderSegment, RenderedFrame};
 use futures::FutureExt;
+use scrinx_enc_ffmpeg::{mov::MOVFile, prores::ProResEncoder};
+use scrinx_media_info::{RawVideoFormat, VideoInfo};
+use scrinx_project::XY;
+use scrinx_rendering::{ProjectUniforms, RenderSegment, RenderedFrame};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::{path::PathBuf, time::Duration};
@@ -23,7 +23,7 @@ impl MovExportSettings {
         base: ExporterBase,
         on_progress: impl FnMut(u32) -> bool + Send + 'static,
     ) -> Result<PathBuf, String> {
-        use cap_utils::operation_diagnostics::{Field, observe};
+        use scrinx_utils::operation_diagnostics::{Field, observe};
         observe(
             "export_mov",
             &[
@@ -32,7 +32,7 @@ impl MovExportSettings {
                 Field::number("requested_height", self.resolution_base.y as u64),
                 Field::identifier(
                     "resource",
-                    cap_utils::operation_diagnostics::resource_id(&base.project_path),
+                    scrinx_utils::operation_diagnostics::resource_id(&base.project_path),
                 ),
                 Field::number(
                     "source_width",
@@ -135,7 +135,7 @@ impl MovExportSettings {
                 .and_then(|v| v.map_err(|v| v.to_string()))
         });
 
-        let render_video_task = cap_rendering::render_video_to_channel(
+        let render_video_task = scrinx_rendering::render_video_to_channel(
             &base.render_constants,
             &base.project_config,
             tx_image_data,

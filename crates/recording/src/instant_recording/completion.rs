@@ -32,9 +32,9 @@ mod tests {
         recovery::RecoveryManager,
         sources::screen_capture::ScreenCaptureTarget,
     };
-    use cap_media_info::{AudioInfo, VideoInfo};
-    use cap_timestamp::{Timestamp, Timestamps};
     use kameo::{Actor as _, prelude::ActorRef};
+    use scrinx_media_info::{AudioInfo, VideoInfo};
+    use scrinx_timestamp::{Timestamp, Timestamps};
     use std::{
         ffi::OsString,
         fs,
@@ -118,7 +118,7 @@ mod tests {
         #[cfg(target_os = "linux")]
         let lifetime = super::super::InstantLifetimeOwner::new();
         let timestamps = Timestamps::now();
-        let video_info = VideoInfo::from_raw(cap_media_info::RawVideoFormat::Bgra, 4, 4, 30);
+        let video_info = VideoInfo::from_raw(scrinx_media_info::RawVideoFormat::Bgra, 4, 4, 30);
         let progressive = matches!(output, OutputFiles::Progressive);
         let segments_dir = project.join(if progressive {
             "content"
@@ -156,7 +156,7 @@ mod tests {
         let mut audio_sender = None;
         let audio = if with_audio {
             let info = AudioInfo::new_raw(
-                cap_media_info::Sample::F32(cap_media_info::Type::Packed),
+                scrinx_media_info::Sample::F32(scrinx_media_info::Type::Packed),
                 48_000,
                 2,
             );

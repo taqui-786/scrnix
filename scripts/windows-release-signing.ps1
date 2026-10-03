@@ -28,20 +28,20 @@ $manifestPath = Join-Path $signingRoot "payload-manifest.json"
 function Get-PayloadDefinitions {
 	return @(
 		[pscustomobject]@{
-			Name = "Cap.exe"
-			Path = Join-Path $releaseRoot "Cap.exe"
+			Name = "Scrinx.exe"
+			Path = Join-Path $releaseRoot "Scrinx.exe"
 		},
 		[pscustomobject]@{
-			Name = "cap-cli.exe"
-			Path = Join-Path $WorkspaceRoot "apps/desktop/src-tauri/binaries/cap-cli-$Target.exe"
+			Name = "scrinx-cli.exe"
+			Path = Join-Path $WorkspaceRoot "apps/desktop/src-tauri/binaries/scrinx-cli-$Target.exe"
 		},
 		[pscustomobject]@{
-			Name = "cap-exporter.exe"
-			Path = Join-Path $WorkspaceRoot "apps/desktop/src-tauri/binaries/cap-exporter-$Target.exe"
+			Name = "scrinx-exporter.exe"
+			Path = Join-Path $WorkspaceRoot "apps/desktop/src-tauri/binaries/scrinx-exporter-$Target.exe"
 		},
 		[pscustomobject]@{
-			Name = "cap-muxer.exe"
-			Path = Join-Path $WorkspaceRoot "apps/desktop/src-tauri/binaries/cap-muxer-$Target.exe"
+			Name = "scrinx-muxer.exe"
+			Path = Join-Path $WorkspaceRoot "apps/desktop/src-tauri/binaries/scrinx-muxer-$Target.exe"
 		}
 	)
 }

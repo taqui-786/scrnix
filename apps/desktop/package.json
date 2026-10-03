@@ -15,9 +15,9 @@
 	},
 	"dependencies": {
 		"@aerofoil/rive-solid-canvas": "^2.1.4",
-		"@cap/ui-solid": "workspace:*",
-		"@cap/utils": "workspace:*",
-		"@cap/web-api-contract": "workspace:*",
+		"@scrinx/ui-solid": "workspace:*",
+		"@scrinx/utils": "workspace:*",
+		"@scrinx/web-api-contract": "workspace:*",
 		"@corvu/tooltip": "^0.2.1",
 		"@kobalte/core": "^0.13.11",
 		"@openpanel/web": "^1.4.1",

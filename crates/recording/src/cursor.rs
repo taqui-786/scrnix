@@ -1,11 +1,11 @@
 use crate::RecordingStartGate;
-use cap_cursor_capture::CursorCropBounds;
-use cap_cursor_info::CursorShape;
-use cap_project::{
+use futures::{FutureExt, future::Shared};
+use scrinx_cursor_capture::CursorCropBounds;
+use scrinx_cursor_info::CursorShape;
+use scrinx_project::{
     CursorClickEvent, CursorEvents, CursorMoveEvent, KeyPressEvent, KeyboardEvents, XY,
 };
-use cap_timestamp::Timestamps;
-use futures::{FutureExt, future::Shared};
+use scrinx_timestamp::Timestamps;
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
@@ -469,7 +469,7 @@ pub fn spawn_cursor_recorder(
         let mut last_mouse_state = device_state.get_mouse();
         let mut last_keys: Vec<device_query::Keycode> = device_state.get_keys();
 
-        let mut last_position = cap_cursor_capture::RawCursorPosition::get();
+        let mut last_position = scrinx_cursor_capture::RawCursorPosition::get();
         #[cfg(target_os = "linux")]
         let mut mice_reader = MiceReader::new();
         #[cfg(target_os = "linux")]
@@ -503,7 +503,7 @@ pub fn spawn_cursor_recorder(
             }
 
             let Some(epoch) = input_epoch(start_gate.as_ref(), start_time) else {
-                last_position = cap_cursor_capture::RawCursorPosition::get();
+                last_position = scrinx_cursor_capture::RawCursorPosition::get();
                 last_mouse_state = device_state.get_mouse();
                 last_keys = device_state.get_keys();
                 #[cfg(target_os = "linux")]
@@ -520,7 +520,7 @@ pub fn spawn_cursor_recorder(
             #[cfg(not(target_os = "linux"))]
             let is_wayland = false;
 
-            let position = cap_cursor_capture::RawCursorPosition::get();
+            let position = scrinx_cursor_capture::RawCursorPosition::get();
             let mut position_changed = if is_wayland {
                 #[cfg(target_os = "linux")]
                 {
@@ -785,7 +785,7 @@ fn macos_cursor_data(cursor: &objc2_app_kit::NSCursor) -> Option<CursorData> {
         let image_data = image.TIFFRepresentation()?;
         let image = image_data.as_bytes_unchecked().to_vec();
         let shape =
-            cap_cursor_info::CursorShapeMacOS::from_hash(&hex::encode(Sha256::digest(&image)));
+            scrinx_cursor_info::CursorShapeMacOS::from_hash(&hex::encode(Sha256::digest(&image)));
 
         Some(CursorData {
             image,

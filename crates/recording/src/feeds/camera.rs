@@ -1,16 +1,16 @@
-use cap_camera::CameraInfo;
-#[cfg(any(target_os = "macos", windows, target_os = "linux"))]
-use cap_camera_ffmpeg::*;
-use cap_fail::fail_err;
-use cap_media_info::VideoInfo;
-#[cfg(any(target_os = "macos", windows, target_os = "linux"))]
-use cap_timestamp::Timestamp;
 use futures::{
     FutureExt,
     future::{BoxFuture, Shared},
 };
 use kameo::prelude::*;
 use replace_with::replace_with_or_abort;
+use scrinx_camera::CameraInfo;
+#[cfg(any(target_os = "macos", windows, target_os = "linux"))]
+use scrinx_camera_ffmpeg::*;
+use scrinx_fail::fail_err;
+use scrinx_media_info::VideoInfo;
+#[cfg(any(target_os = "macos", windows, target_os = "linux"))]
+use scrinx_timestamp::Timestamp;
 #[cfg(any(target_os = "macos", windows, target_os = "linux"))]
 use std::cmp::Ordering;
 use std::{
@@ -133,7 +133,7 @@ struct ConnectingState {
 struct AttachedState {
     #[allow(dead_code)]
     id: DeviceOrModelID,
-    camera_info: cap_camera::CameraInfo,
+    camera_info: scrinx_camera::CameraInfo,
     video_info: VideoInfo,
     settings: Option<CameraDeviceSettings>,
     last_frame_at: Option<std::time::Instant>,
@@ -227,14 +227,14 @@ impl CameraFeed {
 #[derive(Reply)]
 pub struct CameraFeedLock {
     actor: ActorRef<CameraFeed>,
-    camera_info: cap_camera::CameraInfo,
+    camera_info: scrinx_camera::CameraInfo,
     video_info: VideoInfo,
     drop_tx: Option<oneshot::Sender<()>>,
     _token: Arc<()>,
 }
 
 impl CameraFeedLock {
-    pub fn camera_info(&self) -> &cap_camera::CameraInfo {
+    pub fn camera_info(&self) -> &scrinx_camera::CameraInfo {
         &self.camera_info
     }
 
@@ -262,11 +262,11 @@ impl Drop for CameraFeedLock {
 #[derive(serde::Serialize, serde::Deserialize, specta::Type, Clone, Debug, PartialEq)]
 pub enum DeviceOrModelID {
     DeviceID(String),
-    ModelID(cap_camera::ModelID),
+    ModelID(scrinx_camera::ModelID),
 }
 
 impl DeviceOrModelID {
-    pub fn from_info(info: &cap_camera::CameraInfo) -> Self {
+    pub fn from_info(info: &scrinx_camera::CameraInfo) -> Self {
         info.model_id()
             .map(|v| Self::ModelID(v.clone()))
             .unwrap_or_else(|| Self::DeviceID(info.device_id().to_string()))
@@ -318,7 +318,7 @@ struct InputConnected {
     generation: u64,
     id: DeviceOrModelID,
     done_tx: SyncSender<()>,
-    camera_info: cap_camera::CameraInfo,
+    camera_info: scrinx_camera::CameraInfo,
     video_info: VideoInfo,
     settings: Option<CameraDeviceSettings>,
 }
@@ -340,7 +340,7 @@ struct LockedCameraInputReconnected {
     generation: u64,
     lock_generation: u64,
     id: DeviceOrModelID,
-    camera_info: cap_camera::CameraInfo,
+    camera_info: scrinx_camera::CameraInfo,
     video_info: VideoInfo,
     settings: Option<CameraDeviceSettings>,
     done_tx: SyncSender<()>,
@@ -663,16 +663,16 @@ pub enum SetInputError {
 }
 
 #[cfg(any(target_os = "macos", windows, target_os = "linux"))]
-fn find_camera(selected_camera: &DeviceOrModelID) -> Option<cap_camera::CameraInfo> {
-    cap_camera::list_cameras().find(|c| match selected_camera {
+fn find_camera(selected_camera: &DeviceOrModelID) -> Option<scrinx_camera::CameraInfo> {
+    scrinx_camera::list_cameras().find(|c| match selected_camera {
         DeviceOrModelID::DeviceID(device_id) => c.device_id() == device_id,
         DeviceOrModelID::ModelID(model_id) => c.model_id() == Some(model_id),
     })
 }
 
 struct SetupCameraResult {
-    handle: cap_camera::CaptureHandle,
-    camera_info: cap_camera::CameraInfo,
+    handle: scrinx_camera::CaptureHandle,
+    camera_info: scrinx_camera::CameraInfo,
     video_info: VideoInfo,
 }
 
@@ -691,9 +691,9 @@ const MIN_CAMERA_FRAME_RATE: f32 = 24.0;
 
 #[cfg(any(target_os = "macos", windows, target_os = "linux"))]
 fn select_preferred_camera_format(
-    formats: &[cap_camera::Format],
+    formats: &[scrinx_camera::Format],
     settings: CameraDeviceSettings,
-) -> Option<cap_camera::Format> {
+) -> Option<scrinx_camera::Format> {
     let mut matches = formats
         .iter()
         .filter(|format| {
@@ -736,9 +736,9 @@ fn select_preferred_camera_format(
 
 #[cfg(any(target_os = "macos", windows, target_os = "linux"))]
 fn select_camera_format(
-    camera: &cap_camera::CameraInfo,
+    camera: &scrinx_camera::CameraInfo,
     settings: Option<CameraDeviceSettings>,
-) -> Result<cap_camera::Format, SetInputError> {
+) -> Result<scrinx_camera::Format, SetInputError> {
     let formats = camera.formats().ok_or(SetInputError::InvalidFormat)?;
     if formats.is_empty() {
         return Err(SetInputError::InvalidFormat);
@@ -878,7 +878,7 @@ async fn setup_camera(
     let first_attempt = start_camera_capture_attempt(
         &camera,
         format.clone(),
-        cap_camera::CaptureMode::Native,
+        scrinx_camera::CaptureMode::Native,
         recipient.clone(),
         native_recipient.clone(),
         ffmpeg_sender_count.clone(),
@@ -906,7 +906,7 @@ async fn setup_camera(
             start_camera_capture_attempt(
                 &camera,
                 format,
-                cap_camera::CaptureMode::Compatibility,
+                scrinx_camera::CaptureMode::Compatibility,
                 recipient,
                 native_recipient,
                 ffmpeg_sender_count,
@@ -923,9 +923,9 @@ async fn setup_camera(
 
 #[cfg(target_os = "macos")]
 async fn start_camera_capture_attempt(
-    camera: &cap_camera::CameraInfo,
-    format: cap_camera::Format,
-    mode: cap_camera::CaptureMode,
+    camera: &scrinx_camera::CameraInfo,
+    format: scrinx_camera::Format,
+    mode: scrinx_camera::CaptureMode,
     recipient: Recipient<NewFrame>,
     native_recipient: Recipient<NewNativeFrame>,
     ffmpeg_sender_count: Arc<std::sync::atomic::AtomicUsize>,
@@ -941,9 +941,12 @@ async fn start_camera_capture_attempt(
             let callback_num =
                 CAMERA_CALLBACK_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
-            let timestamp = Timestamp::MachAbsoluteTime(cap_timestamp::MachAbsoluteTimestamp::new(
-                cidre::cm::Clock::convert_host_time_to_sys_units(frame.native().sample_buf().pts()),
-            ));
+            let timestamp =
+                Timestamp::MachAbsoluteTime(scrinx_timestamp::MachAbsoluteTimestamp::new(
+                    cidre::cm::Clock::convert_host_time_to_sys_units(
+                        frame.native().sample_buf().pts(),
+                    ),
+                ));
 
             if native_sender_count.load(std::sync::atomic::Ordering::Relaxed) > 0 {
                 let _ = native_recipient
@@ -1031,13 +1034,13 @@ async fn setup_camera(
                 CAMERA_CALLBACK_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
             let timestamp = Timestamp::PerformanceCounter(
-                cap_timestamp::PerformanceCounterTimestamp::new(frame.native().perf_counter),
+                scrinx_timestamp::PerformanceCounterTimestamp::new(frame.native().perf_counter),
             );
 
             if native_sender_count.load(std::sync::atomic::Ordering::Relaxed) > 0
                 && let Ok(bytes) = frame.native().bytes()
             {
-                use cap_mediafoundation_utils::IMFMediaBufferExt;
+                use scrinx_mediafoundation_utils::IMFMediaBufferExt;
                 use windows::Win32::Media::MediaFoundation::MFCreateMemoryBuffer;
 
                 let data_len = bytes.len();

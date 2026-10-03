@@ -17,7 +17,7 @@
 
 use std::path::{Path, PathBuf};
 
-use cap_audio::AudioData;
+use scrinx_audio::AudioData;
 
 struct Args {
     video: PathBuf,

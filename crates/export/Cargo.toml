@@ -1,18 +1,18 @@
 [package]
-name = "cap-export"
+name = "scrinx-export"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-cap-utils = { path = "../utils" }
-cap-project = { path = "../project" }
-cap-rendering = { path = "../rendering" }
-cap-editor = { path = "../editor" }
-cap-media = { path = "../media" }
-cap-flags = { path = "../flags" }
-cap-enc-ffmpeg = { path = "../enc-ffmpeg" }
-cap-enc-gif = { path = "../enc-gif" }
-cap-media-info = { path = "../media-info" }
+scrinx-utils = { path = "../utils" }
+scrinx-project = { path = "../project" }
+scrinx-rendering = { path = "../rendering" }
+scrinx-editor = { path = "../editor" }
+scrinx-media = { path = "../media" }
+scrinx-flags = { path = "../flags" }
+scrinx-enc-ffmpeg = { path = "../enc-ffmpeg" }
+scrinx-enc-gif = { path = "../enc-gif" }
+scrinx-media-info = { path = "../media-info" }
 
 tokio.workspace = true
 tempfile = "3.12.0"

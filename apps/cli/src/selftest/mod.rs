@@ -15,8 +15,8 @@ use std::{
     time::Duration,
 };
 
-use cap_project::{RecordingMeta, RecordingMetaInner, StudioRecordingMeta};
 use clap::{Args, Subcommand, ValueEnum};
+use scrinx_project::{RecordingMeta, RecordingMetaInner, StudioRecordingMeta};
 use serde::Serialize;
 
 use measure::SyncMeasurement;
@@ -621,24 +621,23 @@ async fn run_studio_leg(
     reporter.log(&format!(
         "[1/4] Recording test pattern ({pattern_secs}s)..."
     ));
-    let mic_name =
-        if args.mic || args.mic_name.is_some() {
-            match args.mic_name.clone().or_else(|| {
-                cap_recording::MicrophoneFeed::default_device().map(|(label, _, _)| label)
-            }) {
-                Some(label) => {
-                    reporter.log(&format!("Including microphone: {label}"));
-                    Some(label)
-                }
-                None => {
-                    return Err(LegFailure::Failed(
-                        "no microphone available for --mic".to_string(),
-                    ));
-                }
+    let mic_name = if args.mic || args.mic_name.is_some() {
+        match args.mic_name.clone().or_else(|| {
+            scrinx_recording::MicrophoneFeed::default_device().map(|(label, _, _)| label)
+        }) {
+            Some(label) => {
+                reporter.log(&format!("Including microphone: {label}"));
+                Some(label)
             }
-        } else {
-            None
-        };
+            None => {
+                return Err(LegFailure::Failed(
+                    "no microphone available for --mic".to_string(),
+                ));
+            }
+        }
+    } else {
+        None
+    };
 
     let handle = start_recording(&project_path, args.fps, mic_name.clone())
         .await
@@ -682,7 +681,7 @@ async fn run_studio_leg(
     {
         let project_path = project_path.clone();
         tokio::task::spawn_blocking(move || {
-            cap_recording::recovery::RecoveryManager::remux_if_needed(&project_path)
+            scrinx_recording::recovery::RecoveryManager::remux_if_needed(&project_path)
         })
         .await
         .map_err(|e| LegFailure::Failed(format!("remux task join error: {e}")))?
@@ -824,11 +823,11 @@ async fn start_recording(
     path: &Path,
     fps: Option<u32>,
     mic_name: Option<String>,
-) -> Result<cap_recording::studio_recording::ActorHandle, String> {
-    use cap_recording::{
+) -> Result<scrinx_recording::studio_recording::ActorHandle, String> {
+    use kameo::Actor as _;
+    use scrinx_recording::{
         MicrophoneFeed, feeds::microphone, screen_capture::ScreenCaptureTarget, studio_recording,
     };
-    use kameo::Actor as _;
 
     let display = scap_targets::Display::primary();
     let target = ScreenCaptureTarget::Display { id: display.id() };
@@ -858,7 +857,7 @@ async fn start_recording(
     }
 
     let builder =
-        cap_recording::RecordingDefaults::default().apply_to_studio_builder(builder, false, fps);
+        scrinx_recording::RecordingDefaults::default().apply_to_studio_builder(builder, false, fps);
 
     #[cfg(target_os = "macos")]
     let shareable_content = cidre::sc::ShareableContent::current()
@@ -869,7 +868,7 @@ async fn start_recording(
                  Grant Scrinx screen recording access in System Settings and retry."
             )
         })
-        .map(cap_recording::SendableShareableContent::from)?;
+        .map(scrinx_recording::SendableShareableContent::from)?;
 
     builder
         .build(

@@ -1,8 +1,8 @@
-use cap_frame_converter::{
+use ffmpeg::format::Pixel;
+use scrinx_frame_converter::{
     AsyncConverterPool, ConversionConfig, ConverterPoolConfig, DropStrategy,
 };
-use cap_recording::benchmark::{BenchmarkConfig, EncoderInfo, MetricsSnapshot, PipelineMetrics};
-use ffmpeg::format::Pixel;
+use scrinx_recording::benchmark::{BenchmarkConfig, EncoderInfo, MetricsSnapshot, PipelineMetrics};
 use std::{
     sync::{
         Arc,

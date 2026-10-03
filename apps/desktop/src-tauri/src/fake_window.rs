@@ -1,5 +1,5 @@
-use cap_recording::sources::screen_capture::ScreenCaptureTarget;
 use scap_targets::{Display, DisplayId, Window as ScapWindow, bounds::LogicalBounds};
+use scrinx_recording::sources::screen_capture::ScreenCaptureTarget;
 use std::{
     collections::HashMap,
     sync::{

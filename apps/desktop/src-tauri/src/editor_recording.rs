@@ -1,8 +1,8 @@
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
-use cap_project::RecordingMeta;
-use cap_recording::RecordingMode;
+use scrinx_project::RecordingMeta;
+use scrinx_recording::RecordingMode;
 use tauri::{AppHandle, Manager};
 use tauri_specta::Event;
 

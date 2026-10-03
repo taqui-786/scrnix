@@ -9,7 +9,7 @@ import {
 test("getDesktopVersionFromCargo extracts version from Cargo.toml content", () => {
 	const mockCargo = `
 [package]
-name = "cap-desktop"
+name = "scrinx-desktop"
 version = "0.6.0"
 edition = "2024"
 `;

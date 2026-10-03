@@ -284,7 +284,7 @@ fn redact_url_credentials(url: &str) -> String {
 }
 
 fn settings_snapshot(settings: &GeneralSettingsStore) -> serde_json::Value {
-    use cap_recording::diagnostics::redact_home_paths;
+    use scrinx_recording::diagnostics::redact_home_paths;
 
     serde_json::json!({
         "maxFps": settings.max_fps,
@@ -464,7 +464,7 @@ pub async fn run_diagnostic(
     let fragmented_recording = settings
         .as_ref()
         .map(|s| s.crash_recovery_recording)
-        .unwrap_or(cap_recording::DEFAULT_CRASH_RECOVERY_RECORDING);
+        .unwrap_or(scrinx_recording::DEFAULT_CRASH_RECOVERY_RECORDING);
     let settings_json = settings.as_ref().map(settings_snapshot);
     let app_version = env!("CARGO_PKG_VERSION").to_string();
     let sync_test_error_for_report = sync_test_error.clone();
@@ -472,8 +472,8 @@ pub async fn run_diagnostic(
     // `collect_report` probes displays and disk mounts; both can block for tens
     // of seconds, so it never runs on the async runtime's cooperative threads.
     let report = tokio::task::spawn_blocking(move || {
-        cap_recording::diagnostics::collect_report(
-            cap_recording::diagnostics::DiagnosticReportArgs {
+        scrinx_recording::diagnostics::collect_report(
+            scrinx_recording::diagnostics::DiagnosticReportArgs {
                 flavor: "tauri",
                 app_version: &app_version,
                 settings: settings_json,

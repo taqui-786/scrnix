@@ -4,8 +4,8 @@ use std::{
     sync::Arc,
 };
 
-use cap_project::RecordingMeta;
 use futures::StreamExt;
+use scrinx_project::RecordingMeta;
 use tauri::AppHandle;
 use tauri_plugin_store::StoreExt;
 use tokio::{fs, sync::Mutex};
@@ -266,7 +266,7 @@ async fn migrate_project_filename_async(
         .parent()
         .ok_or("Project path has no parent directory")?;
 
-    let unique_filename = cap_utils::ensure_unique_filename(&filename, parent_dir)
+    let unique_filename = scrinx_utils::ensure_unique_filename(&filename, parent_dir)
         .map_err(|e| format!("Failed to ensure unique filename: {e}"))?;
 
     let final_path = parent_dir.join(&unique_filename);

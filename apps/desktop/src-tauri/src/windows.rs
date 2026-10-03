@@ -41,7 +41,7 @@ use crate::{
     target_select_overlay::WindowFocusManager,
     window_exclusion::WindowExclusion,
 };
-use cap_recording::{feeds, sources::screen_capture::ScreenCaptureTarget};
+use scrinx_recording::{feeds, sources::screen_capture::ScreenCaptureTarget};
 
 #[cfg(target_os = "macos")]
 const DEFAULT_TRAFFIC_LIGHTS_INSET: LogicalPosition<f64> = LogicalPosition::new(12.0, 12.0);
@@ -112,7 +112,7 @@ const WINDOWS_WEBVIEW2_BROWSER_ARGS: &str = "--disable-features=msWebOOUI,msPdfO
 #[cfg(windows)]
 fn windows_webview2_browser_args() -> String {
     let mut args = WINDOWS_WEBVIEW2_BROWSER_ARGS.to_string();
-    if cap_rendering::force_software_wgpu_adapter()
+    if scrinx_rendering::force_software_wgpu_adapter()
         || std::env::args_os().any(|arg| arg.to_str() == Some("--disable-gpu"))
     {
         args.push_str(" --disable-gpu");
@@ -2147,7 +2147,7 @@ impl ShowCapWindow {
                 }
 
                 #[cfg(target_os = "linux")]
-                if cap_recording::screenshot::uses_wayland_portal() {
+                if scrinx_recording::screenshot::uses_wayland_portal() {
                     let Some(bounds) = display.raw_handle().logical_bounds() else {
                         return Err(tauri::Error::WindowNotFound);
                     };
@@ -2179,7 +2179,7 @@ impl ShowCapWindow {
                 }
 
                 #[cfg(target_os = "linux")]
-                if cap_recording::screenshot::uses_wayland_portal() {
+                if scrinx_recording::screenshot::uses_wayland_portal() {
                     use tauri::{LogicalPosition, LogicalSize};
                     let Some(bounds) = display.raw_handle().logical_bounds() else {
                         return Err(tauri::Error::WindowNotFound);
@@ -2857,7 +2857,7 @@ impl ShowCapWindow {
                 }
 
                 #[cfg(target_os = "linux")]
-                if cap_recording::screenshot::uses_wayland_portal() {
+                if scrinx_recording::screenshot::uses_wayland_portal() {
                     let Some(bounds) = display.raw_handle().logical_bounds() else {
                         return Err(tauri::Error::WindowNotFound);
                     };
@@ -2879,7 +2879,7 @@ impl ShowCapWindow {
                 lock_window_text_scale(&window);
 
                 #[cfg(target_os = "linux")]
-                if cap_recording::screenshot::uses_wayland_portal() {
+                if scrinx_recording::screenshot::uses_wayland_portal() {
                     use tauri::{LogicalPosition, LogicalSize};
                     let Some(bounds) = display.raw_handle().logical_bounds() else {
                         return Err(tauri::Error::WindowNotFound);
@@ -3004,7 +3004,7 @@ impl ShowCapWindow {
                 }
 
                 #[cfg(target_os = "linux")]
-                if cap_recording::screenshot::uses_wayland_portal() {
+                if scrinx_recording::screenshot::uses_wayland_portal() {
                     let Some(bounds) = display.raw_handle().logical_bounds() else {
                         return Err(tauri::Error::WindowNotFound);
                     };
@@ -3064,7 +3064,7 @@ impl ShowCapWindow {
                 }
 
                 #[cfg(target_os = "linux")]
-                if cap_recording::screenshot::uses_wayland_portal() {
+                if scrinx_recording::screenshot::uses_wayland_portal() {
                     use tauri::{LogicalPosition, LogicalSize};
                     let Some(bounds) = display.raw_handle().logical_bounds() else {
                         return Err(tauri::Error::WindowNotFound);
@@ -3282,7 +3282,7 @@ impl ShowCapWindow {
                     fake_window::spawn_fake_window_listener(app.clone(), window.clone());
                 }
 
-                #[cfg(windows)]
+                #[cfg(any(windows, target_os = "linux"))]
                 {
                     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
                     let show_result = window.show();

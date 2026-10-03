@@ -448,7 +448,7 @@ struct CompletionsArgs {
 
 fn main() {
     #[cfg(target_os = "linux")]
-    if let Some(threads) = cap_utils::linux_runtime::llvmpipe_thread_count() {
+    if let Some(threads) = scrinx_utils::linux_runtime::llvmpipe_thread_count() {
         // Mesa counts host CPUs inside containers; configure it before creating the CLI runtime.
         unsafe {
             std::env::set_var("LP_NUM_THREADS", threads.to_string());
@@ -466,11 +466,14 @@ fn main() {
     let level_filter = cli.log_level.level_filter();
 
     let registry = tracing_subscriber::registry().with(tracing_subscriber::filter::filter_fn(
-        // The binary crate is named `cap`, so its own spans/events have target `cap`/`cap::…`,
-        // which a bare `cap_` prefix excludes — keep those alongside the `cap_*` library crates.
         (|v| {
             let target = v.target();
-            target == "cap" || target.starts_with("cap::") || target.starts_with("cap_")
+            target == "scrinx"
+                || target.starts_with("scrinx::")
+                || target.starts_with("scrinx_")
+                || target == "cap"
+                || target.starts_with("cap::")
+                || target.starts_with("cap_")
         }) as fn(&tracing::Metadata) -> bool,
     ));
 
@@ -487,11 +490,11 @@ fn main() {
     let _diagnostic_guard = if std::env::var_os("CAP_DIAGNOSTIC_PARENT").is_some() {
         let (writer, guard) = tracing_appender::non_blocking(std::io::stderr());
         let queue_errors = writer.error_counter();
-        cap_utils::operation_diagnostics::install_queue_loss_counter(move || {
+        scrinx_utils::operation_diagnostics::install_queue_loss_counter(move || {
             queue_errors.dropped_lines()
         });
-        cap_utils::operation_diagnostics::install_sink(
-            cap_utils::operation_diagnostics::AppInfo {
+        scrinx_utils::operation_diagnostics::install_sink(
+            scrinx_utils::operation_diagnostics::AppInfo {
                 flavor: "export_worker",
                 version: env!("CARGO_PKG_VERSION"),
                 source_revision: option_env!("CAP_BUILD_REVISION"),
@@ -541,7 +544,7 @@ fn main() {
                 .map_err(|e| format!("Failed to build Tokio runtime: {e}"))?;
 
             if _diagnostic_guard.is_some() {
-                drop(runtime.spawn(cap_utils::operation_diagnostics::run_checkpoints()));
+                drop(runtime.spawn(scrinx_utils::operation_diagnostics::run_checkpoints()));
             }
             let result = runtime.block_on(run(cli));
             drop(_diagnostic_guard);
@@ -784,21 +787,21 @@ impl DesktopArgs {
                 let format = resolve_format(json, args.format);
                 (
                     format,
-                    emit_install_status(cap_cli_install::status(), format),
+                    emit_install_status(scrinx_cli_install::status(), format),
                 )
             }
             DesktopCommands::InstallCli(args) => {
                 let format = resolve_format(json, args.format);
                 (
                     format,
-                    emit_install_status(cap_cli_install::install(), format),
+                    emit_install_status(scrinx_cli_install::install(), format),
                 )
             }
             DesktopCommands::UninstallCli(args) => {
                 let format = resolve_format(json, args.format);
                 (
                     format,
-                    emit_install_status(cap_cli_install::uninstall(), format),
+                    emit_install_status(scrinx_cli_install::uninstall(), format),
                 )
             }
         };
@@ -819,7 +822,7 @@ fn finish_json(format: OutputFormat, result: Result<(), String>) -> Result<(), S
 }
 
 fn emit_install_status(
-    status: Result<cap_cli_install::CliInstallStatus, String>,
+    status: Result<scrinx_cli_install::CliInstallStatus, String>,
     format: OutputFormat,
 ) -> Result<(), String> {
     let status = status?;

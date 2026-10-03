@@ -1,13 +1,13 @@
 use std::ops::Range;
 
 use bytemuck::{Pod, Zeroable};
-use cap_project::{TextAlign, TextBackgroundStyle};
 use glyphon::cosmic_text::Align;
 use glyphon::{
     Attrs, Buffer, Cache, Color, Family, FontSystem, Metrics, Resolution, Shaping, Style,
     SwashCache, TextArea, TextAtlas, TextBounds, TextRenderer, Viewport, Weight,
 };
 use log::warn;
+use scrinx_project::{TextAlign, TextBackgroundStyle};
 use wgpu::{Device, Queue, include_wgsl, util::DeviceExt};
 
 use crate::text::{PreparedText, StaggerEdge, stagger_alpha};

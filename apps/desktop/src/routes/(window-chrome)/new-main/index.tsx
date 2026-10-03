@@ -1,4 +1,4 @@
-import { Button } from "@cap/ui-solid";
+import { Button } from "@scrinx/ui-solid";
 import { useNavigate } from "@solidjs/router";
 import {
 	createMutation,
