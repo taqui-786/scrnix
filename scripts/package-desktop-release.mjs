@@ -99,9 +99,7 @@ export async function packageRelease({ target, version, outputDir }) {
 		`Packaging Scrinx release v${resolvedVersion} for target ${target}...`,
 	);
 
-	await runStep("node", ["scripts/sync-desktop-versions.mjs"]);
 	await runStep("node", ["scripts/build-desktop-binaries.mjs", target]);
-	await runStep("node", ["scripts/run-gpui-build.mjs", "release"]);
 	await runStep(
 		"bun",
 		["run", "preparescript", "--release"],

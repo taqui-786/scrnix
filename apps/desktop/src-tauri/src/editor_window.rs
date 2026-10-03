@@ -70,8 +70,6 @@ pub(crate) fn frame_for_websocket(output: cap_editor::EditorFrameOutput) -> Opti
             format: WSFrameFormat::Rgba,
             created_at: Instant::now(),
         },
-        // The Tauri editor transports frames over a websocket, so it never
-        // requests the gpui-only zero-copy surface format.
         #[cfg(target_os = "macos")]
         cap_editor::EditorFrameOutput::Surface(_) => return None,
     };

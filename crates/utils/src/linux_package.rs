@@ -196,8 +196,8 @@ mod tests {
 
     #[test]
     fn legacy_debian_packages_require_executable_ownership() {
-        let files = Some("/usr/bin/Cap\n/usr/bin/cap-gpui\n");
-        for executable in ["/usr/bin/Cap", "/usr/bin/cap-gpui"] {
+        let files = Some("/usr/bin/Cap\n/usr/bin/cap-muxer\n");
+        for executable in ["/usr/bin/Cap", "/usr/bin/cap-muxer"] {
             assert_eq!(
                 package_format(Path::new(executable), None, None, None, files),
                 PackageFormat::Deb

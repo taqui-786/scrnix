@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
-import { readFileSync } from "node:fs";
 import { PassThrough } from "node:stream";
 import test from "node:test";
 import {
@@ -60,28 +59,10 @@ function harness(results) {
 	};
 }
 
-test("macOS packaging uses the ScreenCaptureKit minimum across both app manifests", () => {
+test("macOS packaging uses the ScreenCaptureKit minimum", () => {
 	const minimum = resolveMacosDeploymentTarget();
 	assert.equal(minimum, "12.3");
 	assert.equal(resolveMacosDeploymentTarget(""), minimum);
-	const cargo = readFileSync(
-		new URL("../apps/desktop-gpui/Cargo.toml", import.meta.url),
-		"utf8",
-	);
-	const plist = readFileSync(
-		new URL("../apps/desktop-gpui/resources/Info.plist", import.meta.url),
-		"utf8",
-	);
-	assert.equal(
-		cargo.match(/osx_minimum_system_version\s*=\s*"([^"]+)"/)?.[1],
-		minimum,
-	);
-	assert.equal(
-		plist.match(
-			/<key>LSMinimumSystemVersion<\/key>\s*<string>([^<]+)<\/string>/,
-		)?.[1],
-		minimum,
-	);
 });
 
 test("macOS deployment targets preserve compatible overrides and reject unsafe versions", () => {

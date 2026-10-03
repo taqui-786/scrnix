@@ -32,10 +32,6 @@ function Get-PayloadDefinitions {
 			Path = Join-Path $releaseRoot "Cap.exe"
 		},
 		[pscustomobject]@{
-			Name = "cap-gpui.exe"
-			Path = Join-Path $WorkspaceRoot "apps/desktop/src-tauri/binaries/cap-gpui-$Target.exe"
-		},
-		[pscustomobject]@{
 			Name = "cap-cli.exe"
 			Path = Join-Path $WorkspaceRoot "apps/desktop/src-tauri/binaries/cap-cli-$Target.exe"
 		},

@@ -143,7 +143,7 @@ fn update_linux_recording_controls_input(app: &AppHandle) -> Result<(), String> 
         let Some(window) = handle.get_webview_window(RECORDING_CONTROLS_LABEL) else {
             return;
         };
-        let _ = window.set_ignore_cursor_events(false);
+        let _ = window.set_ignore_cursor_events(true);
         if let Ok(native) = window.gtk_window() {
             native.input_shape_combine_region(None);
         }
@@ -491,7 +491,7 @@ pub fn spawn_fake_window_listener(app: AppHandle, window: WebviewWindow) {
     let is_recording_controls = label == RECORDING_CONTROLS_LABEL;
     #[cfg(target_os = "linux")]
     if is_recording_controls {
-        let _ = window.set_ignore_cursor_events(false);
+        let _ = window.set_ignore_cursor_events(true);
         tokio::spawn(async move {
             if let Err(error) = update_linux_recording_controls_input(&app) {
                 tracing::error!(%error, "Failed to initialize recording controls input region");

@@ -39,9 +39,7 @@
 	/* Editor surfaces: a layered, low-contrast system (window < card < control)
 	 * with one accent, derived from the theme tokens in
 	 * packages/ui-solid/src/main.css (`:root` / `.dark`). Mode-agnostic
-	 * expressions, so both modes stay aligned from the single token set.
-	 * Mirrored 1:1 by EditorPalette in
-	 * apps/desktop-gpui/src/theme.rs; change both. */
+	 * expressions, so both modes stay aligned from the single token set. */
 	--ed-window: var(--background);
 	--ed-card: var(--card);
 	--ed-card-2: var(--secondary);

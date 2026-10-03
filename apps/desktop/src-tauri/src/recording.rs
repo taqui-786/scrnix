@@ -2387,6 +2387,8 @@ async fn start_recording_prepared(
         }
         .show(&app)
         .await;
+        #[cfg(target_os = "linux")]
+        crate::notifications::show_recording_controls(app.clone());
 
         if let Some(window) = CapWindowId::Main.get(&app) {
             let _ = general_settings
@@ -5284,6 +5286,8 @@ pub async fn delete_recording(app: AppHandle, state: MutableState<'_, App>) -> R
         if let Some(window) = CapWindowId::RecordingControls.get(&app) {
             let _ = window.hide();
         }
+        #[cfg(target_os = "linux")]
+        crate::notifications::close_recording_controls();
 
         let clean_generation = crate::clean_capture::owner(&app, recording.recording_dir());
         if let Some(generation) = clean_generation {
@@ -5767,6 +5771,8 @@ async fn handle_recording_end_inner(
     if let Some(window) = CapWindowId::RecordingControls.get(&handle) {
         let _ = window.hide();
     }
+    #[cfg(target_os = "linux")]
+    crate::notifications::close_recording_controls();
 
     crate::target_select_overlay::close_target_select_overlay_windows(&handle);
 

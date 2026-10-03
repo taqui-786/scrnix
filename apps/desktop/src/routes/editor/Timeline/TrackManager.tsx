@@ -167,7 +167,7 @@ export function TrackManager(props: {
 
 	// The tray is anchored to the whole gutter box, not the pill, so it slides
 	// out from the exact column where the track lanes begin and its bottom
-	// edge sits on the ruler's baseline; the GPUI editor anchors the same way.
+	// edge sits on the ruler's baseline.
 	return (
 		<Popover
 			placement="right-end"

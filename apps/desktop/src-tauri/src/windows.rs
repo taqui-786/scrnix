@@ -3109,9 +3109,14 @@ impl ShowCapWindow {
             }
             Self::InProgressRecording {
                 countdown,
+                #[cfg(not(target_os = "linux"))]
                 capture_target,
+                #[cfg(target_os = "linux")]
+                    capture_target: _,
             } => {
+                #[cfg(not(target_os = "linux"))]
                 let width = 320.0;
+                #[cfg(not(target_os = "linux"))]
                 let height = 150.0;
 
                 let title = CapWindowId::RecordingControls.title();
@@ -3171,8 +3176,9 @@ impl ShowCapWindow {
                     .transparent(true)
                     .visible_on_all_workspaces(true)
                     .content_protected(should_protect)
-                    .inner_size(width, height)
-                    .skip_taskbar(false)
+                    .inner_size(cursor_monitor.width, cursor_monitor.height)
+                    .skip_taskbar(true)
+                    .visible(false)
                     .initialization_script(format!(
                         "window.COUNTDOWN = {};",
                         countdown.unwrap_or_default()
@@ -3184,6 +3190,9 @@ impl ShowCapWindow {
                 #[cfg(target_os = "windows")]
                 log_window_content_protection(&window, should_protect, &title);
 
+                #[cfg(target_os = "linux")]
+                let (pos_x, pos_y) = (cursor_monitor.x, cursor_monitor.y);
+                #[cfg(not(target_os = "linux"))]
                 let (pos_x, pos_y) = capture_target
                     .as_ref()
                     .and_then(fake_window::calculate_recording_controls_position_for_target)
@@ -3273,7 +3282,7 @@ impl ShowCapWindow {
                     fake_window::spawn_fake_window_listener(app.clone(), window.clone());
                 }
 
-                #[cfg(any(windows, target_os = "linux"))]
+                #[cfg(windows)]
                 {
                     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
                     let show_result = window.show();

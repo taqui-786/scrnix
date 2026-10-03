@@ -346,7 +346,7 @@ function ResizeCornerHandle(props: {
 
 	// A thicker dark bracket sits 1px outside the white one on every edge so
 	// the L reads as a contour on light desktops too (cutout mode has no
-	// backdrop behind it). Same construction as the GPUI window.
+	// backdrop behind it).
 	const outlinePositionClass = () => {
 		switch (props.corner) {
 			case "nw":

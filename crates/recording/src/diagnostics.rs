@@ -668,7 +668,6 @@ pub fn collect_matrix_hints(configured_max_fps: Option<u32>, fragmented: bool) -
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct AppInfo {
-    /// Which desktop shell produced the report: `tauri` or `gpui`.
     pub flavor: String,
     pub version: String,
 }
@@ -1596,7 +1595,7 @@ mod tests {
             report_id: uuid::Uuid::new_v4().to_string(),
             generated_at: chrono::Utc::now().to_rfc3339(),
             app: AppInfo {
-                flavor: "gpui".to_string(),
+                flavor: "tauri".to_string(),
                 version: "0.6.0".to_string(),
             },
             hardware: collect_hardware_info(),
@@ -1675,7 +1674,7 @@ mod tests {
         assert_eq!(parsed.report_id, report.report_id);
         assert_eq!(parsed.generated_at, report.generated_at);
         assert_eq!(parsed.app.version, "0.6.0");
-        assert_eq!(parsed.app.flavor, "gpui");
+        assert_eq!(parsed.app.flavor, "tauri");
         assert_eq!(parsed.sync_test_error, None);
         assert_eq!(parsed.displays[0].position, Some((0.0, -1080.0)));
         assert_eq!(parsed.matrix_hints.video.len(), 1);
@@ -1705,7 +1704,7 @@ mod tests {
     fn collect_report_probes_the_machine() {
         let temp = tempfile::tempdir().unwrap();
         let report = collect_report(DiagnosticReportArgs {
-            flavor: "gpui",
+            flavor: "tauri",
             app_version: "0.6.0",
             recordings_dir: Some(temp.path()),
             configured_max_fps: Some(60),
@@ -1714,7 +1713,7 @@ mod tests {
         });
 
         assert_eq!(report.schema_version, DIAGNOSTIC_REPORT_SCHEMA_VERSION);
-        assert_eq!(report.app.flavor, "gpui");
+        assert_eq!(report.app.flavor, "tauri");
         assert_eq!(report.matrix_hints.video.len(), report.displays.len());
         assert_eq!(
             report.matrix_hints.audio_inputs.len(),

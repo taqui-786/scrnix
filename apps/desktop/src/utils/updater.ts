@@ -25,7 +25,3 @@ export async function restartAfterUpdate(): Promise<void> {
 	await commands.updatesDownloadAndInstall();
 	await commands.restartApp();
 }
-
-export async function returnToGpui(): Promise<void> {
-	await commands.switchToGpuiApp();
-}

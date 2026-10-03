@@ -26,7 +26,6 @@ mod fake_window;
 mod flags;
 pub mod frame_ws;
 mod general_settings;
-mod gpui_app;
 mod hotkeys;
 mod http_client;
 mod import;
@@ -6697,8 +6696,6 @@ fn specta_builder() -> tauri_specta::Builder {
             set_mic_input,
             set_camera_input,
             set_native_camera_preview_enabled,
-            gpui_app::gpui_app_available,
-            gpui_app::switch_to_gpui_app,
             recording_settings::set_recording_mode,
             upload_logs,
             get_system_diagnostics,
@@ -7139,50 +7136,6 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: PathBuf) {
 
             specta_builder.mount_events(&app);
             general_settings::init(&app);
-            // Before anything shows a window or initialises further state: when
-            // the native app owns the session, this one only exists to start it.
-            if gpui_app::redirect_at_startup_if_enabled(&app)? {
-                // Nothing is managed yet, so `ExitRequested` would otherwise
-                // spawn a cleanup with no `AppExitState` to guard it. Marking
-                // the exit as already begun takes the plain runtime-exit path.
-                let exit_state = AppExitState::default();
-                exit_state.begin();
-                app.manage(exit_state);
-                crash_sentinel::mark_clean_exit();
-
-                #[cfg(target_os = "macos")]
-                {
-                    if app.try_state::<gpui_app::StartupRedirectState>().is_none() {
-                        app.manage(gpui_app::StartupRedirectState::default());
-                    }
-                    finish_macos_startup_opens(&app, StartupOpenDestination::Gpui);
-                    gpui_app::retire_foreground_parent_for_handoff(&app);
-                    let app = app.clone();
-                    tokio::spawn(async move {
-                        tokio::time::sleep(Duration::from_millis(750)).await;
-                        let Some(reopen_pid) = app
-                            .try_state::<gpui_app::StartupRedirectState>()
-                            .and_then(|state| state.exit_if_pending())
-                        else {
-                            return;
-                        };
-                        if let Some(pid) = reopen_pid
-                        {
-                            match tokio::task::spawn_blocking(move || gpui_app::request_gpui_reopen(pid)).await {
-                                Ok(Ok(())) => info!(pid, "Queued a request to reopen Scrinx GPUI"),
-                                Ok(Err(error)) => warn!(pid, %error, "Could not confirm Scrinx GPUI reopening; the existing instance remains unchanged"),
-                                Err(error) => warn!(pid, %error, "Scrinx GPUI reopen forwarding did not finish"),
-                            }
-                        }
-                        app.exit(0);
-                    });
-                }
-
-                #[cfg(not(target_os = "macos"))]
-                app.exit(0);
-
-                return Ok(());
-            }
             app.manage(clean_capture::State::default());
             hotkeys::init(&app);
             configure_camera_blur_recovery(&app, previous_termination);
@@ -7505,7 +7458,7 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: PathBuf) {
             });
 
             #[cfg(target_os = "macos")]
-            finish_macos_startup_opens(&app, StartupOpenDestination::Desktop);
+            finish_macos_startup_opens(&app);
 
             Ok(())
         })
@@ -7897,15 +7850,6 @@ fn handle_single_instance(app: &AppHandle, args: Vec<String>) {
         return;
     }
 
-    if gpui_app::handle_update_handoff(app) {
-        return;
-    }
-
-    #[cfg(any(target_os = "macos", windows))]
-    if gpui_app::forward_deep_links_to_active_gpui(app, &args) {
-        return;
-    }
-
     let action_urls = args
         .iter()
         .filter(|arg| arg.starts_with("scrinx-desktop://") || arg.starts_with("cap-desktop://"))
@@ -7990,100 +7934,50 @@ where
 }
 
 #[cfg(any(target_os = "macos", test))]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum StartupOpenDestination {
-    Desktop,
-    Gpui,
-}
-
-#[cfg(any(target_os = "macos", test))]
-struct StartupOpenDispatch {
-    destination: StartupOpenDestination,
-    urls: Vec<tauri::Url>,
-}
-
-#[cfg(any(target_os = "macos", test))]
 #[derive(Default)]
 struct StartupOpenQueue {
-    destination: Option<StartupOpenDestination>,
+    ready: bool,
     cancelled: bool,
     urls: Vec<tauri::Url>,
-    gpui_forwarding: bool,
-    gpui_dispatched: Vec<tauri::Url>,
 }
 
 #[cfg(any(target_os = "macos", test))]
 impl StartupOpenQueue {
-    fn request(&mut self, urls: Vec<tauri::Url>) -> Result<Option<StartupOpenDispatch>, String> {
+    fn request(&mut self, urls: Vec<tauri::Url>) -> Result<Option<Vec<tauri::Url>>, String> {
         if self.cancelled {
             return Err("Scrinx startup stopped before the project could be opened".into());
         }
-        if self.destination == Some(StartupOpenDestination::Desktop) {
-            return Ok(Some(StartupOpenDispatch {
-                destination: StartupOpenDestination::Desktop,
-                urls,
-            }));
+        if self.ready {
+            return Ok(Some(urls));
         }
         let mut additions = Vec::new();
         for url in urls {
-            if self.urls.contains(&url)
-                || self.gpui_dispatched.contains(&url)
-                || additions.contains(&url)
-            {
+            if self.urls.contains(&url) || additions.contains(&url) {
                 continue;
             }
-            if self.urls.len() + self.gpui_dispatched.len() + additions.len() >= 64 {
+            if self.urls.len() + additions.len() >= 64 {
                 return Err("Too many projects were requested while Scrinx was starting".into());
             }
             additions.push(url);
         }
         self.urls.extend(additions);
-        if self.destination == Some(StartupOpenDestination::Gpui) && !self.gpui_forwarding {
-            return Ok(self.take_queued());
-        }
         Ok(None)
     }
 
-    fn finish(&mut self, destination: StartupOpenDestination) -> Option<StartupOpenDispatch> {
-        if self.cancelled || self.destination.is_some() {
+    fn finish(&mut self) -> Option<Vec<tauri::Url>> {
+        if self.cancelled || self.ready {
             return None;
         }
-        self.destination = Some(destination);
-        self.take_queued()
-    }
-
-    fn take_queued(&mut self) -> Option<StartupOpenDispatch> {
-        let destination = self.destination?;
+        self.ready = true;
         if self.urls.is_empty() {
             return None;
         }
-        let urls = std::mem::take(&mut self.urls);
-        if destination == StartupOpenDestination::Gpui {
-            self.gpui_forwarding = true;
-            self.gpui_dispatched.extend(urls.iter().cloned());
-        }
-        Some(StartupOpenDispatch { destination, urls })
-    }
-
-    fn next_gpui_batch(&mut self) -> Option<StartupOpenDispatch> {
-        if self.cancelled
-            || self.destination != Some(StartupOpenDestination::Gpui)
-            || !self.gpui_forwarding
-        {
-            return None;
-        }
-        if let Some(dispatch) = self.take_queued() {
-            return Some(dispatch);
-        }
-        self.cancel();
-        None
+        Some(std::mem::take(&mut self.urls))
     }
 
     fn cancel(&mut self) {
         self.cancelled = true;
         self.urls.clear();
-        self.gpui_dispatched.clear();
-        self.gpui_forwarding = false;
     }
 }
 
@@ -8098,7 +7992,7 @@ struct StartupOpenGuard(StartupOpenGate);
 impl Drop for StartupOpenGuard {
     fn drop(&mut self) {
         if let Ok(mut queue) = self.0.0.lock()
-            && queue.destination.is_none()
+            && !queue.ready
         {
             queue.cancel();
         }
@@ -8115,26 +8009,26 @@ fn queue_macos_startup_urls(app: &AppHandle, urls: Vec<tauri::Url>) -> Result<()
         .lock()
         .map_err(|_| "Scrinx startup file-open state is unavailable".to_string())?
         .request(urls)?;
-    if let Some(dispatch) = dispatch {
-        dispatch_macos_startup_urls(app, dispatch);
+    if let Some(urls) = dispatch {
+        dispatch_macos_startup_urls(app, urls);
     }
     Ok(())
 }
 
 #[cfg(target_os = "macos")]
-fn finish_macos_startup_opens(app: &AppHandle, destination: StartupOpenDestination) {
+fn finish_macos_startup_opens(app: &AppHandle) {
     let Some(gate) = app.try_state::<StartupOpenGate>() else {
         return;
     };
     let dispatch = match gate.0.lock() {
-        Ok(mut queue) => queue.finish(destination),
+        Ok(mut queue) => queue.finish(),
         Err(error) => {
             warn!(%error, "Could not release startup project requests");
             return;
         }
     };
-    if let Some(dispatch) = dispatch {
-        dispatch_macos_startup_urls(app, dispatch);
+    if let Some(urls) = dispatch {
+        dispatch_macos_startup_urls(app, urls);
     }
 }
 
@@ -8148,76 +8042,7 @@ fn cancel_macos_startup_opens(app: &AppHandle) {
 }
 
 #[cfg(target_os = "macos")]
-fn dispatch_macos_startup_urls(app: &AppHandle, dispatch: StartupOpenDispatch) {
-    let urls = dispatch.urls;
-    let arguments = urls
-        .iter()
-        .map(|url| url.as_str().to_string())
-        .collect::<Vec<_>>();
-
-    if dispatch.destination == StartupOpenDestination::Gpui {
-        let Some(redirect) = app.try_state::<gpui_app::StartupRedirectState>() else {
-            warn!("Scrinx GPUI startup forwarding state is unavailable");
-            return;
-        };
-        if redirect.begin_forwarding() {
-            let app = app.clone();
-            tokio::spawn(async move {
-                let mut arguments = arguments;
-                let mut forwarded_pid = None;
-                loop {
-                    let forwarded = tokio::task::spawn_blocking(move || {
-                        gpui_app::forward_deep_links_to_gpui_when_ready(&arguments)
-                    })
-                    .await
-                    .ok()
-                    .flatten();
-                    if let Some(pid) = forwarded {
-                        forwarded_pid = Some(pid);
-                    } else {
-                        warn!("Could not forward the requested project batch to Scrinx GPUI");
-                    }
-                    let next = app.try_state::<StartupOpenGate>().and_then(|gate| {
-                        gate.0
-                            .lock()
-                            .ok()
-                            .and_then(|mut queue| queue.next_gpui_batch())
-                    });
-                    let Some(next) = next else {
-                        break;
-                    };
-                    arguments = next
-                        .urls
-                        .iter()
-                        .map(|url| url.as_str().to_string())
-                        .collect();
-                }
-
-                if let Some(pid) = forwarded_pid
-                    && let Err(error) = app.run_on_main_thread(move || {
-                        gpui_app::activate_instance(pid);
-                    })
-                {
-                    warn!(%error, "Could not activate Scrinx GPUI after forwarding a project");
-                }
-                if app
-                    .try_state::<gpui_app::StartupRedirectState>()
-                    .is_some_and(|state| state.exit_after_forwarding())
-                {
-                    app.exit(0);
-                }
-            });
-        } else {
-            cancel_macos_startup_opens(app);
-            warn!("Scrinx GPUI handoff already finished before the project could be forwarded");
-        }
-        return;
-    }
-
-    if gpui_app::forward_deep_links_to_active_gpui(app, &arguments) {
-        return;
-    }
-
+fn dispatch_macos_startup_urls(app: &AppHandle, urls: Vec<tauri::Url>) {
     for url in urls {
         if url.scheme() == "file"
             && let Ok(path) = url.to_file_path()
@@ -8238,17 +8063,6 @@ fn handle_run_event(_handle: &AppHandle, event: tauri::RunEvent) {
         }
         #[cfg(target_os = "macos")]
         tauri::RunEvent::Reopen { .. } => {
-            if _handle
-                .try_state::<gpui_app::StartupRedirectState>()
-                .is_some()
-            {
-                return;
-            }
-
-            if gpui_app::handle_update_handoff(_handle) {
-                return;
-            }
-
             let should_focus_onboarding = should_show_onboarding(_handle);
 
             if should_focus_onboarding
@@ -9242,7 +9056,7 @@ fn open_project_from_path(path: &Path, app: AppHandle) -> Result<(), String> {
 
 #[cfg(test)]
 mod startup_project_open_tests {
-    use super::{StartupOpenDestination, StartupOpenGate, StartupOpenGuard, StartupOpenQueue};
+    use super::{StartupOpenGate, StartupOpenGuard, StartupOpenQueue};
 
     fn project(name: &str) -> tauri::Url {
         tauri::Url::parse(&format!("file:///recordings/{name}.cap")).unwrap()
@@ -9253,35 +9067,29 @@ mod startup_project_open_tests {
         let mut queue = StartupOpenQueue::default();
         let urls = vec![project("first"), project("second")];
         assert!(queue.request(urls.clone()).unwrap().is_none());
-        let dispatch = queue.finish(StartupOpenDestination::Desktop).unwrap();
-        assert_eq!(dispatch.destination, StartupOpenDestination::Desktop);
-        assert_eq!(dispatch.urls, urls);
+        let dispatch = queue.finish().unwrap();
+        assert_eq!(dispatch, urls);
         assert!(queue.urls.is_empty());
-        assert!(queue.finish(StartupOpenDestination::Desktop).is_none());
+        assert!(queue.finish().is_none());
     }
 
     #[test]
-    fn queued_files_follow_gpui_handoff_without_opening_classic_editors() {
+    fn queued_files_drain_on_finish_without_premature_dispatch() {
         let mut queue = StartupOpenQueue::default();
         let url = project("handoff");
         assert!(queue.request(vec![url.clone()]).unwrap().is_none());
-        let dispatch = queue.finish(StartupOpenDestination::Gpui).unwrap();
-        assert_eq!(dispatch.destination, StartupOpenDestination::Gpui);
-        assert_eq!(dispatch.urls, [url]);
-        assert!(queue.request(vec![project("later")]).unwrap().is_none());
-        let dispatch = queue.next_gpui_batch().unwrap();
-        assert_eq!(dispatch.destination, StartupOpenDestination::Gpui);
-        assert_eq!(dispatch.urls, [project("later")]);
+        let urls = queue.finish().unwrap();
+        assert_eq!(urls, [url]);
+        assert!(queue.request(vec![project("later")]).unwrap().is_some());
     }
 
     #[test]
     fn normal_post_ready_file_opens_dispatch_immediately() {
         let mut queue = StartupOpenQueue::default();
-        assert!(queue.finish(StartupOpenDestination::Desktop).is_none());
+        assert!(queue.finish().is_none());
         let url = project("ready");
-        let dispatch = queue.request(vec![url.clone()]).unwrap().unwrap();
-        assert_eq!(dispatch.destination, StartupOpenDestination::Desktop);
-        assert_eq!(dispatch.urls, [url]);
+        let urls = queue.request(vec![url.clone()]).unwrap().unwrap();
+        assert_eq!(urls, [url]);
     }
 
     #[test]
@@ -9300,29 +9108,23 @@ mod startup_project_open_tests {
         let mut queue = gate.0.lock().unwrap();
         assert!(queue.urls.is_empty());
         assert!(queue.request(vec![project("later")]).is_err());
-        assert!(queue.finish(StartupOpenDestination::Desktop).is_none());
-        assert!(queue.finish(StartupOpenDestination::Gpui).is_none());
+        assert!(queue.finish().is_none());
     }
 
     #[test]
-    fn completed_setup_guard_preserves_selected_destination() {
-        for destination in [
-            StartupOpenDestination::Desktop,
-            StartupOpenDestination::Gpui,
-        ] {
-            let gate = StartupOpenGate::default();
-            let guard = StartupOpenGuard(gate.clone());
-            assert!(gate.0.lock().unwrap().finish(destination).is_none());
-            drop(guard);
-            let dispatch = gate
-                .0
-                .lock()
-                .unwrap()
-                .request(vec![project("ready")])
-                .unwrap()
-                .unwrap();
-            assert_eq!(dispatch.destination, destination);
-        }
+    fn completed_setup_guard_preserves_ready_state() {
+        let gate = StartupOpenGate::default();
+        let guard = StartupOpenGuard(gate.clone());
+        assert!(gate.0.lock().unwrap().finish().is_none());
+        drop(guard);
+        let urls = gate
+            .0
+            .lock()
+            .unwrap()
+            .request(vec![project("ready")])
+            .unwrap()
+            .unwrap();
+        assert_eq!(urls, [project("ready")]);
     }
 
     #[test]
@@ -9342,43 +9144,13 @@ mod startup_project_open_tests {
     }
 
     #[test]
-    fn gpui_handoff_drains_later_batches_without_duplicate_dispatches() {
+    fn cancellation_stops_dispatch() {
         let mut queue = StartupOpenQueue::default();
-        assert!(queue.finish(StartupOpenDestination::Gpui).is_none());
-        let first = queue.request(vec![project("first")]).unwrap().unwrap();
-        assert_eq!(first.urls, [project("first")]);
-        assert!(
-            queue
-                .request(vec![project("first"), project("second")])
-                .unwrap()
-                .is_none()
-        );
-        assert!(queue.request(vec![project("second")]).unwrap().is_none());
-        let second = queue.next_gpui_batch().unwrap();
-        assert_eq!(second.urls, [project("second")]);
-        assert_eq!(second.destination, StartupOpenDestination::Gpui);
-        assert!(queue.request(vec![project("third")]).unwrap().is_none());
-        assert_eq!(queue.next_gpui_batch().unwrap().urls, [project("third")]);
-        assert!(queue.next_gpui_batch().is_none());
-        assert!(queue.request(vec![project("after-exit")]).is_err());
-    }
-
-    #[test]
-    fn cancellation_stops_desktop_dispatch_and_gpui_pending_batches() {
-        for destination in [
-            StartupOpenDestination::Desktop,
-            StartupOpenDestination::Gpui,
-        ] {
-            let mut queue = StartupOpenQueue::default();
-            assert!(queue.finish(destination).is_none());
-            assert!(queue.request(vec![project("first")]).unwrap().is_some());
-            let _ = queue.request(vec![project("pending")]).unwrap();
-            queue.cancel();
-            assert!(queue.request(vec![project("after-exit")]).is_err());
-            assert!(queue.next_gpui_batch().is_none());
-            assert!(queue.urls.is_empty());
-            assert!(queue.gpui_dispatched.is_empty());
-        }
+        assert!(queue.finish().is_none());
+        assert!(queue.request(vec![project("first")]).unwrap().is_some());
+        queue.cancel();
+        assert!(queue.request(vec![project("after-cancel")]).is_err());
+        assert!(queue.urls.is_empty());
     }
 }
 
@@ -10767,9 +10539,9 @@ mod instant_resume_safety_tests {
         std::fs::remove_dir_all(path).unwrap();
     }
     #[test]
-    fn explicit_delete_accepts_idle_gpui_recordings_while_resume_defers_them() {
+    fn explicit_delete_accepts_idle_legacy_recordings_while_resume_defers_them() {
         let path = project(
-            "gpui-delete",
+            "legacy-delete",
             InstantRecordingMeta::Complete {
                 fps: 30,
                 sample_rate: None,

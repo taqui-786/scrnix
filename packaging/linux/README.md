@@ -6,7 +6,7 @@ Build release packages on Linux with the desktop dependencies installed:
 bun run with-env node scripts/build-linux-packages.mjs x86_64-unknown-linux-gnu --config src-tauri/tauri.prod.conf.json
 ```
 
-The wrapper builds the CLI, GPUI, Tauri, DEB, RPM, and AppImage artifacts. It requires `TAURI_SIGNING_PRIVATE_KEY` and optionally `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`. Release CI supplies these through secrets; use a disposable key and matching updater public-key configuration for sandbox tests.
+The wrapper builds the CLI, Tauri, DEB, RPM, and AppImage artifacts. It requires `TAURI_SIGNING_PRIVATE_KEY` and optionally `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`. Release CI supplies these through secrets; use a disposable key and matching updater public-key configuration for sandbox tests.
 
 Prerelease versions containing a hyphen build DEB and AppImage but skip RPM, whose version format does not accept that character. Stable releases build all three formats. Arch packages can be built from either stable or prerelease DEBs.
 
@@ -51,4 +51,4 @@ This CLI default does not change desktop camera-window settings or Studio's sepa
 
 DEB and AppImage installations use separate updater targets. RPM and Arch installations direct users to update through their package manager or install the latest package, avoiding an incompatible DEB update.
 
-The release workflow checks bundled executables, native FFmpeg libraries, package markers, AppImage audio configuration, RPM version metadata, and final updater signatures. Runtime validation must additionally cover GPUI/Tauri switching, capture permissions, screen/window/area selection, camera and audio, playback, export, and CLI behavior on each supported desktop.
+The release workflow checks bundled executables, native FFmpeg libraries, package markers, AppImage audio configuration, RPM version metadata, and final updater signatures. Runtime validation must additionally cover capture permissions, screen/window/area selection, camera and audio, playback, export, and CLI behavior on each supported desktop.

@@ -144,6 +144,76 @@ pub(crate) async fn show_linux_notification(title: &str, body: &str) -> Result<(
         .map_err(|error| format!("Failed to send notification: {error}"))
 }
 
+#[cfg(target_os = "linux")]
+const RECORDING_CONTROLS_ID: u32 = 8411;
+
+#[cfg(target_os = "linux")]
+static RECORDING_CONTROLS_GEN: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+#[cfg(target_os = "linux")]
+pub fn show_recording_controls(app: tauri::AppHandle) {
+    use std::sync::atomic::Ordering;
+    use tauri::Emitter;
+    let generation = RECORDING_CONTROLS_GEN.fetch_add(1, Ordering::Relaxed) + 1;
+    std::thread::spawn(move || {
+        loop {
+            if RECORDING_CONTROLS_GEN.load(Ordering::Relaxed) != generation {
+                break;
+            }
+            let mut notification = notify_rust::Notification::new();
+            notification
+                .summary("Scrinx Recording")
+                .body("Pause, mute, stop or discard from below")
+                .auto_icon()
+                .action("toggle-pause", "Pause/Resume")
+                .action("toggle-mic", "Mute/Unmute")
+                .action("stop", "Stop & Save")
+                .action("discard", "Discard")
+                .hint(notify_rust::Hint::Resident(true))
+                .timeout(notify_rust::Timeout::Never)
+                .id(RECORDING_CONTROLS_ID);
+            let handle = match notification.show() {
+                Ok(handle) => handle,
+                Err(error) => {
+                    tracing::warn!(%error, "Recording notification unavailable, using tray fallback");
+                    break;
+                }
+            };
+            let (sender, receiver) = std::sync::mpsc::channel::<String>();
+            handle.wait_for_action(|action| {
+                let _ = sender.send(action.to_owned());
+            });
+            let action = match receiver.recv() {
+                Ok(action) => action,
+                Err(_) => break,
+            };
+            if RECORDING_CONTROLS_GEN.load(Ordering::Relaxed) != generation {
+                break;
+            }
+            if action == "__closed" {
+                break;
+            }
+            let _ = app.emit("recording-notification-action", action.clone());
+            if action == "stop" || action == "discard" {
+                break;
+            }
+        }
+    });
+}
+
+#[cfg(target_os = "linux")]
+pub fn close_recording_controls() {
+    use std::sync::atomic::Ordering;
+    RECORDING_CONTROLS_GEN.fetch_add(1, Ordering::Relaxed);
+    let _ = notify_rust::Notification::new()
+        .summary("Scrinx Recording")
+        .body("Recording finished")
+        .auto_icon()
+        .id(RECORDING_CONTROLS_ID)
+        .timeout(notify_rust::Timeout::Milliseconds(3000))
+        .show();
+}
+
 #[cfg(all(test, target_os = "linux"))]
 mod tests {
     use super::build_linux_notification;

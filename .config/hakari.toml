@@ -38,10 +38,9 @@ platforms = [
 workspace-members = ["cap-muxer", "cap-muxer-protocol"]
 
 # hakari unifies dev-dependencies as well, so left alone it pins tauri with its
-# `test` feature and tokio `test-util` into every release binary and pulls the
-# Tauri/WebKit stack into the standalone GPUI workspace. Only crates whose
-# feature drift actually cascades through the sidecar and desktop builds stay
-# in the hack; everything else keeps its natural per-binary resolution.
+# `test` feature and tokio `test-util` into every release binary. Only crates
+# whose feature drift actually cascades through the sidecar and desktop builds
+# stay in the hack; everything else keeps its natural per-binary resolution.
 [final-excludes]
 third-party = [
     { name = "softbuffer" },

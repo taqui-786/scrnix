@@ -357,7 +357,7 @@ mod tests {
     }
 
     #[test]
-    fn output_uuid_matches_gpui_name_identity_and_ignores_persisted_index() {
+    fn output_uuid_matches_name_identity_and_ignores_persisted_index() {
         let mut output = scaled_output();
         output.pending.uuid = output_uuid("HEADLESS-2");
         output.commit_output();
