@@ -3,7 +3,6 @@ import "@radix-ui/colors/amber-dark.css";
 import { createTimer } from "@solid-primitives/timer";
 import { createMutation } from "@tanstack/solid-query";
 import { LogicalPosition } from "@tauri-apps/api/dpi";
-import { listen } from "@tauri-apps/api/event";
 import {
 	CheckMenuItem,
 	Menu,
@@ -499,23 +498,6 @@ function InProgressRecordingInner() {
 	});
 
 	onMount(() => {
-		if (ostype() !== "linux") return;
-		const unlisten = listen<string>(
-			"recording-notification-action",
-			(event) => {
-				const action = event.payload;
-				if (action === "toggle-pause") togglePause.mutate();
-				else if (action === "toggle-mic") toggleMicMute.mutate();
-				else if (action === "stop") requestStopRecording();
-				else if (action === "discard") deleteRecordingNow.mutate();
-			},
-		);
-		onCleanup(() => {
-			void unlisten.then((unlistenFn) => unlistenFn());
-		});
-	});
-
-	onMount(() => {
 		const onResize = () => syncInteractiveAreaBounds();
 		window.addEventListener("resize", onResize);
 		onCleanup(() => window.removeEventListener("resize", onResize));
@@ -658,19 +640,6 @@ function InProgressRecordingInner() {
 
 			if (!shouldDelete) return;
 
-			setTeardownInFlight(true);
-			markStopped();
-			void getCurrentWindow().hide();
-			try {
-				await commands.deleteRecording();
-			} finally {
-				setTeardownInFlight(false);
-			}
-		},
-	}));
-
-	const deleteRecordingNow = createMutation(() => ({
-		mutationFn: async () => {
 			setTeardownInFlight(true);
 			markStopped();
 			void getCurrentWindow().hide();
@@ -869,7 +838,24 @@ function InProgressRecordingInner() {
 	const isStarting = () =>
 		isInitializing() || (isCountdown() && countdownCurrent() === 0);
 
-	if (ostype() === "linux") return null;
+	if (ostype() === "linux") {
+		if (
+			state().variant === "countdown" ||
+			state().variant === "initializing"
+		) {
+			return (
+				<div class="pointer-events-none flex h-screen w-screen items-center justify-center bg-transparent select-none">
+					<div class="flex items-center gap-3 rounded-2xl bg-black/40 px-6 py-3 backdrop-blur-sm">
+						<span class="size-3 shrink-0 animate-pulse rounded-full bg-red-500" />
+						<span class="text-5xl font-bold tabular-nums text-white drop-shadow-lg">
+							<Show fallback="Starting">{isCountdown() && countdownCurrent()}</Show>
+						</span>
+					</div>
+				</div>
+			);
+		}
+		return null;
+	}
 
 	return (
 		<div class="flex h-full w-full flex-col justify-end p-3">

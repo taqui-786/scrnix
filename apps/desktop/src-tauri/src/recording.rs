@@ -3500,6 +3500,31 @@ pub async fn set_mic_recording_muted(
     Ok(())
 }
 
+#[instrument(skip(state))]
+pub async fn toggle_mic_recording_muted(state: MutableState<'_, App>) -> Result<(), String> {
+    let state = state.read().await;
+
+    let Some(recording) = state.current_recording() else {
+        return Err("No recording in progress".to_string());
+    };
+
+    let mic_feed = match recording {
+        InProgressRecording::Instant { mic_feed, .. } => mic_feed.as_ref(),
+        InProgressRecording::Studio { .. } => {
+            return Err("Mic mute is only available for instant recordings".to_string());
+        }
+    };
+
+    let Some(mic_feed) = mic_feed else {
+        return Err("Recording has no microphone".to_string());
+    };
+
+    let muted = !mic_feed.is_recording_muted();
+    mic_feed.set_recording_muted(muted);
+    info!(muted, "Recording microphone mute set");
+    Ok(())
+}
+
 #[tauri::command]
 #[specta::specta]
 #[instrument(skip(app, state))]

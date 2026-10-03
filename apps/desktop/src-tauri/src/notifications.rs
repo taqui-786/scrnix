@@ -153,7 +153,14 @@ static RECORDING_CONTROLS_GEN: std::sync::atomic::AtomicU64 = std::sync::atomic:
 #[cfg(target_os = "linux")]
 pub fn show_recording_controls(app: tauri::AppHandle) {
     use std::sync::atomic::Ordering;
-    use tauri::Emitter;
+    use tauri::Manager;
+    if let Ok(capabilities) = notify_rust::get_capabilities()
+        && !capabilities.iter().any(|c| c.as_str() == "actions")
+    {
+        tracing::warn!(
+            "Notification server lacks actions; recording controls live in the tray menu"
+        );
+    }
     let generation = RECORDING_CONTROLS_GEN.fetch_add(1, Ordering::Relaxed) + 1;
     std::thread::spawn(move || {
         loop {
@@ -163,13 +170,14 @@ pub fn show_recording_controls(app: tauri::AppHandle) {
             let mut notification = notify_rust::Notification::new();
             notification
                 .summary("Scrinx Recording")
-                .body("Pause, mute, stop or discard from below")
+                .body("Pause, mute, stop or discard below, or from the tray icon")
                 .auto_icon()
                 .action("toggle-pause", "Pause/Resume")
                 .action("toggle-mic", "Mute/Unmute")
                 .action("stop", "Stop & Save")
                 .action("discard", "Discard")
                 .hint(notify_rust::Hint::Resident(true))
+                .urgency(notify_rust::Urgency::Critical)
                 .timeout(notify_rust::Timeout::Never)
                 .id(RECORDING_CONTROLS_ID);
             let handle = match notification.show() {
@@ -193,7 +201,26 @@ pub fn show_recording_controls(app: tauri::AppHandle) {
             if action == "__closed" {
                 break;
             }
-            let _ = app.emit("recording-notification-action", action.clone());
+            let result = match action.as_str() {
+                "toggle-pause" => tauri::async_runtime::block_on(
+                    crate::recording::toggle_pause_recording(app.clone(), app.state()),
+                ),
+                "toggle-mic" => tauri::async_runtime::block_on(
+                    crate::recording::toggle_mic_recording_muted(app.state()),
+                ),
+                "stop" => tauri::async_runtime::block_on(crate::recording::stop_recording(
+                    app.clone(),
+                    app.state(),
+                )),
+                "discard" => tauri::async_runtime::block_on(crate::recording::delete_recording(
+                    app.clone(),
+                    app.state(),
+                )),
+                _ => Ok(()),
+            };
+            if let Err(error) = result {
+                tracing::warn!(%error, action, "Recording notification action failed");
+            }
             if action == "stop" || action == "discard" {
                 break;
             }

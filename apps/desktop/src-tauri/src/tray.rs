@@ -81,6 +81,10 @@ pub enum TrayItem {
     ModeInstant,
     ModeScreenshot,
     RequestPermissions,
+    PauseResume,
+    StopRecording,
+    DiscardRecording,
+    ToggleMic,
 }
 
 impl From<TrayItem> for MenuId {
@@ -104,6 +108,10 @@ impl From<TrayItem> for MenuId {
             TrayItem::ModeInstant => "mode_instant",
             TrayItem::ModeScreenshot => "mode_screenshot",
             TrayItem::RequestPermissions => "request_permissions",
+            TrayItem::PauseResume => "pause_resume",
+            TrayItem::StopRecording => "stop_recording",
+            TrayItem::DiscardRecording => "discard_recording",
+            TrayItem::ToggleMic => "toggle_mic",
         }
         .into()
     }
@@ -135,6 +143,10 @@ impl TryFrom<MenuId> for TrayItem {
             "mode_instant" => Ok(TrayItem::ModeInstant),
             "mode_screenshot" => Ok(TrayItem::ModeScreenshot),
             "request_permissions" => Ok(TrayItem::RequestPermissions),
+            "pause_resume" => Ok(TrayItem::PauseResume),
+            "stop_recording" => Ok(TrayItem::StopRecording),
+            "discard_recording" => Ok(TrayItem::DiscardRecording),
+            "toggle_mic" => Ok(TrayItem::ToggleMic),
             value => Err(format!("Invalid tray item id {value}")),
         }
     }
@@ -499,6 +511,48 @@ fn build_tray_menu(app: &AppHandle, cache: &PreviousItemsCache) -> tauri::Result
     let is_screenshot_mode = current_mode == RecordingMode::Screenshot;
 
     let menu = Menu::new(app)?;
+
+    let is_recording = app
+        .try_state::<Arc<tokio::sync::RwLock<crate::App>>>()
+        .map(|state| {
+            state
+                .try_read()
+                .map(|guard| guard.current_recording().is_some())
+                .unwrap_or(false)
+        })
+        .unwrap_or(false);
+
+    if is_recording {
+        menu.append(&MenuItem::with_id(
+            app,
+            TrayItem::PauseResume,
+            "Pause/Resume Recording",
+            true,
+            None::<&str>,
+        )?)?;
+        menu.append(&MenuItem::with_id(
+            app,
+            TrayItem::ToggleMic,
+            "Mute/Unmute Microphone",
+            true,
+            None::<&str>,
+        )?)?;
+        menu.append(&MenuItem::with_id(
+            app,
+            TrayItem::StopRecording,
+            "Stop & Save Recording",
+            true,
+            None::<&str>,
+        )?)?;
+        menu.append(&MenuItem::with_id(
+            app,
+            TrayItem::DiscardRecording,
+            "Discard Recording",
+            true,
+            None::<&str>,
+        )?)?;
+        menu.append(&PredefinedMenuItem::separator(app)?)?;
+    }
 
     menu.append(&MenuItem::with_id(
         app,
@@ -1026,6 +1080,41 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
                         let _ = ShowCapWindow::Onboarding.show(&app).await;
                     });
                 }
+                Ok(TrayItem::PauseResume) => {
+                    let app = app.clone();
+                    tokio::spawn(async move {
+                        if let Err(error) =
+                            recording::toggle_pause_recording(app.clone(), app.state()).await
+                        {
+                            tracing::warn!(%error, "Tray pause/resume failed");
+                        }
+                    });
+                }
+                Ok(TrayItem::StopRecording) => {
+                    let app = app.clone();
+                    tokio::spawn(async move {
+                        let _ = recording::stop_recording(app.clone(), app.state()).await;
+                    });
+                }
+                Ok(TrayItem::DiscardRecording) => {
+                    let app = app.clone();
+                    tokio::spawn(async move {
+                        if let Err(error) =
+                            recording::delete_recording(app.clone(), app.state()).await
+                        {
+                            tracing::warn!(%error, "Tray discard failed");
+                        }
+                    });
+                }
+                Ok(TrayItem::ToggleMic) => {
+                    let app = app.clone();
+                    tokio::spawn(async move {
+                        if let Err(error) = recording::toggle_mic_recording_muted(app.state()).await
+                        {
+                            tracing::warn!(%error, "Tray mic toggle failed");
+                        }
+                    });
+                }
                 _ => {}
             }
         })
@@ -1059,9 +1148,11 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
 
     RecordingStarted::listen_any(&app, {
         let app = app.clone();
+        let cache = cache.clone();
         let is_recording = is_recording.clone();
         move |_| {
             is_recording.store(true, Ordering::Relaxed);
+            refresh_tray_menu(&app, &cache);
 
             if cfg!(target_os = "windows") {
                 return;
@@ -1079,9 +1170,11 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
 
     RecordingStopped::listen_any(&app, {
         let app_handle = app.clone();
+        let cache = cache.clone();
         let is_recording = is_recording.clone();
         move |_| {
             is_recording.store(false, Ordering::Relaxed);
+            refresh_tray_menu(&app_handle, &cache);
 
             if cfg!(target_os = "windows") {
                 return;
